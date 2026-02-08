@@ -1,0 +1,212 @@
+'use client';
+
+import { useState, useEffect } from 'react';
+import { useRouter } from 'next/navigation';
+import { SystemCheck, Status, SystemCategory } from '@/lib/types';
+import { Save, AlertCircle } from 'lucide-react';
+import clsx from 'clsx';
+
+const DEFAULT_CATEGORIES: SystemCategory[] = [
+  { id: 'CAT1', name: 'A. Hệ thống Cầu hành khách' },
+  { id: 'CAT2', name: 'B. Hệ thống Dẫn đỗ tàu bay' },
+  { id: 'CAT3', name: 'C. Hệ thống Máy soi' },
+  { id: 'CAT4', name: 'D. Hệ thống Cổng từ' },
+  { id: 'CAT5', name: 'E. Hệ thống TDS' },
+  { id: 'CAT6', name: 'F. Hệ thống ACS' },
+  { id: 'CAT7', name: 'G. Hệ thống TEL' },
+  { id: 'CAT8', name: 'H. Hệ thống CCTV' },
+  { id: 'CAT9', name: 'I. Hệ thống Thu phí ETC' },
+  { id: 'CAT10', name: 'J. Hệ thống thu phí xe máy' },
+  { id: 'CAT11', name: 'K. Hệ thống Cửa trượt tự động' },
+];
+
+const DEFAULT_SYSTEMS: SystemCheck[] = [
+  { id: 'A1', categoryId: 'CAT1', name: 'Cầu số 1', status: null, note: '' },
+  { id: 'A2', categoryId: 'CAT1', name: 'Cầu số 2', status: null, note: '' },
+  { id: 'A3', categoryId: 'CAT1', name: 'Cầu số 3', status: null, note: '' },
+  { id: 'A4', categoryId: 'CAT1', name: 'Cầu số 4', status: null, note: '' },
+  { id: 'A5', categoryId: 'CAT1', name: 'Cầu số 5', status: null, note: '' },
+
+  { id: 'B1', categoryId: 'CAT2', name: 'Dẫn đỗ D1', status: null, note: '' },
+  { id: 'B2', categoryId: 'CAT2', name: 'Dẫn đỗ D2', status: null, note: '' },
+
+  { id: 'C1', categoryId: 'CAT3', name: 'Máy soi 1', status: null, note: '' },
+  { id: 'C2', categoryId: 'CAT3', name: 'Máy soi 2', status: null, note: '' },
+
+  { id: 'D1', categoryId: 'CAT4', name: 'Cổng từ 1', status: null, note: '' },
+  { id: 'D2', categoryId: 'CAT4', name: 'Cổng từ 2', status: null, note: '' },
+
+  { id: 'E1', categoryId: 'CAT5', name: 'TDS 1', status: null, note: '' },
+  { id: 'E2', categoryId: 'CAT5', name: 'TDS 2', status: null, note: '' },
+
+  { id: 'F1', categoryId: 'CAT6', name: 'ACS 1', status: null, note: '' },
+  { id: 'F2', categoryId: 'CAT6', name: 'ACS 2', status: null, note: '' },
+
+  { id: 'G1', categoryId: 'CAT7', name: 'TEL 1', status: null, note: '' },
+  { id: 'G2', categoryId: 'CAT7', name: 'TEL 2', status: null, note: '' },
+
+  { id: 'H1', categoryId: 'CAT8', name: 'CCTV 1', status: null, note: '' },
+  { id: 'H2', categoryId: 'CAT8', name: 'CCTV 2', status: null, note: '' },
+
+  { id: 'I1', categoryId: 'CAT9', name: 'ETC 1', status: null, note: '' },
+  { id: 'I2', categoryId: 'CAT9', name: 'ETC 2', status: null, note: '' },
+
+  { id: 'J1', categoryId: 'CAT10', name: 'Thu phí XM 1', status: null, note: '' },
+  { id: 'J2', categoryId: 'CAT10', name: 'Thu phí XM 2', status: null, note: '' },
+
+  { id: 'K1', categoryId: 'CAT11', name: 'Cửa trượt 1', status: null, note: '' },
+  { id: 'K2', categoryId: 'CAT11', name: 'Cửa trượt 2', status: null, note: '' },
+];
+
+export default function Home() {
+  const router = useRouter();
+  const [categories, setCategories] = useState<SystemCategory[]>([]);
+  const [systems, setSystems] = useState<SystemCheck[]>([]);
+  const [isLoaded, setIsLoaded] = useState(false);
+  const [errors, setErrors] = useState<Set<string>>(new Set());
+
+  useEffect(() => {
+    // RESET DATA to defaults to match Structure A perfectly
+    setCategories(DEFAULT_CATEGORIES);
+    setSystems(DEFAULT_SYSTEMS);
+    setIsLoaded(true);
+  }, []);
+
+  const handleStatusChange = (id: string, status: Status) => {
+    setSystems(prev => prev.map(s => s.id === id ? { ...s, status } : s));
+    if (status !== 'NOK') {
+      setErrors(prev => {
+        const next = new Set(prev);
+        next.delete(id);
+        return next;
+      });
+    }
+  };
+
+  const handleNoteChange = (id: string, note: string) => {
+    setSystems(prev => prev.map(s => s.id === id ? { ...s, note } : s));
+    if (note.trim()) {
+      setErrors(prev => {
+        const next = new Set(prev);
+        next.delete(id);
+        return next;
+      });
+    }
+  };
+
+  const handleSave = () => {
+    // 1. Validate NOK notes
+    const newErrors = new Set<string>();
+    const nokItems = systems.filter(s => s.status === 'NOK');
+
+    nokItems.forEach(s => {
+      if (!s.note.trim()) {
+        newErrors.add(s.id);
+      }
+    });
+
+    if (newErrors.size > 0) {
+      setErrors(newErrors);
+      alert('Vui lòng nhập ghi chú cho các mục NOK!');
+      return;
+    }
+
+    // 2. Save
+    localStorage.setItem('checklist_systems', JSON.stringify(systems));
+    localStorage.setItem('checklist_categories', JSON.stringify(categories));
+
+    // 3. Redirect logic: Link to first NOK
+    if (nokItems.length > 0) {
+      // Go to the first NOK system found
+      router.push(`/check/${nokItems[0].id}`);
+    } else {
+      // All OK -> Summary
+      router.push('/summary');
+    }
+  };
+
+  if (!isLoaded) return null;
+
+  return (
+    <div className="min-h-screen bg-slate-50 p-4 font-sans text-slate-900">
+      <div className="max-w-4xl mx-auto bg-white border border-slate-300 shadow-sm">
+        <h1 className="text-xl font-bold bg-slate-800 text-white p-4 text-center uppercase">
+          Bảng Kiểm Tra Hệ Thống
+        </h1>
+
+        <table className="w-full text-left border-collapse">
+          <thead className="bg-slate-200 text-slate-700 font-bold uppercase text-sm">
+            <tr>
+              <th className="p-3 border border-slate-300 w-1/3">Hệ thống</th>
+              <th className="p-3 border border-slate-300 text-center w-1/3">Status</th>
+              <th className="p-3 border border-slate-300 w-1/3">Note</th>
+            </tr>
+          </thead>
+          <tbody>
+            {categories.map(cat => {
+              const catSystems = systems.filter(s => s.categoryId === cat.id);
+              return (
+                <>
+                  {/* Category Header Row */}
+                  <tr key={cat.id} className="bg-blue-50">
+                    <td colSpan={3} className="p-3 border border-slate-300 font-bold text-blue-800">
+                      {cat.name}
+                    </td>
+                  </tr>
+                  {/* System Rows */}
+                  {catSystems.map(sys => (
+                    <tr key={sys.id} className="hover:bg-slate-50">
+                      <td className="p-3 border border-slate-300 font-medium pl-8">
+                        {sys.name} {sys.id}
+                      </td>
+                      <td className="p-3 border border-slate-300 text-center">
+                        <div className="flex gap-1 justify-center">
+                          {(['OK', 'NOK', 'NA'] as Status[]).map(st => (
+                            <button
+                              key={st}
+                              onClick={() => handleStatusChange(sys.id, st)}
+                              className={clsx(
+                                "px-3 py-1 rounded font-bold text-xs border transition w-12",
+                                sys.status === st
+                                  ? (st === 'OK' ? "bg-green-600 text-white border-green-700" :
+                                    st === 'NOK' ? "bg-red-600 text-white border-red-700" :
+                                      "bg-slate-600 text-white border-slate-700")
+                                  : "bg-white text-slate-500 border-slate-300 hover:bg-slate-100"
+                              )}
+                            >
+                              {st}
+                            </button>
+                          ))}
+                        </div>
+                      </td>
+                      <td className="p-3 border border-slate-300">
+                        <input
+                          className={clsx(
+                            "w-full p-2 border rounded text-sm outline-none",
+                            errors.has(sys.id) ? "border-red-500 bg-red-50 placeholder-red-300" : "border-slate-200 focus:border-blue-500"
+                          )}
+                          placeholder={errors.has(sys.id) ? "Bắt buộc nhập ghi chú!" : "Ghi chú..."}
+                          value={sys.note}
+                          onChange={(e) => handleNoteChange(sys.id, e.target.value)}
+                        />
+                      </td>
+                    </tr>
+                  ))}
+                </>
+              )
+            })}
+          </tbody>
+        </table>
+
+        <div className="p-4 bg-slate-100 border-t border-slate-300 flex justify-end sticky bottom-0">
+          <button
+            onClick={handleSave}
+            className="px-6 py-3 bg-blue-700 text-white font-bold uppercase rounded shadow hover:bg-blue-800 flex items-center gap-2"
+          >
+            <Save size={20} /> Lưu Kiểm Tra
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}

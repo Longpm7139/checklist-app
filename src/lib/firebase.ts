@@ -1,0 +1,139 @@
+'use client';
+
+// Import the functions you need from the SDKs you need
+import { initializeApp, getApps, getApp } from "firebase/app";
+import { getFirestore, collection, getDocs, doc, setDoc, updateDoc, deleteDoc, query, where, onSnapshot, getDoc, addDoc, limit } from "firebase/firestore";
+
+// TODO: Thay thế phần bên dưới bằng Config từ Firebase Console
+// 1. Vào console.firebase.google.com
+// 2. Tạo Project mới
+// 3. Vào Project Settings -> General -> Your apps -> chọn Web (</>)
+// 4. Copy toàn bộ đoạn firebaseConfig dán vào bên dưới
+const firebaseConfig = {
+    apiKey: "AIzaSyDVqP30dU9dglVTHEC2n3EU6d51DSAXFFc",
+    authDomain: "checklistapp-38948.firebaseapp.com",
+    projectId: "checklistapp-38948",
+    storageBucket: "checklistapp-38948.firebasestorage.app",
+    messagingSenderId: "477232659978",
+    appId: "1:477232659978:web:02975e29d1a57b941929f3",
+    measurementId: "G-G514YP3WLP"
+};
+
+// Initialize Firebase
+// Check if app is already initialized to avoid duplication in Next.js hot-reload
+const app = !getApps().length ? initializeApp(firebaseConfig) : getApp();
+const db = getFirestore(app);
+
+export { db };
+
+// --- HELPER FUNCTIONS FOR MIGRATION ---
+
+// Systems
+export const subscribeToSystems = (callback: (data: any[]) => void) => {
+    const q = query(collection(db, "systems"));
+    return onSnapshot(q, (querySnapshot) => {
+        const systems: any[] = [];
+        querySnapshot.forEach((doc) => {
+            systems.push({ ...doc.data(), id: doc.id });
+        });
+        callback(systems);
+    });
+};
+
+export const saveSystem = async (id: string, data: any) => {
+    // Merge true to allow partial updates (e.g. status change) without wiping name/categoryId
+    await setDoc(doc(db, "systems", id), data, { merge: true });
+};
+
+export const deleteSystem = async (id: string) => {
+    await deleteDoc(doc(db, "systems", id));
+};
+
+// Logs
+export const addLog = async (log: any) => {
+    // Use timestamp as ID or auto-id
+    const logId = log.id || Date.now().toString();
+    await setDoc(doc(db, "logs", logId), log);
+};
+
+// Incidents
+export const subscribeToIncidents = (callback: (data: any[]) => void) => {
+    const q = query(collection(db, "incidents"));
+    return onSnapshot(q, (querySnapshot) => {
+        const items: any[] = [];
+        querySnapshot.forEach((doc) => {
+            items.push(doc.data());
+        });
+        callback(items);
+    });
+};
+
+export const saveIncident = async (incident: any) => {
+    await setDoc(doc(db, "incidents", incident.id), incident);
+};
+
+// Maintenance
+export const saveMaintenance = async (task: any) => {
+    await setDoc(doc(db, "maintenance", task.id), task);
+};
+
+// Checklist Details
+export const subscribeToChecklist = (systemId: string, callback: (data: any) => void) => {
+    return onSnapshot(doc(db, "details", systemId), (doc) => {
+        if (doc.exists()) {
+            callback(doc.data().items || []);
+        } else {
+            callback([]);
+        }
+    });
+};
+
+export const saveChecklist = async (systemId: string, items: any[]) => {
+    await setDoc(doc(db, "details", systemId), { items });
+};
+
+// Users
+export const getUsers = async () => {
+    const q = query(collection(db, "users"));
+    const snapshot = await getDocs(q);
+    const users: any[] = [];
+    snapshot.forEach((doc) => {
+        users.push({ ...doc.data(), id: doc.id });
+    });
+    return users.sort((a, b) => a.name.localeCompare(b.name));
+};
+
+export const getUserByCode = async (code: string) => {
+    const q = query(collection(db, "users"), where("code", "==", code));
+    const snapshot = await getDocs(q);
+    if (!snapshot.empty) {
+        const doc = snapshot.docs[0];
+        return { ...doc.data(), id: doc.id };
+    }
+    return null;
+};
+
+export const addUser = async (user: any) => {
+    // Check if user exists
+    const existing = await getUserByCode(user.code);
+    if (existing) {
+        throw new Error('Mã nhân viên đã tồn tại');
+    }
+    // Add new user
+    await addDoc(collection(db, "users"), user);
+};
+
+export const deleteUser = async (id: string) => {
+    await deleteDoc(doc(db, "users", id));
+};
+
+export const updateUserPassword = async (id: string, password: string) => {
+    await updateDoc(doc(db, "users", id), { password });
+};
+
+// Seeding
+export const checkAnyUserExists = async () => {
+    const q = query(collection(db, "users"), limit(1));
+    const snapshot = await getDocs(q);
+    return !snapshot.empty;
+};
