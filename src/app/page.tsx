@@ -60,7 +60,7 @@ const DEFAULT_SYSTEMS: SystemCheck[] = [
   { id: 'K2', categoryId: 'CAT11', name: 'Cửa trượt 2', status: null, note: '' },
 ];
 
-import { subscribeToSystems, saveSystem, deleteSystem, subscribeToIncidents } from '@/lib/firebase';
+import { subscribeToSystems, saveSystem, deleteSystem, subscribeToIncidents, backupAllData } from '@/lib/firebase';
 
 export default function Home() {
   const router = useRouter();
@@ -84,7 +84,8 @@ export default function Home() {
         DEFAULT_SYSTEMS.forEach(s => saveSystem(s.id, s));
       } else {
         console.log("Loaded systems from Firebase:", data.length);
-        setSystems(data as SystemCheck[]);
+        const sorted = (data as SystemCheck[]).sort((a, b) => a.id.localeCompare(b.id, undefined, { numeric: true }));
+        setSystems(sorted);
       }
       setIsLoaded(true);
     });
@@ -282,42 +283,7 @@ export default function Home() {
 
   const buttonText = hasErrors ? `${failedCategoryNames}` : "Tất cả OK";
 
-  const handleDownloadBackup = () => {
-    try {
-      const backupData: any = {};
-      // Collect all localStorage keys starting with 'checklist_'
-      for (let i = 0; i < localStorage.length; i++) {
-        const key = localStorage.key(i);
-        if (key && key.startsWith('checklist_')) {
-          const value = localStorage.getItem(key);
-          if (value) {
-            try {
-              backupData[key] = JSON.parse(value);
-            } catch {
-              backupData[key] = value;
-            }
-          }
-        }
-      }
 
-      // Add timestamp
-      backupData['backup_timestamp'] = new Date().toISOString();
-
-      // Create blob and download
-      const blob = new Blob([JSON.stringify(backupData, null, 2)], { type: 'application/json' });
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = `checklist_data_backup_${new Date().toISOString().slice(0, 10)}.json`;
-      document.body.appendChild(a);
-      a.click();
-      document.body.removeChild(a);
-      URL.revokeObjectURL(url);
-    } catch (e) {
-      console.error(e);
-      alert("Lỗi khi tạo backup dữ liệu.");
-    }
-  };
 
 
   if (!isLoaded) return null;
@@ -368,13 +334,7 @@ export default function Home() {
                 >
                   <Package size={16} />
                 </button>
-                <button
-                  onClick={() => router.push('/materials')}
-                  className="p-2 rounded text-sm font-normal flex items-center gap-1 bg-amber-600 hover:bg-amber-700 text-white transition"
-                  title="Quản lý Vật tư"
-                >
-                  <Package size={16} />
-                </button>
+
                 <button
                   onClick={() => router.push('/qrs')}
                   className="p-2 rounded text-sm font-normal flex items-center gap-1 bg-slate-800 hover:bg-black text-white transition"
@@ -389,12 +349,32 @@ export default function Home() {
                 >
                   <Users size={16} />
                 </button>
+
                 <button
-                  onClick={handleDownloadBackup}
+                  onClick={async () => {
+                    if (confirm('Bạn có muốn tải về bản sao lưu toàn bộ dữ liệu không?')) {
+                      try {
+                        const json = await backupAllData();
+                        const blob = new Blob([json], { type: 'application/json' });
+                        const url = URL.createObjectURL(blob);
+                        const a = document.createElement('a');
+                        a.href = url;
+                        a.download = `backup_full_${new Date().toISOString().slice(0, 10)}.json`;
+                        document.body.appendChild(a);
+                        a.click();
+                        document.body.removeChild(a);
+                        URL.revokeObjectURL(url);
+                        alert('Đã tải xuống bản sao lưu thành công!');
+                      } catch (e) {
+                        console.error(e);
+                        alert('Lỗi sao lưu dữ liệu!');
+                      }
+                    }
+                  }}
                   className="p-2 rounded text-sm font-normal flex items-center gap-1 bg-slate-600 hover:bg-slate-700 text-white transition"
-                  title="Tải Backup Dữ liệu (JSON)"
+                  title="Sao lưu dữ liệu (Admin)"
                 >
-                  <Save size={16} />
+                  <Save size={16} /> JSON
                 </button>
               </>
             )}

@@ -19,6 +19,7 @@ interface SummaryRow {
     // Helper to know where this came from
     systemId: string;
     detailId?: string;
+    executorName?: string;
 }
 
 export default function SummaryPage() {
@@ -54,7 +55,8 @@ export default function SummaryPage() {
                                 actionDescription: item.materialRequest || '',
                                 inspectorName: item.inspectorName,
                                 systemId: sys.id,
-                                detailId: item.id
+                                detailId: item.id,
+                                executorName: item.executorName || '',
                             });
                         }
                     });
@@ -74,7 +76,8 @@ export default function SummaryPage() {
                 return {
                     ...r,
                     fixStatus: status,
-                    actionDescription: status === 'Fixed' ? r.actionDescription : '' // Clear if not Fixed
+                    actionDescription: status === 'Fixed' ? r.actionDescription : '', // Clear if not Fixed
+                    executorName: (status === 'Fixed' || status === 'Pending Material') ? user?.name : ''
                 };
             }
             return r;
@@ -139,7 +142,7 @@ export default function SummaryPage() {
                 resolvedAt: new Date().toLocaleString('vi-VN', { hour: '2-digit', minute: '2-digit', day: '2-digit', month: '2-digit', year: 'numeric' }),
                 actionNote: r.actionDescription || '',
                 inspectorName: r.inspectorName || 'Unknown',
-                resolverName: user?.name || 'Unknown'
+                resolverName: r.executorName || user?.name || 'Unknown'
             }));
             await Promise.all(historyPromises);
 
@@ -169,7 +172,7 @@ export default function SummaryPage() {
                     }
                     if (materialRow) {
                         modified = true;
-                        return { ...item, materialRequest: materialRow.actionDescription };
+                        return { ...item, materialRequest: materialRow.actionDescription, executorName: materialRow.executorName };
                     }
                     return item;
                 });
@@ -259,7 +262,7 @@ export default function SummaryPage() {
                                     <div>{row.timestamp}</div>
                                 </td>
                                 <td className="p-3 border border-slate-300 text-center font-bold text-blue-600 text-sm">
-                                    {row.inspectorName || '-'}
+                                    {row.executorName || (row.fixStatus === 'Fixed' || row.fixStatus === 'Pending Material' ? user?.name : '-')}
                                 </td>
                                 <td className="p-3 border border-slate-300">
                                     <input

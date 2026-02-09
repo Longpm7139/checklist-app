@@ -6,6 +6,7 @@ import { ArrowLeft, Printer, ExternalLink } from 'lucide-react';
 import QRCode from "react-qr-code";
 import { SystemCheck } from '@/lib/types';
 import { useUser } from '@/providers/UserProvider';
+import { subscribeToSystems } from '@/lib/firebase';
 
 export default function QRPage() {
     const router = useRouter();
@@ -14,13 +15,16 @@ export default function QRPage() {
     const [baseUrl, setBaseUrl] = useState('');
 
     useEffect(() => {
-        // Load systems
-        const saved = localStorage.getItem('checklist_systems');
-        if (saved) {
-            setSystems(JSON.parse(saved));
-        }
+        // Load systems from Firebase
+        const unsub = subscribeToSystems((data) => {
+            const sorted = (data as SystemCheck[]).sort((a, b) => a.id.localeCompare(b.id, undefined, { numeric: true }));
+            setSystems(sorted);
+        });
+
         // Base URL
         setBaseUrl(window.location.origin);
+
+        return () => unsub();
     }, []);
 
     if (user?.role !== 'ADMIN') {

@@ -6,6 +6,7 @@ import { ArrowLeft, Wrench, Calendar, CheckSquare, Plus, User, Clock } from 'luc
 import { useUser } from '@/providers/UserProvider';
 import { MaintenanceTask } from '@/lib/types';
 import clsx from 'clsx';
+import { subscribeToMaintenance, saveMaintenance } from '@/lib/firebase';
 
 export default function MaintenancePage() {
     const router = useRouter();
@@ -21,12 +22,27 @@ export default function MaintenancePage() {
 
     // New: Multi-select state
     const [selectedUserCodes, setSelectedUserCodes] = useState<string[]>([]);
+    const [selectedSupervisorCodes, setSelectedSupervisorCodes] = useState<string[]>([]);
 
     useEffect(() => {
-        const saved = localStorage.getItem('checklist_maintenance');
-        if (saved) {
-            setTasks(JSON.parse(saved).reverse());
-        }
+        const unsub = subscribeToMaintenance((data) => {
+            // Sort by createdAt desc
+            const sorted = (data as MaintenanceTask[]).sort((a, b) => {
+                // Parse date string "HH:mm dd/MM/yyyy"
+                const parseDate = (d: string) => {
+                    const [time, date] = d.split(' ');
+                    const [hh, mm] = time.split(':');
+                    const [D, M, Y] = date.split('/');
+                    return new Date(`${Y}-${M}-${D}T${hh}:${mm}:00`).getTime();
+                };
+                try {
+                    return parseDate(b.createdAt) - parseDate(a.createdAt);
+                } catch (e) {
+                    return 0;
+                }
+            });
+            setTasks(sorted);
+        });
 
         // Load users for selection from API
         const fetchUsers = async () => {
@@ -41,6 +57,8 @@ export default function MaintenancePage() {
             }
         };
         fetchUsers();
+
+        return () => unsub();
     }, []);
 
     const toggleUserSelection = (code: string) => {
@@ -49,14 +67,24 @@ export default function MaintenancePage() {
         );
     };
 
+    const toggleSupervisorSelection = (code: string) => {
+        setSelectedSupervisorCodes(prev =>
+            prev.includes(code) ? prev.filter(c => c !== code) : [...prev, code]
+        );
+    };
+
     const handleCreate = () => {
-        if (!title || selectedUserCodes.length === 0 || !deadline) {
-            alert("Vui lòng nhập Tên, chọn ít nhất 1 Người thực hiện và Hạn chót!");
+        if (!title || (selectedUserCodes.length === 0 && selectedSupervisorCodes.length === 0) || !deadline) {
+            alert("Vui lòng nhập Tên, chọn ít nhất 1 Người (Thực hiện hoặc Giám sát) và Hạn chót!");
             return;
         }
 
         // Get names for selected codes
         const selectedNames = selectedUserCodes.map(code =>
+            availableUsers.find(u => u.code === code)?.name || code
+        );
+
+        const selectedSupervisorNames = selectedSupervisorCodes.map(code =>
             availableUsers.find(u => u.code === code)?.name || code
         );
 
@@ -67,20 +95,22 @@ export default function MaintenancePage() {
             deadline,
             assignees: selectedUserCodes, // New field
             assigneeNames: selectedNames, // New field
+            supervisors: selectedSupervisorCodes,
+            supervisorNames: selectedSupervisorNames,
             assignedByName: currentUser?.name || 'Admin',
             status: 'PENDING',
             createdAt: new Date().toLocaleString('vi-VN', { hour: '2-digit', minute: '2-digit', day: '2-digit', month: '2-digit', year: 'numeric' }),
         };
 
-        const updated = [newTask, ...tasks];
-        setTasks(updated);
-        localStorage.setItem('checklist_maintenance', JSON.stringify(updated));
+        // Save to Firebase
+        saveMaintenance(newTask);
 
         // Reset
         setTitle('');
         setDesc('');
         setDeadline('');
         setSelectedUserCodes([]);
+        setSelectedSupervisorCodes([]);
         setViewMode('LIST');
         alert("Đã giao việc bảo trì thành công!");
     };
@@ -89,21 +119,17 @@ export default function MaintenancePage() {
         const note = prompt("Nhập ghi chú hoàn thành (kết quả bảo dưỡng):");
         if (!note) return;
 
-        const updated = tasks.map(t => {
-            if (t.id === id) {
-                return {
-                    ...t,
-                    status: 'COMPLETED',
-                    completedAt: new Date().toLocaleString('vi-VN', { hour: '2-digit', minute: '2-digit', day: '2-digit', month: '2-digit', year: 'numeric' }),
-                    completedNote: note
-                } as MaintenanceTask;
-            }
-            return t;
-        });
-
-        setTasks(updated);
-        localStorage.setItem('checklist_maintenance', JSON.stringify(updated));
-        alert("Đã báo cáo hoàn thành bảo dưỡng!");
+        const taskToUpdate = tasks.find(t => t.id === id);
+        if (taskToUpdate) {
+            const updatedTask = {
+                ...taskToUpdate,
+                status: 'COMPLETED',
+                completedAt: new Date().toLocaleString('vi-VN', { hour: '2-digit', minute: '2-digit', day: '2-digit', month: '2-digit', year: 'numeric' }),
+                completedNote: note
+            };
+            saveMaintenance(updatedTask);
+            alert("Đã báo cáo hoàn thành bảo dưỡng!");
+        }
     };
 
     return (
@@ -181,6 +207,30 @@ export default function MaintenancePage() {
                                     </p>
                                 </div>
                                 <div>
+                                    <label className="block text-sm font-medium text-slate-700 mb-2">Người Giám Sát (Hưởng điểm Giám Sát)</label>
+                                    <div className="border border-slate-300 rounded max-h-48 overflow-y-auto p-2 bg-slate-50">
+                                        {availableUsers.length === 0 ? (
+                                            <p className="text-slate-400 text-sm">Chưa có danh sách nhân viên.</p>
+                                        ) : (
+                                            availableUsers.map(u => (
+                                                <label key={u.code} className="flex items-center gap-2 p-1 hover:bg-white rounded cursor-pointer">
+                                                    <input
+                                                        type="checkbox"
+                                                        checked={selectedSupervisorCodes.includes(u.code)}
+                                                        onChange={() => toggleSupervisorSelection(u.code)}
+                                                        className="w-4 h-4 text-purple-600 rounded"
+                                                    />
+                                                    <span className="text-sm font-medium">{u.name}</span>
+                                                    <span className="text-xs text-slate-500">({u.code})</span>
+                                                </label>
+                                            ))
+                                        )}
+                                    </div>
+                                    <p className="text-xs text-purple-600 mt-1">
+                                        Đã chọn: {selectedSupervisorCodes.length} người
+                                    </p>
+                                </div>
+                                <div className="col-span-1 md:col-span-2">
                                     <label className="block text-sm font-medium text-slate-700 mb-1">Hạn chót (Deadline) *</label>
                                     <input
                                         type="date"
@@ -237,14 +287,18 @@ export default function MaintenancePage() {
                                         <div className="flex items-start gap-1">
                                             <User size={14} className="mt-0.5" />
                                             <div>
-                                                Giao cho: <b className="text-slate-700">{task.assigneeNames?.join(', ') || 'Nhiều người'}</b>
+                                                Giao cho: <b className="text-slate-700">{
+                                                    [...(task.assigneeNames || []), ...(task.supervisorNames || [])]
+                                                        .filter((v, i, a) => a.indexOf(v) === i) // Unique
+                                                        .join(', ') || 'Chưa giao'
+                                                }</b>
                                             </div>
                                         </div>
                                         <span className="flex items-center gap-1"><Calendar size={14} /> Deadline: {task.deadline}</span>
                                     </div>
                                 </div>
                                 {task.status === 'PENDING' && (
-                                    (task.assignees?.includes(currentUser?.code || '') || currentUser?.role === 'ADMIN')
+                                    (task.assignees?.includes(currentUser?.code || '') || task.supervisors?.includes(currentUser?.code || '') || currentUser?.role === 'ADMIN')
                                 ) && (
                                         <button
                                             onClick={() => handleComplete(task.id)}
@@ -274,6 +328,6 @@ export default function MaintenancePage() {
                     ))}
                 </div>
             </div>
-        </div>
+        </div >
     );
 }

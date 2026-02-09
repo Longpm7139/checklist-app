@@ -59,6 +59,8 @@ export interface MaintenanceTask {
   deadline: string; // YYYY-MM-DD
   assignees: string[]; // Array of User Codes
   assigneeNames: string[]; // Array of User Names for display
+  supervisors?: string[]; // Array of User Codes (New for KPI)
+  supervisorNames?: string[]; // Array of User Names for display
   assignedByName: string;
   status: 'PENDING' | 'COMPLETED';
   completedAt?: string;

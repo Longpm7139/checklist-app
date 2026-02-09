@@ -2,9 +2,10 @@
 
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { ArrowLeft, CheckCircle, Download, ChevronLeft, ChevronRight, Search } from 'lucide-react';
+import { ArrowLeft, CheckCircle, Download, ChevronLeft, ChevronRight, Search, Trash2 } from 'lucide-react';
 import clsx from 'clsx';
-import { subscribeToHistory } from '@/lib/firebase';
+import { subscribeToHistory, deleteHistoryItem } from '@/lib/firebase';
+import { useUser } from '@/providers/UserProvider';
 
 interface HistoryItem {
     id: string;
@@ -19,6 +20,7 @@ interface HistoryItem {
 
 export default function FixedPage() {
     const router = useRouter();
+    const { user } = useUser();
     const [history, setHistory] = useState<HistoryItem[]>([]);
     const [searchQuery, setSearchQuery] = useState('');
     const [currentPage, setCurrentPage] = useState(1);
@@ -78,6 +80,18 @@ export default function FixedPage() {
         link.click();
     };
 
+    const handleDelete = async (id: string) => {
+        if (confirm('Bạn có chắc chắn muốn xóa mục lịch sử này không? Hành động này không thể hoàn tác.')) {
+            try {
+                await deleteHistoryItem(id);
+                // Data will update automatically via subscription
+            } catch (error) {
+                console.error("Error deleting history item:", error);
+                alert("Đã xảy ra lỗi khi xóa.");
+            }
+        }
+    };
+
     return (
         <div className="min-h-screen bg-slate-50 p-4 md:p-8 text-slate-900">
             <div className="max-w-5xl mx-auto">
@@ -117,6 +131,7 @@ export default function FixedPage() {
                                     <th className="p-4">Thời gian</th>
                                     <th className="p-4">Người thực hiện</th>
                                     <th className="p-4">Khắc phục</th>
+                                    {user?.role === 'ADMIN' && <th className="p-4 text-center">Hành động</th>}
                                 </tr>
                             </thead>
                             <tbody className="divide-y divide-slate-100">
@@ -132,7 +147,7 @@ export default function FixedPage() {
                                             <div className="text-green-600">Fix: {item.resolvedAt}</div>
                                         </td>
                                         <td className="p-4 text-blue-600 font-bold text-sm">
-                                            {item.inspectorName || '-'}
+                                            {item.resolverName || item.inspectorName || '-'}
                                         </td>
                                         <td className="p-4 text-slate-700">
                                             <div className="flex items-center gap-2">
@@ -140,6 +155,17 @@ export default function FixedPage() {
                                                 {item.actionNote}
                                             </div>
                                         </td>
+                                        {user?.role === 'ADMIN' && (
+                                            <td className="p-4 text-center">
+                                                <button
+                                                    onClick={() => handleDelete(item.id)}
+                                                    className="p-2 text-red-500 hover:bg-red-50 rounded transition"
+                                                    title="Xóa mục lịch sử"
+                                                >
+                                                    <Trash2 size={18} />
+                                                </button>
+                                            </td>
+                                        )}
                                     </tr>
                                 ))}
                                 {currentItems.length === 0 && (
@@ -186,6 +212,6 @@ export default function FixedPage() {
                     </div>
                 )}
             </div>
-        </div>
+        </div >
     );
 }

@@ -2,13 +2,14 @@
 
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { ArrowLeft, Filter, Download, Calendar } from 'lucide-react';
+import { ArrowLeft, Filter, Download, Calendar, User, Search, CheckCircle, XCircle, AlertTriangle } from 'lucide-react';
 import clsx from 'clsx';
 import * as XLSX from 'xlsx';
+import { subscribeToLogs, subscribeToIncidents, subscribeToMaintenance, getUsers } from '@/lib/firebase'; // Added imports
 
 interface LogEntry {
     id: string;
-    timestamp: string; // formatted string
+    timestamp: string;
     inspectorName: string;
     inspectorCode: string;
     systemId: string;
@@ -19,117 +20,136 @@ interface LogEntry {
 
 export default function ReportsPage() {
     const router = useRouter();
-    const [logs, setLogs] = useState<LogEntry[]>([]);
-    const [filteredLogs, setFilteredLogs] = useState<LogEntry[]>([]);
 
-    // Filters
-    const [dateFilter, setDateFilter] = useState(new Date().toISOString().split('T')[0]); // Default Today YYYY-MM-DD
+    // Data State
+    const [logs, setLogs] = useState<any[]>([]);
+    const [incidents, setIncidents] = useState<any[]>([]);
+    const [maintenance, setMaintenance] = useState<any[]>([]);
+    const [users, setUsers] = useState<any[]>([]);
+
+    // Filter State
+    const [dateFilter, setDateFilter] = useState(new Date().toISOString().split('T')[0]); // YYYY-MM-DD
     const [inspectorFilter, setInspectorFilter] = useState('');
-    const [uniqueInspectorNames, setUniqueInspectorNames] = useState<string[]>([]);
+    const [filteredLogs, setFilteredLogs] = useState<any[]>([]);
 
+    // Load Data from Firebase
     useEffect(() => {
-        // Load logs
-        const storedLogs = JSON.parse(localStorage.getItem('checklist_logs') || '[]');
-        // Logs are stored as they are added, so likely in chronological order. Reverse to see newest first.
-        const reversed = storedLogs.reverse();
-        setLogs(reversed);
+        const fetchUsers = async () => {
+            try {
+                const u = await getUsers();
+                setUsers(u);
+            } catch (err) {
+                console.error("Failed to load users", err);
+            }
+        };
+        fetchUsers();
 
-        // Extract unique inspectors for filter info
-        const names = Array.from(new Set(reversed.map((l: LogEntry) => l.inspectorName))).filter(Boolean) as string[];
-        setUniqueInspectorNames(names);
+        const unsubLogs = subscribeToLogs((data) => setLogs(data));
+        const unsubIncidents = subscribeToIncidents((data) => setIncidents(data));
+        const unsubMaintenance = subscribeToMaintenance((data) => setMaintenance(data));
+
+        return () => {
+            unsubLogs();
+            unsubIncidents();
+            unsubMaintenance();
+        };
     }, []);
 
+    // Filter Logic
     useEffect(() => {
-        // Filtering Logic
-        let result = logs;
+        if (!dateFilter) return;
+        const [filterYear, filterMonth, filterDay] = dateFilter.split('-');
 
-        if (dateFilter) {
-            // Log timestamp format: "HH:mm dd/MM/yyyy"
-            // Filter format: "yyyy-MM-dd"
-            // Need to parse log timestamp to compare dates.
-            const [filterYear, filterMonth, filterDay] = dateFilter.split('-');
-
-            result = result.filter(log => {
-                const parts = log.timestamp.split(' '); // ["HH:mm", "dd/MM/yyyy"]
-                if (parts.length < 2) return false;
-                const datePart = parts[1]; // "dd/MM/yyyy"
+        // Helper to parse date string "HH:mm dd/MM/yyyy" or ISO
+        const isMatchDate = (timestamp: string) => {
+            if (!timestamp) return false;
+            // Handle "HH:mm dd/MM/yyyy"
+            const parts = timestamp.split(' ');
+            const datePart = parts.find(p => p.includes('/'));
+            if (datePart) {
                 const [d, m, y] = datePart.split('/');
-
                 return d === filterDay && m === filterMonth && y === filterYear;
-            });
-        }
+            }
+            // Handle ISO or other formats if needed
+            return false;
+        };
+
+        let result = logs.filter(l => isMatchDate(l.timestamp));
 
         if (inspectorFilter) {
-            result = result.filter(log => log.inspectorName === inspectorFilter);
+            result = result.filter(l => l.inspectorName === inspectorFilter);
         }
 
+        // Sort by timestamp desc
+        result.sort((a, b) => {
+            // quick sort by string comparison or better parsing if needed. 
+            // "HH:mm dd/MM/yyyy" - for same day, just compare HH:mm
+            const timeA = a.timestamp.split(' ')[0];
+            const timeB = b.timestamp.split(' ')[0];
+            return timeB.localeCompare(timeA);
+        });
+
         setFilteredLogs(result);
+
     }, [logs, dateFilter, inspectorFilter]);
 
-    // ... existing code ...
+    // Statistics Calculation
+    const stats = {
+        totalChecks: filteredLogs.length,
+        okCount: filteredLogs.filter(l => l.result === 'OK').length,
+        nokCount: filteredLogs.filter(l => l.result === 'NOK').length,
+        systems: new Set(filteredLogs.map(l => l.systemName)).size
+    };
 
     const handleExport = () => {
-        // 1. Prepare Data
+        // Prepare Data for Excel
+        const [filterYear, filterMonth] = dateFilter.split('-');
 
-        // Logs (Already filtered by date)
+        // 1. Logs Sheet
         const logData = filteredLogs.map(l => ({
             "Thời gian": l.timestamp,
             "Người thực hiện": l.inspectorName,
+            "Mã NV": l.inspectorCode,
             "Hệ thống": l.systemName,
             "Kết quả": l.result,
             "Ghi chú": l.note
         }));
 
-        // Incidents (Fetch all and filter by Month of selected date)
-        const allIncidents = JSON.parse(localStorage.getItem('checklist_incidents') || '[]');
-        const [filterYear, filterMonth] = dateFilter.split('-');
-
-        const incidentData = allIncidents.filter((inc: any) => {
-            // Filter by Created Date (Month)
-            const [time, date] = inc.createdAt.split(' ');
-            const [d, m, y] = date.split('/');
+        // 2. Incidents Sheet (Filtered by Month)
+        const incidentData = incidents.filter(inc => {
+            const parts = inc.createdAt.split(' ');
+            const datePart = parts.find((p: string) => p.includes('/'));
+            if (!datePart) return false;
+            const [d, m, y] = datePart.split('/');
             return m === filterMonth && y === filterYear;
-        }).map((inc: any) => ({
+        }).map(inc => ({
             "Ngày báo": inc.createdAt,
             "Tên sự cố": inc.title,
             "Hệ thống": inc.systemName,
             "Người báo": inc.reportedBy,
             "Trạng thái": inc.status === 'RESOLVED' ? 'Đã xong' : 'Đang xử lý',
-            "Người xử lý": inc.participants ? inc.participants.join(', ') : inc.resolvedBy,
-            "Ghi chú xử lý": inc.resolutionNote || ''
+            "Người xử lý": inc.resolvedBy || '',
+            "Ghi chú": inc.resolutionNote || ''
         }));
 
-        // Maintenance (Filter by Month)
-        const allMaintenance = JSON.parse(localStorage.getItem('checklist_maintenance') || '[]');
-        const maintenanceData = allMaintenance.filter((task: any) => {
-            const [y, m, d] = task.deadline.split('-');
+        // 3. Maintenance Sheet (Filtered by Month)
+        const maintenanceData = maintenance.filter(task => {
+            const [y, m, d] = task.deadline.split('-'); // deadline is YYYY-MM-DD
             return m === filterMonth && y === filterYear;
-        }).map((task: any) => ({
+        }).map(task => ({
             "Công việc": task.title,
             "Hạn chót": task.deadline,
-            "Trạng thái": task.status === 'COMPLETED' ? 'Hoàn thành' : 'Chưa xong',
-            "Người làm": task.assigneeNames ? task.assigneeNames.join(', ') : '',
-            "Hoàn thành lúc": task.completedAt || '',
-            "Ghi chú": task.completedNote || ''
+            "Trạng thái": task.status,
+            "Giao cho": task.assigneeNames?.join(', '),
+            "Hoàn thành lúc": task.completedAt || ''
         }));
 
-        // 2. Create Workbook
         const wb = XLSX.utils.book_new();
+        XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(logData), "NhatKy_KiemTra");
+        XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(incidentData), "SuCo_BatThuong");
+        XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(maintenanceData), "BaoTri_DinhKy");
 
-        // Sheet 1: Logs
-        const wsLogs = XLSX.utils.json_to_sheet(logData);
-        XLSX.utils.book_append_sheet(wb, wsLogs, "NhatKy_KiemTra");
-
-        // Sheet 2: Incidents
-        const wsIncidents = XLSX.utils.json_to_sheet(incidentData);
-        XLSX.utils.book_append_sheet(wb, wsIncidents, "SuCo_BatThuong");
-
-        // Sheet 3: Maintenance
-        const wsMaintenance = XLSX.utils.json_to_sheet(maintenanceData);
-        XLSX.utils.book_append_sheet(wb, wsMaintenance, "BaoTri_DinhKy");
-
-        // 3. Export
-        XLSX.writeFile(wb, `BaoCao_TongHop_${dateFilter}.xlsx`);
+        XLSX.writeFile(wb, `BaoCao_HoatDong_${dateFilter}.xlsx`);
     };
 
     return (
@@ -145,75 +165,104 @@ export default function ReportsPage() {
                 </header>
 
                 {/* Filters */}
-                <div className="bg-white p-4 rounded-xl shadow-sm border border-slate-200 mb-6 flex flex-col md:flex-row gap-4 items-end">
-                    <div className="w-full md:w-auto">
-                        <label className="block text-sm font-semibold text-slate-700 mb-1">Chọn Ngày</label>
+                <div className="bg-white p-4 rounded-xl shadow-sm border border-slate-200 mb-6 grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <div>
+                        <label className="block text-sm font-semibold text-slate-700 mb-1 flex items-center gap-1"><Calendar size={14} /> Chọn Ngày</label>
                         <input
                             type="date"
                             value={dateFilter}
                             onChange={(e) => setDateFilter(e.target.value)}
-                            className="bg-slate-50 border border-slate-300 rounded px-3 py-2 outline-none focus:ring-2 focus:ring-blue-500"
+                            className="w-full bg-slate-50 border border-slate-300 rounded px-3 py-2 outline-none focus:ring-2 focus:ring-blue-500"
                         />
                     </div>
 
-                    <div className="w-full md:w-auto">
-                        <label className="block text-sm font-semibold text-slate-700 mb-1">Nhân viên</label>
+                    <div>
+                        <label className="block text-sm font-semibold text-slate-700 mb-1 flex items-center gap-1"><User size={14} /> Nhân viên</label>
                         <select
                             value={inspectorFilter}
                             onChange={(e) => setInspectorFilter(e.target.value)}
-                            className="bg-slate-50 border border-slate-300 rounded px-3 py-2 outline-none focus:ring-2 focus:ring-blue-500 w-full md:w-48"
+                            className="w-full bg-slate-50 border border-slate-300 rounded px-3 py-2 outline-none focus:ring-2 focus:ring-blue-500"
                         >
-                            <option value="">Tất cả</option>
-                            {uniqueInspectorNames.map(name => (
-                                <option key={name} value={name}>{name}</option>
+                            <option value="">-- Tất cả nhân viên --</option>
+                            {users.map(u => (
+                                <option key={u.id} value={u.name}>{u.name} ({u.code})</option>
                             ))}
                         </select>
                     </div>
 
-                    <div className="w-full md:w-auto flex-1 flex justify-end">
+                    <div className="flex items-end justify-end">
                         <button
                             onClick={handleExport}
-                            className="bg-green-600 hover:bg-green-700 text-white font-bold py-2 px-4 rounded flex items-center gap-2 shadow transition"
+                            className="w-full md:w-auto bg-green-600 hover:bg-green-700 text-white font-bold py-2 px-4 rounded flex items-center justify-center gap-2 shadow transition"
                         >
-                            <Download size={18} /> Xuất Excel
+                            <Download size={18} /> Xuất Báo Cáo Excel
                         </button>
+                    </div>
+                </div>
+
+                {/* Statistics Summary */}
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+                    <div className="bg-blue-50 p-4 rounded-xl border border-blue-100">
+                        <div className="text-xs text-blue-600 font-bold uppercase mb-1">Tổng lượt kiểm tra</div>
+                        <div className="text-2xl font-bold text-slate-800">{stats.totalChecks}</div>
+                    </div>
+                    <div className="bg-purple-50 p-4 rounded-xl border border-purple-100">
+                        <div className="text-xs text-purple-600 font-bold uppercase mb-1">Số hệ thống đã KT</div>
+                        <div className="text-2xl font-bold text-slate-800">{stats.systems}</div>
+                    </div>
+                    <div className="bg-green-50 p-4 rounded-xl border border-green-100">
+                        <div className="text-xs text-green-600 font-bold uppercase mb-1">Kết quả tỐT (OK)</div>
+                        <div className="text-2xl font-bold text-slate-800 max-w-[150px]">{stats.okCount}</div>
+                    </div>
+                    <div className="bg-red-50 p-4 rounded-xl border border-red-100">
+                        <div className="text-xs text-red-600 font-bold uppercase mb-1">Phát hiện lỗi (NOK)</div>
+                        <div className="text-2xl font-bold text-slate-800">{stats.nokCount}</div>
                     </div>
                 </div>
 
                 {/* Table */}
                 <div className="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
                     <table className="w-full text-left border-collapse">
-                        <thead className="bg-slate-100 text-slate-700 font-bold uppercase text-sm border-b border-slate-200">
+                        <thead className="bg-slate-100 text-slate-700 font-bold uppercase text-xs border-b border-slate-200">
                             <tr>
-                                <th className="p-4 w-48">Thời gian</th>
+                                <th className="p-4 w-40">Thời gian</th>
                                 <th className="p-4 w-48">Người thực hiện</th>
-                                <th className="p-4">Hệ thống</th>
+                                <th className="p-4">Hệ thống / Thiết bị</th>
                                 <th className="p-4 w-32 text-center">Kết quả</th>
                                 <th className="p-4">Ghi chú</th>
                             </tr>
                         </thead>
-                        <tbody className="divide-y divide-slate-100">
+                        <tbody className="divide-y divide-slate-100 text-sm">
                             {filteredLogs.length > 0 ? (
-                                filteredLogs.map(log => (
-                                    <tr key={log.id} className="hover:bg-slate-50">
-                                        <td className="p-4 font-mono text-sm text-slate-600">{log.timestamp}</td>
-                                        <td className="p-4 font-bold text-blue-800">{log.inspectorName}</td>
+                                filteredLogs.map((log, idx) => (
+                                    <tr key={idx} className="hover:bg-slate-50">
+                                        <td className="p-4 font-mono text-slate-600 whitespace-nowrap">{log.timestamp}</td>
+                                        <td className="p-4 font-bold text-blue-800">
+                                            {log.inspectorName}
+                                            <div className="text-xs font-normal text-slate-400">{log.inspectorCode}</div>
+                                        </td>
                                         <td className="p-4 font-medium">{log.systemName}</td>
                                         <td className="p-4 text-center">
                                             <span className={clsx(
-                                                "px-2 py-1 rounded text-xs font-bold",
-                                                log.result === 'OK' ? "bg-green-100 text-green-700" : "bg-red-100 text-red-700"
+                                                "inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-bold border",
+                                                log.result === 'OK' ? "bg-green-50 text-green-700 border-green-200" : "bg-red-50 text-red-700 border-red-200"
                                             )}>
+                                                {log.result === 'OK' ? <CheckCircle size={12} /> : <XCircle size={12} />}
                                                 {log.result}
                                             </span>
                                         </td>
-                                        <td className="p-4 text-slate-500 italic text-sm">{log.note}</td>
+                                        <td className="p-4 text-slate-500 italic">
+                                            {log.note || '-'}
+                                        </td>
                                     </tr>
                                 ))
                             ) : (
                                 <tr>
-                                    <td colSpan={5} className="p-8 text-center text-slate-500 italic">
-                                        Không có dữ liệu nào cho ngày đã chọn.
+                                    <td colSpan={5} className="p-12 text-center text-slate-500">
+                                        <div className="flex flex-col items-center gap-2">
+                                            <Search size={32} className="text-slate-300" />
+                                            <span className="italic">Không tìm thấy dữ liệu nào phù hợp.</span>
+                                        </div>
                                     </td>
                                 </tr>
                             )}

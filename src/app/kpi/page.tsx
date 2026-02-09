@@ -2,9 +2,10 @@
 
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { ArrowLeft, BarChart2, Medal, TrendingUp, UserCheck, Calendar, AlertTriangle } from 'lucide-react';
+import { ArrowLeft, BarChart2, Medal, TrendingUp, UserCheck, Calendar, AlertTriangle, RotateCcw } from 'lucide-react';
 import clsx from 'clsx';
 import { useUser } from '@/providers/UserProvider';
+import { subscribeToLogs, subscribeToHistory, subscribeToIncidents, subscribeToMaintenance, getUsers, resetKPIData } from '@/lib/firebase';
 
 interface KPIRow {
     userId: number;
@@ -14,9 +15,22 @@ interface KPIRow {
     fixCount: number;
     incidentCount: number;
     maintenanceCount: number;
+    faultFoundCount: number; // New
+    projectExecCount: number; // New
+    projectSupCount: number; // New
     fastCheckCount: number; // Warning count
     score: number; // Simple score for ranking
 }
+
+const SCORING_RULES = {
+    INSPECTION: 1,
+    FAULT_FOUND: 2, // New: Inspector who found the issue
+    FIX: 2,
+    INCIDENT: 5,
+    PROJECT_EXEC: 10, // Was Maintenance
+    PROJECT_SUP: 5,   // New: Supervision
+    NEGLIGENCE: -5    // Fast check
+};
 
 export default function KPIPage() {
     const router = useRouter();
@@ -32,90 +46,143 @@ export default function KPIPage() {
         checkAuth();
     }, []);
 
+    const [logs, setLogs] = useState<any[]>([]);
+    const [history, setHistory] = useState<any[]>([]);
+    const [incidents, setIncidents] = useState<any[]>([]);
+    const [tasks, setTasks] = useState<any[]>([]);
+    const [allUsers, setAllUsers] = useState<any[]>([]);
+
+    // 1. Subscribe to Data
     useEffect(() => {
-        if (!monthFilter) return;
-
-        // 1. Data Loading
-        // Since we are using API for users but LocalStorage for logs, we might need to fetch users from API or LocalStorage?
-        // Actually, we can just use localStorage 'checklist_logs' and 'checklist_fixed_history' and aggregate by name/code.
-        // But to list ALL users (even those who did nothing), we need the user list.
-        // Let's fetch /api/users to get the full roster.
-
-        const fetchAndCalculate = async () => {
+        // Fetch Users (One-time or could be real-time too, but API is fine for now)
+        const fetchUsers = async () => {
             try {
-                // Get Users
-                const res = await fetch('/api/users');
-                const data = await res.json();
-                const allUsers: any[] = data.users || [];
+                const users = await getUsers();
+                setAllUsers(users || []);
+            } catch (e) {
+                console.error("Failed to load users", e);
+            }
+        };
+        fetchUsers();
 
-                // Get Logs and History
-                const logs = JSON.parse(localStorage.getItem('checklist_logs') || '[]');
-                const history = JSON.parse(localStorage.getItem('checklist_fixed_history') || '[]');
-                const incidents = JSON.parse(localStorage.getItem('checklist_incidents') || '[]');
+        // Subscribe to Firebase Collections
+        const unsubLogs = subscribeToLogs((data) => setLogs(data));
+        const unsubHistory = subscribeToHistory((data) => setHistory(data));
+        const unsubIncidents = subscribeToIncidents((data) => setIncidents(data));
+        const unsubMaintenance = subscribeToMaintenance((data) => setTasks(data));
 
+        return () => {
+            unsubLogs();
+            unsubHistory();
+            unsubIncidents();
+            unsubMaintenance();
+        };
+    }, []);
+
+    // 2. Calculate Stats when Data or Filter Changes
+    useEffect(() => {
+        if (!monthFilter || allUsers.length === 0) return;
+
+        const calculateStats = () => {
+            try {
                 // Filter by Month
                 const [year, month] = monthFilter.split('-');
 
                 const filteredLogs = logs.filter((l: any) => {
-                    // timestamp format "HH:mm dd/MM/yyyy"
-                    const datePart = l.timestamp.split(' ')[1];
-                    const [d, m, y] = datePart.split('/');
-                    return m === month && y === year;
+                    if (!l.timestamp) return false;
+                    // Try to find parts looking like date dd/MM/yyyy or yyyy-MM-dd
+                    const parts = l.timestamp.split(' ');
+                    const datePart = parts.find((p: string) => p.includes('/') || p.includes('-'));
+                    if (!datePart) return false;
+
+                    let d, m, y;
+                    if (datePart.includes('/')) {
+                        [d, m, y] = datePart.split('/');
+                    } else {
+                        [y, m, d] = datePart.split('-');
+                    }
+                    return Number(m) === Number(month) && Number(y) === Number(year);
                 });
 
                 const filteredHistory = history.filter((h: any) => {
-                    // resolvedAt format "HH:mm dd/MM/yyyy"
                     if (!h.resolvedAt) return false;
-                    const datePart = h.resolvedAt.split(' ')[1];
-                    const [d, m, y] = datePart.split('/');
-                    return m === month && y === year;
+                    const parts = h.resolvedAt.split(' ');
+                    const datePart = parts.find((p: string) => p.includes('/') || p.includes('-'));
+                    if (!datePart) return false;
+
+                    let d, m, y;
+                    if (datePart.includes('/')) {
+                        [d, m, y] = datePart.split('/');
+                    } else {
+                        [y, m, d] = datePart.split('-');
+                    }
+                    return Number(m) === Number(month) && Number(y) === Number(year);
                 });
 
                 const filteredIncidents = incidents.filter((i: any) => {
-                    // resolvedAt format "HH:mm dd/MM/yyyy"
                     if (!i.resolvedAt || i.status !== 'RESOLVED') return false;
-                    const datePart = i.resolvedAt.split(' ')[1];
-                    const [d, m, y] = datePart.split('/');
-                    return m === month && y === year;
+                    const parts = i.resolvedAt.split(' ');
+                    const datePart = parts.find((p: string) => p.includes('/') || p.includes('-'));
+                    if (!datePart) return false;
+
+                    let d, m, y;
+                    if (datePart.includes('/')) {
+                        [d, m, y] = datePart.split('/');
+                    } else {
+                        [y, m, d] = datePart.split('-');
+                    }
+                    return Number(m) === Number(month) && Number(y) === Number(year);
                 });
 
-                const tasks = JSON.parse(localStorage.getItem('checklist_maintenance') || '[]');
                 const filteredTasks = tasks.filter((t: any) => {
                     if (!t.completedAt || t.status !== 'COMPLETED') return false;
-                    const datePart = t.completedAt.split(' ')[1];
-                    const [d, m, y] = datePart.split('/');
-                    return m === month && y === year;
+                    const parts = t.completedAt.split(' ');
+                    const datePart = parts.find((p: string) => p.includes('/') || p.includes('-'));
+                    if (!datePart) return false;
+
+                    let d, m, y;
+                    if (datePart.includes('/')) {
+                        [d, m, y] = datePart.split('/');
+                    } else {
+                        [y, m, d] = datePart.split('-');
+                    }
+                    return Number(m) === Number(month) && Number(y) === Number(year);
                 });
 
                 // Calculate Stats per User
                 const calculatedStats = allUsers.map(u => {
-                    // Match by name or code. Logs mainly saved name/code.
-                    // Ideally use code if available logs have it.
-                    // Currently logs save: inspectorName, inspectorCode (from my earlier edit).
-                    // If inspectorCode is missing (old logs), fallback to name.
-
+                    // 1. Inspections
                     const userInspections = filteredLogs.filter((l: any) =>
                         (l.inspectorCode === u.code) || (l.inspectorName === u.name)
                     ).length;
 
-                    const userFixes = filteredHistory.filter((h: any) =>
-                        (h.inspectorName === u.name) // History might not have code yet, relies on name
+                    // 2. Faults Found
+                    const userFaultsFound = filteredHistory.filter((h: any) =>
+                        (h.inspectorName === u.name)
                     ).length;
 
+                    // 3. Fixes
+                    const userFixes = filteredHistory.filter((h: any) =>
+                        (h.resolverName === u.name)
+                    ).length;
 
-                    // NEW: Incident Fixes matching User Name
-                    // Check if user is the main resolver OR in the participants list
+                    // 4. Incidents
                     const userIncidents = filteredIncidents.filter((i: any) =>
                         (i.resolvedBy === u.name) || (i.participants && i.participants.includes(u.name))
                     ).length;
 
-                    // NEW: Maintenance Tasks (Check if u.code is in assignees array)
-                    const userMaintenance = filteredTasks.filter((t: any) =>
-                        (t.assignees && t.assignees.includes(u.code)) || // New array check
-                        (t.assignedTo === u.code) // Fallback for old single assign tasks
+                    // 5. Project Execution
+                    const userProjectExec = filteredTasks.filter((t: any) =>
+                        (t.assignees && t.assignees.includes(u.code)) ||
+                        (t.assignedTo === u.code)
                     ).length;
 
-                    // WARNING: Fast Checks (< 30s)
+                    // 6. Project Supervision
+                    const userProjectSup = filteredTasks.filter((t: any) =>
+                        (t.supervisors && t.supervisors.includes(u.code))
+                    ).length;
+
+                    // 7. Negligence (Fast Checks)
                     const fastChecks = filteredLogs.filter((l: any) =>
                         ((l.inspectorCode === u.code) || (l.inspectorName === u.name)) &&
                         l.duration !== undefined && l.duration < 30
@@ -128,15 +195,23 @@ export default function KPIPage() {
                         inspectionCount: userInspections,
                         fixCount: userFixes,
                         incidentCount: userIncidents,
-                        maintenanceCount: userMaintenance,
+                        maintenanceCount: userProjectExec,
+                        faultFoundCount: userFaultsFound,
+                        projectExecCount: userProjectExec,
+                        projectSupCount: userProjectSup,
                         fastCheckCount: fastChecks,
-                        score: (userInspections * 1) + (userFixes * 2) + (userIncidents * 5) + (userMaintenance * 10) - (fastChecks * 5) // Maintenance = 10 pts
+                        score: (userInspections * SCORING_RULES.INSPECTION) +
+                            (userFaultsFound * SCORING_RULES.FAULT_FOUND) +
+                            (userFixes * SCORING_RULES.FIX) +
+                            (userIncidents * SCORING_RULES.INCIDENT) +
+                            (userProjectExec * SCORING_RULES.PROJECT_EXEC) +
+                            (userProjectSup * SCORING_RULES.PROJECT_SUP) +
+                            (fastChecks * SCORING_RULES.NEGLIGENCE)
                     };
                 });
 
                 // Sort by Score DESC
                 calculatedStats.sort((a, b) => b.score - a.score);
-
                 setStats(calculatedStats);
 
             } catch (err) {
@@ -144,9 +219,9 @@ export default function KPIPage() {
             }
         };
 
-        fetchAndCalculate();
+        calculateStats();
 
-    }, [monthFilter]);
+    }, [monthFilter, allUsers, logs, history, incidents, tasks]);
 
     if (currentUser?.role !== 'ADMIN') {
         return (
@@ -177,15 +252,38 @@ export default function KPIPage() {
                         </div>
                     </div>
 
-                    <div className="w-full md:w-auto bg-white p-2 rounded-lg border border-slate-200 shadow-sm flex items-center gap-2">
-                        <Calendar size={18} className="text-slate-500 ml-2" />
-                        <span className="text-sm font-semibold text-slate-700">Tháng:</span>
-                        <input
-                            type="month"
-                            value={monthFilter}
-                            onChange={(e) => setMonthFilter(e.target.value)}
-                            className="outline-none text-slate-800 font-bold bg-transparent"
-                        />
+
+
+                    <div className="w-full md:w-auto flex items-center gap-2">
+                        {currentUser?.role === 'ADMIN' && (
+                            <button
+                                onClick={async () => {
+                                    if (confirm("CẢNH BÁO: Hành động này sẽ XÓA TOÀN BỘ dữ liệu kiểm tra, sửa lỗi, sự cố và bảo trì để làm lại từ đầu.\n\nBạn có chắc chắn muốn tiếp tục không?")) {
+                                        try {
+                                            await resetKPIData();
+                                            alert("Đã xóa toàn bộ dữ liệu. Hệ thống đã được reset về trạng thái ban đầu.");
+                                            // Optional: window.location.reload();
+                                        } catch (e) {
+                                            console.error(e);
+                                            alert("Lỗi khi reset dữ liệu");
+                                        }
+                                    }
+                                }}
+                                className="bg-red-600 hover:bg-red-700 text-white px-3 py-2 rounded-lg font-bold text-sm flex items-center gap-2 shadow-sm"
+                            >
+                                <RotateCcw size={16} /> Reset Dữ Liệu
+                            </button>
+                        )}
+                        <div className="bg-white p-2 rounded-lg border border-slate-200 shadow-sm flex items-center gap-2">
+                            <Calendar size={18} className="text-slate-500 ml-2" />
+                            <span className="text-sm font-semibold text-slate-700">Tháng:</span>
+                            <input
+                                type="month"
+                                value={monthFilter}
+                                onChange={(e) => setMonthFilter(e.target.value)}
+                                className="outline-none text-slate-800 font-bold bg-transparent"
+                            />
+                        </div>
                     </div>
                 </header>
 
@@ -226,6 +324,46 @@ export default function KPIPage() {
                     </div>
                 </div>
 
+                {/* SCORING RULES TABLE */}
+                <div className="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden mb-8">
+                    <div className="p-4 bg-slate-100 border-b border-slate-200 font-bold text-slate-700 flex items-center gap-2">
+                        Cơ cấu tính điểm KPI
+                    </div>
+                    <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-7 gap-px bg-slate-200">
+                        <div className="bg-white p-3 text-center">
+                            <div className="text-xs text-slate-500 uppercase font-bold">Kiểm tra</div>
+                            <div className="text-blue-600 font-bold text-lg">+{SCORING_RULES.INSPECTION}</div>
+                        </div>
+                        <div className="bg-white p-3 text-center">
+                            <div className="text-xs text-slate-500 uppercase font-bold">Phát hiện lỗi</div>
+                            <div className="text-indigo-600 font-bold text-lg">+{SCORING_RULES.FAULT_FOUND}</div>
+                        </div>
+                        <div className="bg-white p-3 text-center">
+                            <div className="text-xs text-slate-500 uppercase font-bold">Sửa lỗi</div>
+                            <div className="text-green-600 font-bold text-lg">+{SCORING_RULES.FIX}</div>
+                        </div>
+                        <div className="bg-white p-3 text-center">
+                            <div className="text-xs text-slate-500 uppercase font-bold">Sự cố</div>
+                            <div className="text-purple-600 font-bold text-lg">+{SCORING_RULES.INCIDENT}</div>
+                        </div>
+                        <div className="bg-white p-3 text-center">
+                            <div className="text-xs text-slate-500 uppercase font-bold">Thực hiện DA</div>
+                            <div className="text-amber-600 font-bold text-lg">+{SCORING_RULES.PROJECT_EXEC}</div>
+                        </div>
+                        <div className="bg-white p-3 text-center">
+                            <div className="text-xs text-slate-500 uppercase font-bold">Giám sát DA</div>
+                            <div className="text-teal-600 font-bold text-lg">+{SCORING_RULES.PROJECT_SUP}</div>
+                        </div>
+                        <div className="bg-white p-3 text-center">
+                            <div className="text-xs text-slate-500 uppercase font-bold text-red-600">Làm ẩu</div>
+                            <div className="text-red-600 font-bold text-lg">{SCORING_RULES.NEGLIGENCE}</div>
+                        </div>
+                    </div>
+                    <div className="p-2 bg-slate-50 text-xs text-slate-500 text-center italic border-t border-slate-200">
+                        * Điểm được tính tự động dựa trên nhật ký hoạt động của hệ thống.
+                    </div>
+                </div>
+
                 {/* WARNING SECTION */}
                 {stats.some(s => s.fastCheckCount > 0) && (
                     <div className="mb-8 bg-red-50 border border-red-200 rounded-xl p-4 flex flex-col gap-2">
@@ -255,11 +393,12 @@ export default function KPIPage() {
                             <tr>
                                 <th className="p-4 w-16 text-center">Hạng</th>
                                 <th className="p-4">Nhân viên</th>
-                                <th className="p-4 text-center">Mã NV</th>
-                                <th className="p-4 text-center">Lượt kiểm tra</th>
-                                <th className="p-4 text-center">Lỗi đã sửa</th>
-                                <th className="p-4 text-center text-purple-600">Sự cố xử lý</th>
-                                <th className="p-4 text-center text-blue-800">Bảo trì</th>
+                                <th className="p-4 text-center">Kiểm tra</th>
+                                <th className="p-4 text-center text-indigo-600">Phát hiện lỗi</th>
+                                <th className="p-4 text-center text-green-600">Sửa lỗi</th>
+                                <th className="p-4 text-center text-purple-600">Sự cố</th>
+                                <th className="p-4 text-center text-amber-600">Thi công</th>
+                                <th className="p-4 text-center text-teal-600">Giám sát</th>
                                 <th className="p-4 text-center text-red-600">Làm ẩu</th>
                                 <th className="p-4 text-center">Tổng điểm</th>
                             </tr>
@@ -277,14 +416,18 @@ export default function KPIPage() {
                                             {idx + 1}
                                         </div>
                                     </td>
-                                    <td className="p-4 font-bold text-slate-800">{row.name}</td>
-                                    <td className="p-4 text-center font-mono text-xs text-slate-500">{row.code}</td>
+                                    <td className="p-4 font-bold text-slate-800">
+                                        {row.name}
+                                        <div className="text-xs font-normal text-slate-400">{row.code}</div>
+                                    </td>
                                     <td className="p-4 text-center font-medium text-blue-600">{row.inspectionCount}</td>
+                                    <td className="p-4 text-center font-medium text-indigo-600">{row.faultFoundCount || '-'}</td>
                                     <td className="p-4 text-center font-medium text-green-600">{row.fixCount}</td>
-                                    <td className="p-4 text-center font-bold text-purple-600">{row.incidentCount > 0 ? row.incidentCount : '-'}</td>
-                                    <td className="p-4 text-center font-bold text-blue-800">{row.maintenanceCount > 0 ? row.maintenanceCount : '-'}</td>
-                                    <td className="p-4 text-center font-bold text-red-500">{row.fastCheckCount > 0 ? row.fastCheckCount : '-'}</td>
-                                    <td className="p-4 text-center font-bold text-slate-900">{row.score}</td>
+                                    <td className="p-4 text-center font-bold text-purple-600">{row.incidentCount || '-'}</td>
+                                    <td className="p-4 text-center font-bold text-amber-600">{row.projectExecCount || '-'}</td>
+                                    <td className="p-4 text-center font-bold text-teal-600">{row.projectSupCount || '-'}</td>
+                                    <td className="p-4 text-center font-bold text-red-500">{row.fastCheckCount || '-'}</td>
+                                    <td className="p-4 text-center font-bold text-slate-900 text-lg">{row.score}</td>
                                 </tr>
                             ))}
                             {stats.length === 0 && (
@@ -296,7 +439,7 @@ export default function KPIPage() {
                     </table>
                 </div>
                 <div className="mt-4 text-xs text-slate-400 italic text-right">
-                    * Công thức điểm: Kiểm tra = 1, Sửa lỗi = 2, Sự cố = 5, Bảo trì = 10, Làm ẩu = -5.
+                    * Bảng điểm được cập nhật tự động theo cơ cấu điểm ở trên.
                 </div>
             </div>
         </div>

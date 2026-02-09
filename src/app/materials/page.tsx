@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import { ArrowLeft, Package, CheckCircle, Clock, History as HistoryIcon } from 'lucide-react';
 import { useUser } from '@/providers/UserProvider';
 import { ChecklistItem, SystemCheck } from '@/lib/types';
+import { subscribeToSystems, getAllDetails, saveChecklist, subscribeToMaterialHistory, addMaterialHistory } from '@/lib/firebase';
 
 interface MaterialRequest {
     systemId: string;
@@ -35,69 +36,74 @@ export default function MaterialsPage() {
             return;
         }
 
-        const systems: SystemCheck[] = JSON.parse(localStorage.getItem('checklist_systems') || '[]');
-        const allDetails: Record<string, ChecklistItem[]> = JSON.parse(localStorage.getItem('checklist_details') || '{}');
-        const storedHistory: MaterialHistoryItem[] = JSON.parse(localStorage.getItem('checklist_material_history') || '[]');
+        const unsubSys = subscribeToSystems(async (systemsData) => {
+            const allDetails = await getAllDetails();
+            const newRequests: MaterialRequest[] = [];
 
-        const newRequests: MaterialRequest[] = [];
-
-        systems.forEach(sys => {
-            const items = allDetails[sys.id];
-            if (items) {
-                items.forEach(item => {
-                    if (item.materialRequest) {
-                        newRequests.push({
-                            systemId: sys.id,
-                            systemName: sys.name,
-                            itemId: item.id,
-                            itemContent: item.content,
-                            materialName: item.materialRequest,
-                            requester: item.inspectorName || 'Unknown',
-                            timestamp: item.timestamp || ''
-                        });
-                    }
-                });
-            }
+            systemsData.forEach((sys: any) => {
+                const items = allDetails[sys.id];
+                if (items) {
+                    items.forEach((item: any) => {
+                        if (item.materialRequest) {
+                            newRequests.push({
+                                systemId: sys.id,
+                                systemName: sys.name,
+                                itemId: item.id,
+                                itemContent: item.content,
+                                materialName: item.materialRequest,
+                                requester: item.inspectorName || 'Unknown',
+                                timestamp: item.timestamp || ''
+                            });
+                        }
+                    });
+                }
+            });
+            setRequests(newRequests);
         });
 
-        setRequests(newRequests);
-        setHistory(storedHistory.sort((a, b) => new Date(b.approvedAt).getTime() - new Date(a.approvedAt).getTime()));
+        const unsubHist = subscribeToMaterialHistory((data) => {
+            setHistory(data as MaterialHistoryItem[]);
+        });
+
+        return () => {
+            unsubSys();
+            unsubHist();
+        };
     }, [currentUser, router]);
 
-    const handleApprove = (req: MaterialRequest) => {
+    const handleApprove = async (req: MaterialRequest) => {
         if (!confirm(`Xác nhận đã cấp phát "${req.materialName}"? Mục này sẽ chuyển sang trạng thái "Fixing" và được lưu vào lịch sử.`)) return;
 
-        const allDetails: Record<string, ChecklistItem[]> = JSON.parse(localStorage.getItem('checklist_details') || '{}');
+        try {
+            const allDetails = await getAllDetails();
+            const systemItems = allDetails[req.systemId];
 
-        if (allDetails[req.systemId]) {
-            allDetails[req.systemId] = allDetails[req.systemId].map(d => {
-                if (d.id === req.itemId) {
-                    return {
-                        ...d,
-                        materialRequest: undefined, // Clear request
-                        status: 'NOK', // Still NOK
-                        note: `Đã cấp vật tư: ${req.materialName}. Đang sửa chữa.` // Update note
-                    };
-                }
-                return d;
-            });
-            localStorage.setItem('checklist_details', JSON.stringify(allDetails));
+            if (systemItems) {
+                const updatedItems = systemItems.map((d: any) => {
+                    if (d.id === req.itemId) {
+                        return {
+                            ...d,
+                            materialRequest: undefined,
+                            status: 'NOK',
+                            note: `Đã cấp vật tư: ${req.materialName}. Đang sửa chữa.`
+                        };
+                    }
+                    return d;
+                });
 
-            // Save to History
-            const historyItem: MaterialHistoryItem = {
-                ...req,
-                approvedAt: new Date().toLocaleString('vi-VN', { hour: '2-digit', minute: '2-digit', day: '2-digit', month: '2-digit', year: 'numeric' }),
-                approver: currentUser?.name || 'Admin'
-            };
-            const currentHistory = JSON.parse(localStorage.getItem('checklist_material_history') || '[]');
-            const newHistory = [historyItem, ...currentHistory];
-            localStorage.setItem('checklist_material_history', JSON.stringify(newHistory));
+                await saveChecklist(req.systemId, updatedItems);
 
-            // Refresh lists
-            setRequests(prev => prev.filter(r => r.itemId !== req.itemId));
-            setHistory(newHistory);
+                await addMaterialHistory({
+                    ...req,
+                    approvedAt: new Date().toLocaleString('vi-VN', { hour: '2-digit', minute: '2-digit', day: '2-digit', month: '2-digit', year: 'numeric' }),
+                    approver: currentUser?.name || 'Admin'
+                });
 
-            alert("Đã xác nhận cấp phát và lưu vào lịch sử!");
+                alert("Đã xác nhận cấp phát và lưu vào lịch sử!");
+            }
+        } catch (e) {
+            console.error(e);
+            alert("Có lỗi xảy ra khi cập nhật.");
         }
     };
 

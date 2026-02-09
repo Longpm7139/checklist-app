@@ -4,13 +4,19 @@ import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { ArrowLeft, Siren, CheckCircle, Plus, User, Clock, AlertTriangle } from 'lucide-react';
 import { useUser } from '@/providers/UserProvider';
+
 import { Incident } from '@/lib/types';
+import { subscribeToIncidents, saveIncident } from '@/lib/firebase';
+import * as XLSX from 'xlsx';
+import { Search, Download, Loader2 } from 'lucide-react';
 
 export default function IncidentsPage() {
     const router = useRouter();
     const { user: currentUser } = useUser();
     const [incidents, setIncidents] = useState<Incident[]>([]);
     const [viewMode, setViewMode] = useState<'LIST' | 'CREATE'>('LIST');
+    const [loading, setLoading] = useState(true);
+    const [searchTerm, setSearchTerm] = useState('');
 
     // Form State
     const [newTitle, setNewTitle] = useState('');
@@ -24,11 +30,23 @@ export default function IncidentsPage() {
     const [selectedParticipants, setSelectedParticipants] = useState<string[]>([]);
 
     useEffect(() => {
-        // Load Incidents
-        const saved = localStorage.getItem('checklist_incidents');
-        if (saved) {
-            setIncidents(JSON.parse(saved).reverse());
-        }
+        // Subscribe to Incidents
+        const unsub = subscribeToIncidents((data) => {
+            // Sort by createdAt desc
+            const sorted = (data as Incident[]).sort((a, b) => {
+                const parseDate = (d: string) => {
+                    if (!d) return 0;
+                    const parts = d.split(' ');
+                    const datePart = parts.find(p => p.includes('/'));
+                    if (!datePart) return 0;
+                    const [D, M, Y] = datePart.split('/');
+                    return new Date(`${Y}-${M}-${D}`).getTime();
+                };
+                return parseDate(b.createdAt) - parseDate(a.createdAt);
+            });
+            setIncidents(sorted);
+            setLoading(false);
+        });
 
         // Load Users for Multi-select
         fetch('/api/users')
@@ -37,6 +55,8 @@ export default function IncidentsPage() {
                 if (data.users) setUsers(data.users);
             })
             .catch(err => console.error("Failed to load users", err));
+
+        return () => unsub();
     }, []);
 
     const handleCreate = (notifyZalo: boolean = false) => {
@@ -44,6 +64,8 @@ export default function IncidentsPage() {
             alert("Vui lòng nhập Tên sự cố và Hệ thống!");
             return;
         }
+
+
 
         const newIncident: Incident = {
             id: Date.now().toString(),
@@ -56,9 +78,8 @@ export default function IncidentsPage() {
             createdAt: new Date().toLocaleString('vi-VN', { hour: '2-digit', minute: '2-digit', day: '2-digit', month: '2-digit', year: 'numeric' }),
         };
 
-        const updated = [newIncident, ...incidents];
-        setIncidents(updated);
-        localStorage.setItem('checklist_incidents', JSON.stringify(updated));
+        // Save to Firebase
+        saveIncident(newIncident);
 
         // Notification Logic
         if (notifyZalo) {
@@ -108,31 +129,55 @@ export default function IncidentsPage() {
             return;
         }
 
-        const updated = incidents.map(inc => {
-            if (inc.id === resolvingId) {
-                return {
-                    ...inc,
-                    status: 'RESOLVED',
-                    resolvedBy: currentUser?.name || 'Unknown',
-                    resolvedAt: new Date().toLocaleString('vi-VN', { hour: '2-digit', minute: '2-digit', day: '2-digit', month: '2-digit', year: 'numeric' }),
-                    resolutionNote: resolutionNote,
-                    participants: selectedParticipants
-                } as Incident;
-            }
-            return inc;
-        });
-
-        setIncidents(updated);
-        localStorage.setItem('checklist_incidents', JSON.stringify(updated));
+        const incidentToUpdate = incidents.find(inc => inc.id === resolvingId);
+        if (incidentToUpdate) {
+            const updatedIncident: Incident = {
+                ...incidentToUpdate,
+                status: 'RESOLVED',
+                resolvedBy: currentUser?.name || 'Unknown',
+                resolvedAt: new Date().toLocaleString('vi-VN', { hour: '2-digit', minute: '2-digit', day: '2-digit', month: '2-digit', year: 'numeric' }),
+                resolutionNote: resolutionNote,
+                participants: selectedParticipants
+            };
+            saveIncident(updatedIncident);
+        }
 
         setResolvingId(null);
         alert("Đã xác nhận xử lý xong sự cố!");
     };
 
+    const handleExport = () => {
+        const data = incidents.map(inc => ({
+            "ID": inc.id,
+            "Tên sự cố": inc.title,
+            "Hệ thống": inc.systemName,
+            "Mô tả": inc.description,
+            "Trạng thái": inc.status === 'OPEN' ? 'Đang xử lý' : 'Đã xong',
+            "Người báo": inc.reportedBy,
+            "Thời gian báo": inc.createdAt,
+            "Người được giao": inc.assignedTo,
+            "Người xử lý": inc.resolvedBy,
+            "Thời gian xử lý": inc.resolvedAt,
+            "Nội dung xử lý": inc.resolutionNote,
+            "Người tham gia": inc.participants?.join(', ')
+        }));
+
+        const ws = XLSX.utils.json_to_sheet(data);
+        const wb = XLSX.utils.book_new();
+        XLSX.utils.book_append_sheet(wb, ws, "Danh sách sự cố");
+        XLSX.writeFile(wb, `Su_co_bat_thuong_${new Date().toISOString().slice(0, 10)}.xlsx`);
+    };
+
+    const filteredIncidents = incidents.filter(inc =>
+        inc.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        inc.systemName.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        (inc.description && inc.description.toLowerCase().includes(searchTerm.toLowerCase()))
+    );
+
     return (
         <div className="min-h-screen bg-slate-50 p-4 md:p-8 font-sans text-slate-900">
             <div className="max-w-4xl mx-auto">
-                <header className="flex items-center justify-between mb-8">
+                <header className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-8">
                     <div className="flex items-center gap-4">
                         <button onClick={() => router.push('/')} className="p-2 bg-white rounded-full border border-slate-200 hover:bg-slate-100">
                             <ArrowLeft size={20} className="text-slate-600" />
@@ -146,14 +191,35 @@ export default function IncidentsPage() {
                         </div>
                     </div>
                     {currentUser?.role === 'ADMIN' && viewMode === 'LIST' && (
-                        <button
-                            onClick={() => setViewMode('CREATE')}
-                            className="px-4 py-2 bg-red-600 text-white rounded shadow hover:bg-red-700 flex items-center gap-2 font-bold"
-                        >
-                            <Plus size={20} /> Báo Sự Cố Mới
-                        </button>
+                        <div className="flex gap-2">
+                            <button
+                                onClick={handleExport}
+                                className="px-3 py-2 bg-green-600 text-white rounded shadow hover:bg-green-700 flex items-center gap-2 font-bold text-sm"
+                            >
+                                <Download size={18} /> Xuất Excel
+                            </button>
+                            <button
+                                onClick={() => setViewMode('CREATE')}
+                                className="px-3 py-2 bg-red-600 text-white rounded shadow hover:bg-red-700 flex items-center gap-2 font-bold text-sm"
+                            >
+                                <Plus size={18} /> Báo Sự Cố Mới
+                            </button>
+                        </div>
                     )}
                 </header>
+
+                {viewMode === 'LIST' && (
+                    <div className="mb-6 relative">
+                        <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={20} />
+                        <input
+                            type="text"
+                            placeholder="Tìm kiếm sự cố theo tên, hệ thống, mô tả..."
+                            className="w-full pl-10 pr-4 py-3 rounded-xl border border-slate-200 shadow-sm outline-none focus:border-red-500 focus:ring-1 focus:ring-red-200 transition"
+                            value={searchTerm}
+                            onChange={(e) => setSearchTerm(e.target.value)}
+                        />
+                    </div>
+                )}
 
                 {viewMode === 'CREATE' && (
                     <div className="bg-white p-6 rounded-xl shadow-lg border border-red-100 mb-6">
@@ -221,70 +287,75 @@ export default function IncidentsPage() {
                 )}
 
                 <div className="space-y-4">
-                    {incidents.length === 0 && (
-                        <div className="text-center p-12 bg-white rounded-xl border border-dashed border-slate-300 text-slate-400">
-                            Chưa có sự cố nào được ghi nhận.
+                    {loading ? (
+                        <div className="text-center p-12">
+                            <Loader2 className="animate-spin mx-auto text-red-500 mb-2" size={32} />
+                            <span className="text-slate-500">Đang tải dữ liệu...</span>
                         </div>
-                    )}
-
-                    {incidents.map(inc => (
-                        <div key={inc.id} className="bg-white rounded-xl shadow-sm border border-slate-200 p-5 hover:shadow-md transition">
-                            <div className="flex justify-between items-start mb-3">
-                                <div>
-                                    <h3 className="font-bold text-lg text-slate-800 flex items-center gap-2">
-                                        {inc.title}
-                                        {inc.status === 'OPEN' ? (
-                                            <span className="bg-red-100 text-red-700 text-xs px-2 py-0.5 rounded-full border border-red-200">ĐANG XỬ LÝ</span>
-                                        ) : (
-                                            <span className="bg-green-100 text-green-700 text-xs px-2 py-0.5 rounded-full border border-green-200">ĐÃ XONG</span>
-                                        )}
-                                    </h3>
-                                    <div className="text-sm text-slate-500 flex items-center gap-2 mt-1">
-                                        <AlertTriangle size={14} /> {inc.systemName}
-                                        <span className="text-slate-300">|</span>
-                                        <Clock size={14} /> {inc.createdAt}
+                    ) : filteredIncidents.length === 0 ? (
+                        <div className="text-center p-12 bg-white rounded-xl border border-dashed border-slate-300 text-slate-400">
+                            {searchTerm ? 'Không tìm thấy kết quả phù hợp.' : 'Chưa có sự cố nào được ghi nhận.'}
+                        </div>
+                    ) : (
+                        filteredIncidents.map(inc => (
+                            <div key={inc.id} className="bg-white rounded-xl shadow-sm border border-slate-200 p-5 hover:shadow-md transition">
+                                <div className="flex justify-between items-start mb-3">
+                                    <div>
+                                        <h3 className="font-bold text-lg text-slate-800 flex items-center gap-2">
+                                            {inc.title}
+                                            {inc.status === 'OPEN' ? (
+                                                <span className="bg-red-100 text-red-700 text-xs px-2 py-0.5 rounded-full border border-red-200">ĐANG XỬ LÝ</span>
+                                            ) : (
+                                                <span className="bg-green-100 text-green-700 text-xs px-2 py-0.5 rounded-full border border-green-200">ĐÃ XONG</span>
+                                            )}
+                                        </h3>
+                                        <div className="text-sm text-slate-500 flex items-center gap-2 mt-1">
+                                            <AlertTriangle size={14} /> {inc.systemName}
+                                            <span className="text-slate-300">|</span>
+                                            <Clock size={14} /> {inc.createdAt}
+                                        </div>
                                     </div>
+                                    {inc.status === 'OPEN' && (
+                                        <button
+                                            onClick={() => startResolve(inc.id)}
+                                            className="px-3 py-1 bg-blue-600 text-white text-sm font-bold rounded shadow hover:bg-blue-700"
+                                        >
+                                            Báo cáo Xong
+                                        </button>
+                                    )}
                                 </div>
-                                {inc.status === 'OPEN' && (
-                                    <button
-                                        onClick={() => startResolve(inc.id)}
-                                        className="px-3 py-1 bg-blue-600 text-white text-sm font-bold rounded shadow hover:bg-blue-700"
-                                    >
-                                        Báo cáo Xong
-                                    </button>
+
+                                <div className="bg-slate-50 p-3 rounded text-slate-700 text-sm mb-3 border border-slate-100">
+                                    {inc.description || 'Không có mô tả chi tiết.'}
+                                </div>
+
+                                {inc.assignedTo && (
+                                    <div className="text-xs text-slate-500 flex items-center gap-1 mb-2">
+                                        <User size={12} /> Giao cho: <span className="font-bold text-slate-700">{inc.assignedTo}</span>
+                                    </div>
+                                )}
+
+                                {inc.status === 'RESOLVED' && (
+                                    <div className="mt-3 border-t border-slate-100 pt-3">
+                                        <div className="flex items-center gap-2 text-green-700 font-bold text-sm mb-1">
+                                            <CheckCircle size={16} /> Đã khắc phục bởi {inc.resolvedBy}
+                                        </div>
+                                        <div className="text-sm text-slate-600 italic">
+                                            "{inc.resolutionNote}"
+                                        </div>
+                                        {inc.participants && inc.participants.length > 0 && (
+                                            <div className="text-xs text-slate-500 mt-1">
+                                                Tham gia: <span className="font-bold">{inc.participants.join(', ')}</span>
+                                            </div>
+                                        )}
+                                        <div className="text-xs text-slate-400 mt-1 text-right">
+                                            Hoàn thành: {inc.resolvedAt}
+                                        </div>
+                                    </div>
                                 )}
                             </div>
-
-                            <div className="bg-slate-50 p-3 rounded text-slate-700 text-sm mb-3 border border-slate-100">
-                                {inc.description || 'Không có mô tả chi tiết.'}
-                            </div>
-
-                            {inc.assignedTo && (
-                                <div className="text-xs text-slate-500 flex items-center gap-1 mb-2">
-                                    <User size={12} /> Giao cho: <span className="font-bold text-slate-700">{inc.assignedTo}</span>
-                                </div>
-                            )}
-
-                            {inc.status === 'RESOLVED' && (
-                                <div className="mt-3 border-t border-slate-100 pt-3">
-                                    <div className="flex items-center gap-2 text-green-700 font-bold text-sm mb-1">
-                                        <CheckCircle size={16} /> Đã khắc phục bởi {inc.resolvedBy}
-                                    </div>
-                                    <div className="text-sm text-slate-600 italic">
-                                        "{inc.resolutionNote}"
-                                    </div>
-                                    {inc.participants && inc.participants.length > 0 && (
-                                        <div className="text-xs text-slate-500 mt-1">
-                                            Tham gia: <span className="font-bold">{inc.participants.join(', ')}</span>
-                                        </div>
-                                    )}
-                                    <div className="text-xs text-slate-400 mt-1 text-right">
-                                        Hoàn thành: {inc.resolvedAt}
-                                    </div>
-                                </div>
-                            )}
-                        </div>
-                    ))}
+                        ))
+                    )}
                 </div>
             </div>
 
