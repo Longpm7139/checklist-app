@@ -5,6 +5,8 @@ import { useRouter, useParams } from 'next/navigation';
 import { ChecklistItem, Status, SystemCheck } from '@/lib/types';
 import { Save, ArrowLeft, Clock, Settings, Plus, Trash2, X } from 'lucide-react';
 import clsx from 'clsx';
+import { subscribeToSystems, subscribeToChecklist, saveChecklist, saveSystem, addLog } from '@/lib/firebase';
+import { useUser } from '@/providers/UserProvider';
 
 const DEFAULT_TEMPLATE = [
     { id: '1', content: 'Kiểm tra ngoại quan thiết bị (Vỏ, dây cáp)' },
@@ -18,36 +20,51 @@ export default function CheckPage() {
     const router = useRouter();
     const params = useParams();
     const systemId = params.systemId as string;
-    const [systemName, setSystemName] = useState('');
+    const { user } = useUser();
+
+    // Data state
+    const [systems, setSystems] = useState<SystemCheck[]>([]);
     const [items, setItems] = useState<ChecklistItem[]>([]);
+    const [systemName, setSystemName] = useState('');
+
+    // UI state
     const [isEditing, setIsEditing] = useState(false);
     const [startTime, setStartTime] = useState<number>(Date.now());
+    const [errorMessage, setErrorMessage] = useState('');
+    const [isLoaded, setIsLoaded] = useState(false);
 
     useEffect(() => {
-        const systems: SystemCheck[] = JSON.parse(localStorage.getItem('checklist_systems') || '[]');
-        const currentSys = systems.find(s => s.id === systemId);
-        if (currentSys) setSystemName(currentSys.name);
+        // 1. Subscribe to Systems (for name & navigation)
+        const unsubSys = subscribeToSystems((data) => {
+            setSystems(data as SystemCheck[]);
+            const current = data.find(s => s.id === systemId);
+            if (current) setSystemName(current.name);
+        });
 
-        const allDetails = JSON.parse(localStorage.getItem('checklist_details') || '{}');
-        const savedItems = allDetails[systemId];
+        // 2. Subscribe to Checklist Details
+        const unsubChecklist = subscribeToChecklist(systemId, (data) => {
+            if (data && data.length > 0) {
+                setItems(data);
+            } else {
+                setItems(DEFAULT_TEMPLATE.map((t: any) => ({
+                    id: t.id,
+                    content: t.content,
+                    status: null,
+                    note: '',
+                    timestamp: ''
+                })));
+            }
+            setIsLoaded(true);
+        });
 
-        if (savedItems && savedItems.length > 0) {
-            setItems(savedItems);
-        } else {
-            setItems(DEFAULT_TEMPLATE.map((t: any) => ({
-                id: t.id,
-                content: t.content,
-                status: null,
-                note: '',
-                timestamp: ''
-            })));
-        }
+        return () => {
+            unsubSys();
+            unsubChecklist();
+        };
     }, [systemId]);
 
     const handleStatusChange = (id: string, val: Status) => {
         const now = new Date().toLocaleString('vi-VN', { hour: '2-digit', minute: '2-digit', day: '2-digit', month: '2-digit', year: 'numeric' });
-        const currentUser = JSON.parse(localStorage.getItem('checklist_user') || '{}');
-        const inspectorName = currentUser.name || '';
 
         setItems(prev => prev.map(i => {
             if (i.id === id) {
@@ -55,7 +72,7 @@ export default function CheckPage() {
                     ...i,
                     status: val,
                     timestamp: now,
-                    inspectorName: inspectorName, // Save who checked this
+                    inspectorName: user?.name, // Save who checked this
                     note: val === 'OK' ? '' : i.note // Clear note if OK
                 };
             }
@@ -65,9 +82,7 @@ export default function CheckPage() {
 
     const handleNoteChange = (id: string, val: string) => {
         const now = new Date().toLocaleString('vi-VN', { hour: '2-digit', minute: '2-digit', day: '2-digit', month: '2-digit', year: 'numeric' });
-        const currentUser = JSON.parse(localStorage.getItem('checklist_user') || '{}');
-        const inspectorName = currentUser.name || '';
-        setItems(prev => prev.map(i => i.id === id ? { ...i, note: val, timestamp: now, inspectorName } : i));
+        setItems(prev => prev.map(i => i.id === id ? { ...i, note: val, timestamp: now, inspectorName: user?.name } : i));
     };
 
     const handleAddItem = () => {
@@ -91,9 +106,7 @@ export default function CheckPage() {
         setItems(prev => prev.map(i => i.id === id ? { ...i, content: newContent } : i));
     };
 
-    const [errorMessage, setErrorMessage] = useState('');
-
-    const handleSave = () => {
+    const handleSave = async () => {
         setErrorMessage(''); // Clear previous errors
         try {
             // 1. Validation
@@ -119,99 +132,63 @@ export default function CheckPage() {
             }
 
             // 3. Consistency Check: If Parent System is NOK, Detailed Checklist MUST have at least one NOK item
-            try {
-                const currentSystems: SystemCheck[] = JSON.parse(localStorage.getItem('checklist_systems') || '[]');
-                const parentSystem = currentSystems.find(s => s.id === systemId);
-
-                if (parentSystem && parentSystem.status === 'NOK') {
-                    const hasDetailedNOK = items.some(i => i.status === 'NOK');
-                    if (!hasDetailedNOK) {
-                        setErrorMessage("Hệ thống đang báo Lỗi (NOK). Bảng chi tiết bắt buộc phải có ít nhất 1 mục NOK.");
-                        return;
-                    }
+            const currentSystem = systems.find(s => s.id === systemId);
+            if (currentSystem && currentSystem.status === 'NOK') {
+                const hasDetailedNOK = items.some(i => i.status === 'NOK');
+                if (!hasDetailedNOK) {
+                    setErrorMessage("Hệ thống đang báo Lỗi (NOK). Bảng chi tiết bắt buộc phải có ít nhất 1 mục NOK.");
+                    return;
                 }
-            } catch (e) {
-                console.error("Error checking parent system status", e);
             }
 
-            // Safe LocalStorage Access
-            let allDetails: any = {};
-            try {
-                const storedDetails = localStorage.getItem('checklist_details');
-                if (storedDetails) {
-                    allDetails = JSON.parse(storedDetails);
-                }
-            } catch (e) {
-                console.error("Error parsing checklist_details", e);
-                allDetails = {};
-            }
+            // --- SAVE TO FIREBASE ---
 
-            allDetails[systemId] = items;
-            localStorage.setItem('checklist_details', JSON.stringify(allDetails));
+            // 1. Save Details
+            await saveChecklist(systemId, items);
 
-            // Logic to update Parent System Status
+            // 2. Update System Status
             const hasErrors = items.some(i => i.status === 'NOK');
-            let systems: SystemCheck[] = [];
-            try {
-                systems = JSON.parse(localStorage.getItem('checklist_systems') || '[]');
-            } catch (e) {
-                console.error("Error parsing checklist_systems", e);
-                systems = [];
-            }
 
-            let updatedSystems = systems.map(s => {
-                if (s.id === systemId) {
-                    return {
-                        ...s,
-                        status: hasErrors ? 'NOK' : 'OK',
-                        note: hasErrors ? 'Có lỗi chi tiết' : ''
-                    };
-                }
-                return s;
+            const newStatus = hasErrors ? 'NOK' : 'OK';
+            const newNote = hasErrors ? 'Có lỗi chi tiết' : '';
+
+            // Update system
+            await saveSystem(systemId, {
+                status: newStatus,
+                note: newNote,
+                inspectorName: user?.name,
+                timestamp: new Date().toLocaleString('vi-VN', { hour: '2-digit', minute: '2-digit', day: '2-digit', month: '2-digit', year: 'numeric' })
             });
-            localStorage.setItem('checklist_systems', JSON.stringify(updatedSystems));
 
-            // ... (Existing logic for systems update)
+            // 3. Log Inspection
+            const durationSeconds = Math.round((Date.now() - startTime) / 1000);
+            const logEntry = {
+                id: Date.now().toString(),
+                timestamp: new Date().toLocaleString('vi-VN', { hour: '2-digit', minute: '2-digit', day: '2-digit', month: '2-digit', year: 'numeric' }),
+                inspectorName: user?.name || 'Unknown',
+                inspectorCode: user?.code || 'UNKNOWN',
+                systemId: systemId,
+                systemName: systemName,
+                result: newStatus,
+                note: hasErrors ? 'Phát hiện lỗi' : 'Hệ thống bình thường',
+                duration: durationSeconds
+            };
+            await addLog(logEntry);
 
-            // --- NEW: INSPECTION LOGGING ---
-            try {
-                const currentUser = JSON.parse(localStorage.getItem('checklist_user') || '{}');
-                const durationSeconds = Math.round((Date.now() - startTime) / 1000);
-
-                const logEntry = {
-                    id: Date.now().toString(),
-                    timestamp: new Date().toLocaleString('vi-VN', { hour: '2-digit', minute: '2-digit', day: '2-digit', month: '2-digit', year: 'numeric' }),
-                    inspectorName: currentUser.name || 'Unknown',
-                    inspectorCode: currentUser.code || 'UNKNOWN',
-                    systemId: systemId,
-                    systemName: systemName, // We have this state
-                    result: hasErrors ? 'NOK' : 'OK',
-                    note: hasErrors ? 'Phát hiện lỗi' : 'Hệ thống bình thường',
-                    duration: durationSeconds
-                };
-
-                const currentLogs = JSON.parse(localStorage.getItem('checklist_logs') || '[]');
-                const newLogs = [...currentLogs, logEntry];
-                localStorage.setItem('checklist_logs', JSON.stringify(newLogs));
-            } catch (logErr) {
-                console.error("Error saving log:", logErr);
-            }
-            // -------------------------------
-
-            // Navigation
-            const currentSystemIndex = updatedSystems.findIndex(s => s.id === systemId);
+            // --- NAVIGATION ---
+            // Find next NOK system
+            const currentSystemIndex = systems.findIndex(s => s.id === systemId);
             let nextNokSystemId = null;
 
             if (currentSystemIndex !== -1) {
                 // Search for the NEXT system ensuring we don't loop back to current
-                for (let i = currentSystemIndex + 1; i < updatedSystems.length; i++) {
+                for (let i = currentSystemIndex + 1; i < systems.length; i++) {
                     // Check if there is another NOK system ahead
-                    if (updatedSystems[i].status === 'NOK') {
-                        nextNokSystemId = updatedSystems[i].id;
+                    if (systems[i].status === 'NOK') {
+                        nextNokSystemId = systems[i].id;
                         break;
                     }
                 }
-                // If not found ahead, we DO NOT wrap around to the beginning to avoid loops
             }
 
             if (nextNokSystemId) {
@@ -219,30 +196,25 @@ export default function CheckPage() {
             } else {
                 router.push('/summary');
             }
+
         } catch (error: any) {
             console.error(error);
             setErrorMessage("Lỗi hệ thống: " + (error?.message || "Không xác định"));
         }
     };
 
-    const handleSaveConfig = () => {
-        // Save current items to local storage immediately as config
-        setIsEditing(false);
-        // We reuse logic? Or just saving details is enough.
-        // Actually handleSave logic does validation. 
-        // If we just want to save the STRUCTURE, we can do it silently?
-        // But user might want to save progress.
-        // Let's just exit edit mode. The main Save button persists changes to disk.
-        // Or we can auto-save structure to details?
-        // Let's safe-guard:
-        let allDetails: any = {};
+    const handleSaveConfig = async () => {
+        // Just save the structure/items without changing status/logs
         try {
-            allDetails = JSON.parse(localStorage.getItem('checklist_details') || '{}');
-        } catch (e) { allDetails = {} }
-        allDetails[systemId] = items;
-        localStorage.setItem('checklist_details', JSON.stringify(allDetails));
-        alert("Đã lưu cấu hình mới!");
+            await saveChecklist(systemId, items);
+            setIsEditing(false);
+            alert("Đã lưu cấu hình mới!");
+        } catch (e) {
+            alert("Lỗi khi lưu cấu hình");
+        }
     };
+
+    if (!isLoaded) return <div className="p-8 text-center">Đang tải dữ liệu...</div>;
 
     return (
         <div className="min-h-screen bg-slate-50 p-4 font-sans text-slate-900">

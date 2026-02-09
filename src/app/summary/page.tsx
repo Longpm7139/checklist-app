@@ -5,6 +5,8 @@ import { useRouter } from 'next/navigation';
 import { ChecklistItem, SystemCheck } from '@/lib/types';
 import { ArrowLeft, Save, RotateCcw, History as HistoryIcon, ChevronLeft, ChevronRight } from 'lucide-react';
 import clsx from 'clsx';
+import { subscribeToSystems, getAllDetails, addHistoryItem, saveSystem, saveChecklist } from '@/lib/firebase';
+import { useUser } from '@/providers/UserProvider';
 
 interface SummaryRow {
     id: string;
@@ -14,53 +16,56 @@ interface SummaryRow {
     fixStatus: 'Fixed' | 'Fixing' | 'No Fix' | 'Pending Material';
     actionDescription: string;
     inspectorName?: string;
+    // Helper to know where this came from
+    systemId: string;
+    detailId?: string;
 }
 
 export default function SummaryPage() {
     const router = useRouter();
+    const { user } = useUser();
     const [rows, setRows] = useState<SummaryRow[]>([]);
     const [currentPage, setCurrentPage] = useState(1);
     const ITEMS_PER_PAGE = 10;
+    const [isLoaded, setIsLoaded] = useState(false);
 
     useEffect(() => {
-        const systems: SystemCheck[] = JSON.parse(localStorage.getItem('checklist_systems') || '[]');
-        const allDetails: Record<string, ChecklistItem[]> = JSON.parse(localStorage.getItem('checklist_details') || '{}');
-        const newRows: SummaryRow[] = [];
+        // Load data from Firebase
+        // 1. Subscribe to Systems to check for NOK statuses
+        const unsub = subscribeToSystems(async (systems: any[]) => {
 
-        // 1. Collect NOK from System Main List
-        systems.forEach(sys => {
-            // User requested to hide System-level notes in Summary, only show Detailed notes.
-            /*
-            if (sys.status === 'NOK') {
-                newRows.push({
-                    id: sys.id,
-                    systemName: sys.name,
-                    issueContent: sys.note || 'Lỗi hệ thống chung',
-                    timestamp: sys.timestamp || new Date().toLocaleString('vi-VN', { hour: '2-digit', minute: '2-digit', day: '2-digit', month: '2-digit', year: 'numeric' }),
-                    fixStatus: 'Fixing',
-                    actionDescription: ''
-                });
-            }
-            */
-            // 2. Collect NOK from Main Details
-            const detItems = allDetails[sys.id];
-            if (detItems) {
-                detItems.forEach(item => {
-                    if (item.status === 'NOK') {
-                        newRows.push({
-                            id: `${sys.id}_${item.id}`,
-                            systemName: `${sys.name} > ${item.content}`,
-                            issueContent: item.note || 'Lỗi chi tiết',
-                            timestamp: item.timestamp || '',
-                            fixStatus: item.materialRequest ? 'Pending Material' : 'Fixing',
-                            actionDescription: item.materialRequest || '',
-                            inspectorName: (item as any).inspectorName
-                        });
-                    }
-                });
-            }
+            // 2. Fetch details for all systems (or just NOK ones)
+            // For simplicity and correctness, we fetch all details to check specific items
+            const newRows: SummaryRow[] = [];
+
+            const allDetails = await getAllDetails(); // This is a one-time fetch helper we created
+
+            systems.forEach((sys: SystemCheck) => {
+                const detItems = allDetails[sys.id];
+                if (detItems) {
+                    detItems.forEach((item: any) => {
+                        if (item.status === 'NOK') {
+                            newRows.push({
+                                id: `${sys.id}_${item.id}`,
+                                systemName: `${sys.name} > ${item.content}`,
+                                issueContent: item.note || 'Lỗi chi tiết',
+                                timestamp: item.timestamp || '',
+                                fixStatus: item.materialRequest ? 'Pending Material' : 'Fixing',
+                                actionDescription: item.materialRequest || '',
+                                inspectorName: item.inspectorName,
+                                systemId: sys.id,
+                                detailId: item.id
+                            });
+                        }
+                    });
+                }
+            });
+
+            setRows(newRows);
+            setIsLoaded(true);
         });
-        setRows(newRows);
+
+        return () => unsub();
     }, []);
 
     const handleStatusChange = (id: string, status: SummaryRow['fixStatus']) => {
@@ -94,7 +99,7 @@ export default function SummaryPage() {
         if (currentPage > 1) setCurrentPage(prev => prev - 1);
     };
 
-    const handleSaveReport = () => {
+    const handleSaveReport = async () => {
         // 0. Check if there are no errors at all
         if (rows.length === 0) {
             router.push('/fixed');
@@ -123,89 +128,74 @@ export default function SummaryPage() {
             return;
         }
 
-        // 2. Prepare History Items
-        const historyItems = fixedRows.map(r => ({
-            id: r.id,
-            systemName: r.systemName,
-            issueContent: r.issueContent,
-            timestamp: r.timestamp,
-            resolvedAt: new Date().toLocaleString('vi-VN', { hour: '2-digit', minute: '2-digit', day: '2-digit', month: '2-digit', year: 'numeric' }),
-            actionNote: r.actionDescription,
-            inspectorName: r.inspectorName
-        }));
+        try {
+            // 2. Save fixed items to History
+            const historyPromises = fixedRows.map(r => addHistoryItem({
+                // systemId + detailId helps tracing but history is flat log
+                originalId: r.id,
+                systemName: r.systemName,
+                issueContent: r.issueContent,
+                timestamp: r.timestamp || '',
+                resolvedAt: new Date().toLocaleString('vi-VN', { hour: '2-digit', minute: '2-digit', day: '2-digit', month: '2-digit', year: 'numeric' }),
+                actionNote: r.actionDescription || '',
+                inspectorName: r.inspectorName || 'Unknown',
+                resolverName: user?.name || 'Unknown'
+            }));
+            await Promise.all(historyPromises);
 
-        // 3. Save to History
-        const currentHistory = JSON.parse(localStorage.getItem('checklist_fixed_history') || '[]');
-        const newHistory = [...currentHistory, ...historyItems];
-        localStorage.setItem('checklist_fixed_history', JSON.stringify(newHistory));
+            // 3. Update Source Data (Firebase)
+            // We need to update DETAILS and potentially SYSTEMS status.
 
-        // 4. Update Source Data
-        let systems: SystemCheck[] = JSON.parse(localStorage.getItem('checklist_systems') || '[]');
-        const allDetails: Record<string, ChecklistItem[]> = JSON.parse(localStorage.getItem('checklist_details') || '{}');
+            // Group actions by System ID to minimize writes
+            const affectedSystemIds = new Set<string>();
+            [...fixedRows, ...materialRows].forEach(r => affectedSystemIds.add(r.systemId));
 
-        // 4a. Update items in allDetails first
-        fixedRows.forEach(row => {
-            if (row.id.includes('_')) {
-                const lastUnderscoreIndex = row.id.lastIndexOf('_');
-                if (lastUnderscoreIndex !== -1) {
-                    const sysId = row.id.substring(0, lastUnderscoreIndex);
-                    const detId = row.id.substring(lastUnderscoreIndex + 1);
+            // Fetch latest details (or use what we have, but fetching safer)
+            const allDetails = await getAllDetails();
 
-                    if (allDetails[sysId]) {
-                        allDetails[sysId] = allDetails[sysId].map(d =>
-                            d.id === detId ? { ...d, status: 'OK', note: '', materialRequest: undefined } : d
-                        );
+            for (const sysId of Array.from(affectedSystemIds)) {
+                let currentItems = allDetails[sysId] || [];
+                let modified = false;
+
+                // Apply fixes
+                currentItems = currentItems.map((item: any) => {
+                    const fixedRow = fixedRows.find(r => r.systemId === sysId && r.detailId === item.id);
+                    const materialRow = materialRows.find(r => r.systemId === sysId && r.detailId === item.id);
+
+                    if (fixedRow) {
+                        modified = true;
+                        const { materialRequest, ...rest } = item;
+                        return { ...rest, status: 'OK', note: '' }; // Reset to OK and remove materialRequest
                     }
+                    if (materialRow) {
+                        modified = true;
+                        return { ...item, materialRequest: materialRow.actionDescription };
+                    }
+                    return item;
+                });
+
+                if (modified) {
+                    await saveChecklist(sysId, currentItems);
+
+                    // Re-evaluate System Status
+                    const hasRemainingErrors = currentItems.some((d: any) => d.status === 'NOK');
+                    const newStatus = hasRemainingErrors ? 'NOK' : 'OK';
+                    const newNote = hasRemainingErrors ? 'Có lỗi chi tiết' : '';
+
+                    await saveSystem(sysId, { status: newStatus, note: newNote });
                 }
             }
-        });
 
-        // 4b. Update Material Requests
-        // materialRows is already defined above
-        materialRows.forEach(row => {
-            if (row.id.includes('_')) {
-                const lastUnderscoreIndex = row.id.lastIndexOf('_');
-                const sysId = row.id.substring(0, lastUnderscoreIndex);
-                const detId = row.id.substring(lastUnderscoreIndex + 1);
+            alert("Đã lưu các lỗi đã sửa vào lịch sử và cập nhật trạng thái hệ thống!");
+            router.push('/fixed');
 
-                if (allDetails[sysId]) {
-                    allDetails[sysId] = allDetails[sysId].map(d =>
-                        d.id === detId ? { ...d, materialRequest: row.actionDescription } : d
-                    );
-                }
-            }
-        });
-
-        // 4b. Re-evaluate System Status
-        // For every system, check if it still has any NOK items in allDetails
-        systems = systems.map(sys => {
-            const sysDetails = allDetails[sys.id];
-            if (sysDetails && sysDetails.length > 0) {
-                const hasRemainingErrors = sysDetails.some(d => d.status === 'NOK');
-                if (!hasRemainingErrors) {
-                    // All clean -> System OK
-                    return { ...sys, status: 'OK', note: '' };
-                } else {
-                    // Still has errors -> System NOK
-                    // Ensure it stays NOK
-                    return { ...sys, status: 'NOK' };
-                }
-            }
-            // If no details (shouldn't happen for NOK system), trust current status or set OK?
-            // If it was NOK but has no details, maybe set OK? 
-            // Safest is to check if it was in fixedRows as a system-level error?
-            // But we commented out system-level error rows in useEffect.
-            // So we rely on details.
-            return sys;
-        });
-
-        // 5. Save Source Data
-        localStorage.setItem('checklist_systems', JSON.stringify(systems));
-        localStorage.setItem('checklist_details', JSON.stringify(allDetails));
-
-        alert("Đã lưu các lỗi đã sửa vào lịch sử và cập nhật trạng thái hệ thống!");
-        router.push('/fixed'); // Navigate to Fixed page
+        } catch (error) {
+            console.error("Error saving report:", error);
+            alert("Đã xảy ra lỗi khi lưu.");
+        }
     };
+
+    if (!isLoaded) return <div className="p-8 text-center">Đang tải dữ liệu...</div>;
 
     return (
         <div className="min-h-screen bg-slate-50 p-4 font-sans text-slate-900">

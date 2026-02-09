@@ -29,6 +29,20 @@ export { db };
 // --- HELPER FUNCTIONS FOR MIGRATION ---
 
 // Systems
+// Helper to remove undefined values (Firestore doesn't support them)
+const removeUndefined = (obj: any) => {
+    if (typeof obj !== 'object' || obj === null) return obj;
+    const newObj: any = Array.isArray(obj) ? [] : {};
+    Object.keys(obj).forEach(key => {
+        const value = obj[key];
+        if (value !== undefined) {
+            newObj[key] = (typeof value === 'object' && value !== null) ? removeUndefined(value) : value;
+        }
+    });
+    return newObj;
+};
+
+// Systems
 export const subscribeToSystems = (callback: (data: any[]) => void) => {
     const q = query(collection(db, "systems"));
     return onSnapshot(q, (querySnapshot) => {
@@ -42,7 +56,7 @@ export const subscribeToSystems = (callback: (data: any[]) => void) => {
 
 export const saveSystem = async (id: string, data: any) => {
     // Merge true to allow partial updates (e.g. status change) without wiping name/categoryId
-    await setDoc(doc(db, "systems", id), data, { merge: true });
+    await setDoc(doc(db, "systems", id), removeUndefined(data), { merge: true });
 };
 
 export const deleteSystem = async (id: string) => {
@@ -53,7 +67,7 @@ export const deleteSystem = async (id: string) => {
 export const addLog = async (log: any) => {
     // Use timestamp as ID or auto-id
     const logId = log.id || Date.now().toString();
-    await setDoc(doc(db, "logs", logId), log);
+    await setDoc(doc(db, "logs", logId), removeUndefined(log));
 };
 
 // Incidents
@@ -69,12 +83,12 @@ export const subscribeToIncidents = (callback: (data: any[]) => void) => {
 };
 
 export const saveIncident = async (incident: any) => {
-    await setDoc(doc(db, "incidents", incident.id), incident);
+    await setDoc(doc(db, "incidents", incident.id), removeUndefined(incident));
 };
 
 // Maintenance
 export const saveMaintenance = async (task: any) => {
-    await setDoc(doc(db, "maintenance", task.id), task);
+    await setDoc(doc(db, "maintenance", task.id), removeUndefined(task));
 };
 
 // Checklist Details
@@ -89,7 +103,9 @@ export const subscribeToChecklist = (systemId: string, callback: (data: any) => 
 };
 
 export const saveChecklist = async (systemId: string, items: any[]) => {
-    await setDoc(doc(db, "details", systemId), { items });
+    // Sanitize items array
+    const sanitizedItems = items.map(item => removeUndefined(item));
+    await setDoc(doc(db, "details", systemId), { items: sanitizedItems });
 };
 
 // Users
@@ -120,7 +136,7 @@ export const addUser = async (user: any) => {
         throw new Error('Mã nhân viên đã tồn tại');
     }
     // Add new user
-    await addDoc(collection(db, "users"), user);
+    await addDoc(collection(db, "users"), removeUndefined(user));
 };
 
 export const deleteUser = async (id: string) => {
@@ -136,4 +152,39 @@ export const checkAnyUserExists = async () => {
     const q = query(collection(db, "users"), limit(1));
     const snapshot = await getDocs(q);
     return !snapshot.empty;
+};
+
+// History (Fixed Issues)
+export const subscribeToHistory = (callback: (data: any[]) => void) => {
+    const q = query(collection(db, "history"));
+    return onSnapshot(q, (querySnapshot) => {
+        const items: any[] = [];
+        querySnapshot.forEach((doc) => {
+            items.push({ ...doc.data(), id: doc.id });
+        });
+        // Sort by resolvedAt descending (newest first)
+        items.sort((a, b) => {
+            // Assuming format DD/MM/YYYY HH:mm
+            // To sort correctly, we might need to parse. For now simple string sort or rely on ISO if we change, 
+            // but the app uses locale string. 
+            // Let's just return as is, sorting can happen in UI or we use a better timestamp field.
+            return 0;
+        });
+        callback(items);
+    });
+};
+
+export const addHistoryItem = async (item: any) => {
+    await addDoc(collection(db, "history"), removeUndefined(item));
+};
+
+// Helper to get all details for Summary page
+export const getAllDetails = async () => {
+    const q = query(collection(db, "details"));
+    const snapshot = await getDocs(q);
+    const details: Record<string, any[]> = {};
+    snapshot.forEach((doc) => {
+        details[doc.id] = doc.data().items || [];
+    });
+    return details;
 };

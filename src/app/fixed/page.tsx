@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { ArrowLeft, CheckCircle, Download, ChevronLeft, ChevronRight, Search } from 'lucide-react';
 import clsx from 'clsx';
+import { subscribeToHistory } from '@/lib/firebase';
 
 interface HistoryItem {
     id: string;
@@ -13,6 +14,7 @@ interface HistoryItem {
     resolvedAt: string;
     actionNote: string;
     inspectorName?: string;
+    resolverName?: string;
 }
 
 export default function FixedPage() {
@@ -23,8 +25,10 @@ export default function FixedPage() {
     const ITEMS_PER_PAGE = 10;
 
     useEffect(() => {
-        const saved = localStorage.getItem('checklist_fixed_history');
-        if (saved) setHistory(JSON.parse(saved).reverse());
+        const unsub = subscribeToHistory((data) => {
+            setHistory(data as HistoryItem[]);
+        });
+        return () => unsub();
     }, []);
 
     // Search and Pagination Logic
