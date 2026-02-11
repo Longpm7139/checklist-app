@@ -65,5 +65,6 @@ export interface MaintenanceTask {
   status: 'PENDING' | 'COMPLETED';
   completedAt?: string;
   completedNote?: string;
+  remainingIssues?: string; // Tồn tại sau bảo dưỡng
   createdAt: string;
 }

@@ -439,26 +439,36 @@ export default function Home() {
         <div className="bg-slate-50 p-4 border-b border-slate-200">
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             {/* Progress Card */}
+            {/* Progress Card */}
             <div className="bg-white p-4 rounded-lg shadow-sm border border-slate-200">
               <div className="flex justify-between items-start mb-2">
                 <div>
                   <h3 className="text-slate-500 text-xs font-bold uppercase tracking-wider">Tiến độ kiểm tra</h3>
-                  <div className="text-2xl font-bold text-slate-800">
+                  <div className="text-2xl font-bold text-slate-800 flex items-baseline gap-1">
                     {Math.round((systems.filter(s => s.status).length / systems.length) * 100) || 0}%
+                    <span className="text-sm font-normal text-slate-500">
+                      ({systems.filter(s => s.status).length}/{systems.length})
+                    </span>
                   </div>
                 </div>
-                <div className="p-2 bg-blue-100 text-blue-600 rounded-lg">
-                  <ClipboardList size={20} />
+                <div className={clsx(
+                  "p-2 rounded-lg transition-colors",
+                  systems.every(s => s.status) ? "bg-green-100 text-green-600" : "bg-blue-100 text-blue-600"
+                )}>
+                  {systems.every(s => s.status) ? <CheckCheck size={20} /> : <ClipboardList size={20} />}
                 </div>
               </div>
-              <div className="w-full bg-slate-100 rounded-full h-2.5">
+              <div className="w-full bg-slate-100 rounded-full h-2.5 mb-2">
                 <div
-                  className="bg-blue-600 h-2.5 rounded-full transition-all duration-500"
+                  className={clsx("h-2.5 rounded-full transition-all duration-500",
+                    systems.every(s => s.status) ? "bg-green-500" : "bg-blue-600"
+                  )}
                   style={{ width: `${(systems.filter(s => s.status).length / systems.length) * 100}%` }}
                 ></div>
               </div>
-              <div className="mt-2 text-xs text-slate-400">
-                Đã kiểm tra: {systems.filter(s => s.status).length} / {systems.length} hệ thống
+              <div className="flex justify-between text-xs font-medium">
+                <span className="text-blue-600">Đã kiểm: {systems.filter(s => s.status).length}</span>
+                <span className="text-slate-400">Chưa kiểm: {systems.filter(s => !s.status).length}</span>
               </div>
             </div>
 

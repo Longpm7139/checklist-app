@@ -24,6 +24,12 @@ export default function MaintenancePage() {
     const [selectedUserCodes, setSelectedUserCodes] = useState<string[]>([]);
     const [selectedSupervisorCodes, setSelectedSupervisorCodes] = useState<string[]>([]);
 
+    // Complete Modal State
+    const [isCompleteModalOpen, setIsCompleteModalOpen] = useState(false);
+    const [selectedTaskId, setSelectedTaskId] = useState<string | null>(null);
+    const [completeNote, setCompleteNote] = useState('');
+    const [remainingIssues, setRemainingIssues] = useState('');
+
     useEffect(() => {
         const unsub = subscribeToMaintenance((data) => {
             // Sort by createdAt desc
@@ -46,6 +52,7 @@ export default function MaintenancePage() {
 
         // Load users for selection from API
         const fetchUsers = async () => {
+
             try {
                 const res = await fetch('/api/users');
                 const data = await res.json();
@@ -115,20 +122,32 @@ export default function MaintenancePage() {
         alert("Đã giao việc bảo trì thành công!");
     };
 
-    const handleComplete = (id: string) => {
-        const note = prompt("Nhập ghi chú hoàn thành (kết quả bảo dưỡng):");
-        if (!note) return;
+    const openCompleteModal = (taskId: string) => {
+        setSelectedTaskId(taskId);
+        setCompleteNote('');
+        setRemainingIssues('');
+        setIsCompleteModalOpen(true);
+    };
 
-        const taskToUpdate = tasks.find(t => t.id === id);
+    const handleConfirmComplete = () => {
+        if (!selectedTaskId || !completeNote.trim()) {
+            alert("Vui lòng nhập Ghi chú hoàn thành!");
+            return;
+        }
+
+        const taskToUpdate = tasks.find(t => t.id === selectedTaskId);
         if (taskToUpdate) {
-            const updatedTask = {
+            const updatedTask: MaintenanceTask = {
                 ...taskToUpdate,
                 status: 'COMPLETED',
                 completedAt: new Date().toLocaleString('vi-VN', { hour: '2-digit', minute: '2-digit', day: '2-digit', month: '2-digit', year: 'numeric' }),
-                completedNote: note
+                completedNote: completeNote,
+                remainingIssues: remainingIssues // Save remaining issues
             };
             saveMaintenance(updatedTask);
             alert("Đã báo cáo hoàn thành bảo dưỡng!");
+            setIsCompleteModalOpen(false);
+            setSelectedTaskId(null);
         }
     };
 
@@ -301,7 +320,7 @@ export default function MaintenancePage() {
                                     (task.assignees?.includes(currentUser?.code || '') || task.supervisors?.includes(currentUser?.code || '') || currentUser?.role === 'ADMIN')
                                 ) && (
                                         <button
-                                            onClick={() => handleComplete(task.id)}
+                                            onClick={() => openCompleteModal(task.id)}
                                             className="px-4 py-2 bg-blue-600 text-white text-sm font-bold rounded shadow hover:bg-blue-700 flex items-center gap-2"
                                         >
                                             <CheckSquare size={16} /> Báo cáo Xong
@@ -319,15 +338,74 @@ export default function MaintenancePage() {
                                     <div className="flex items-center gap-2 text-green-800 font-bold text-sm mb-1">
                                         <Clock size={16} /> Hoàn thành lúc: {task.completedAt}
                                     </div>
-                                    <div className="text-sm text-slate-700 italic">
+                                    <div className="text-sm text-slate-700 italic mb-2">
                                         "Kết quả: {task.completedNote}"
                                     </div>
+                                    {task.remainingIssues && (
+                                        <div className="mt-2 p-2 bg-yellow-50 border border-yellow-200 rounded text-sm text-slate-700">
+                                            <span className="font-bold text-yellow-700 block mb-1">⚠️ Tồn tại sau bảo dưỡng:</span>
+                                            {task.remainingIssues}
+                                        </div>
+                                    )}
                                 </div>
                             )}
                         </div>
                     ))}
                 </div>
             </div>
+
+            {/* Complete Task Modal */}
+            {isCompleteModalOpen && (
+                <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
+                    <div className="bg-white rounded-lg shadow-xl w-full max-w-md p-6">
+                        <h3 className="text-lg font-bold text-slate-800 mb-4 border-b pb-2">Báo cáo Hoàn thành</h3>
+
+                        <div className="space-y-4">
+                            <div>
+                                <label className="block text-sm font-medium text-slate-700 mb-1">
+                                    Kết quả bảo dưỡng (Đã làm được gì?) *
+                                </label>
+                                <textarea
+                                    className="w-full border border-slate-300 rounded p-2 focus:border-blue-500 outline-none"
+                                    rows={3}
+                                    placeholder="Nhập ghi chú kết quả..."
+                                    value={completeNote}
+                                    onChange={(e) => setCompleteNote(e.target.value)}
+                                />
+                            </div>
+
+                            <div>
+                                <label className="block text-sm font-medium text-slate-700 mb-1">
+                                    Nội dung tồn tại (Nếu có)
+                                </label>
+                                <textarea
+                                    className="w-full border border-yellow-300 bg-yellow-50 rounded p-2 focus:border-yellow-500 outline-none"
+                                    rows={3}
+                                    placeholder="Nhập các vấn đề còn tồn tại sau bảo dưỡng..."
+                                    value={remainingIssues}
+                                    onChange={(e) => setRemainingIssues(e.target.value)}
+                                />
+                                <p className="text-xs text-slate-500 mt-1">Cần nêu rõ các hư hỏng hoặc vấn đề chưa xử lý được.</p>
+                            </div>
+                        </div>
+
+                        <div className="flex justify-end gap-3 mt-6">
+                            <button
+                                onClick={() => setIsCompleteModalOpen(false)}
+                                className="px-4 py-2 text-slate-600 hover:bg-slate-100 rounded"
+                            >
+                                Hủy bỏ
+                            </button>
+                            <button
+                                onClick={handleConfirmComplete}
+                                className="px-6 py-2 bg-blue-600 text-white font-bold rounded shadow hover:bg-blue-700"
+                            >
+                                Xác nhận Hoàn thành
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
         </div >
     );
 }

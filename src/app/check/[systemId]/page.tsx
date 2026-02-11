@@ -5,7 +5,7 @@ import { useRouter, useParams } from 'next/navigation';
 import { ChecklistItem, Status, SystemCheck } from '@/lib/types';
 import { Save, ArrowLeft, Clock, Settings, Plus, Trash2, X } from 'lucide-react';
 import clsx from 'clsx';
-import { subscribeToSystems, subscribeToChecklist, saveChecklist, saveSystem, addLog } from '@/lib/firebase';
+import { subscribeToSystems, subscribeToChecklist, saveChecklist, saveSystem, addLog, saveHistoryItem } from '@/lib/firebase';
 import { useUser } from '@/providers/UserProvider';
 
 const DEFAULT_TEMPLATE = [
@@ -32,6 +32,9 @@ export default function CheckPage() {
     const [startTime, setStartTime] = useState<number>(Date.now());
     const [errorMessage, setErrorMessage] = useState('');
     const [isLoaded, setIsLoaded] = useState(false);
+
+    // NEW: Dirty check state
+    const [isDirty, setIsDirty] = useState(false);
 
     useEffect(() => {
         // 1. Subscribe to Systems (for name & navigation)
@@ -78,11 +81,13 @@ export default function CheckPage() {
             }
             return i;
         }));
+        setIsDirty(true);
     };
 
     const handleNoteChange = (id: string, val: string) => {
         const now = new Date().toLocaleString('vi-VN', { hour: '2-digit', minute: '2-digit', day: '2-digit', month: '2-digit', year: 'numeric' });
         setItems(prev => prev.map(i => i.id === id ? { ...i, note: val, timestamp: now, inspectorName: user?.name } : i));
+        setIsDirty(true);
     };
 
     const handleAddItem = () => {
@@ -94,16 +99,19 @@ export default function CheckPage() {
             note: '',
             timestamp: ''
         }]);
+        setIsDirty(true);
     };
 
     const handleDeleteItem = (id: string) => {
         if (confirm('Bạn có chắc chắn muốn xóa mục này?')) {
             setItems(prev => prev.filter(i => i.id !== id));
+            setIsDirty(true);
         }
     };
 
     const handleUpdateContent = (id: string, newContent: string) => {
         setItems(prev => prev.map(i => i.id === id ? { ...i, content: newContent } : i));
+        setIsDirty(true);
     };
 
     const handleSave = async () => {
@@ -141,39 +149,75 @@ export default function CheckPage() {
                 }
             }
 
-            // --- SAVE TO FIREBASE ---
+            // --- NEW: DIRTY CHECK REFINED ---
+            // If system has status (already checked)
+            // AND no changes made (isDirty is false)
+            // AND the last inspector is the SAME as the current user
+            // THEN skip saving and just navigate
+            const isFirstTime = !currentSystem?.status;
+            const isSameUser = currentSystem?.inspectorName === user?.name;
 
-            // 1. Save Details
-            await saveChecklist(systemId, items);
+            if (!isFirstTime && !isDirty && isSameUser) {
+                console.log("No changes detected by same user. Skipping save and log.");
+                // Proceed to navigation directly
+            } else {
+                // --- SAVE TO FIREBASE ---
 
-            // 2. Update System Status
-            const hasErrors = items.some(i => i.status === 'NOK');
+                // 1. Save Details
+                await saveChecklist(systemId, items);
 
-            const newStatus = hasErrors ? 'NOK' : 'OK';
-            const newNote = hasErrors ? 'Có lỗi chi tiết' : '';
+                // 2. Update System Status
+                const hasErrors = items.some(i => i.status === 'NOK');
 
-            // Update system
-            await saveSystem(systemId, {
-                status: newStatus,
-                note: newNote,
-                inspectorName: user?.name,
-                timestamp: new Date().toLocaleString('vi-VN', { hour: '2-digit', minute: '2-digit', day: '2-digit', month: '2-digit', year: 'numeric' })
-            });
+                const newStatus = hasErrors ? 'NOK' : 'OK';
+                const newNote = hasErrors ? 'Có lỗi chi tiết' : '';
 
-            // 3. Log Inspection
-            const durationSeconds = Math.round((Date.now() - startTime) / 1000);
-            const logEntry = {
-                id: Date.now().toString(),
-                timestamp: new Date().toLocaleString('vi-VN', { hour: '2-digit', minute: '2-digit', day: '2-digit', month: '2-digit', year: 'numeric' }),
-                inspectorName: user?.name || 'Unknown',
-                inspectorCode: user?.code || 'UNKNOWN',
-                systemId: systemId,
-                systemName: systemName,
-                result: newStatus,
-                note: hasErrors ? 'Phát hiện lỗi' : 'Hệ thống bình thường',
-                duration: durationSeconds
-            };
-            await addLog(logEntry);
+                // Update system
+                await saveSystem(systemId, {
+                    status: newStatus,
+                    note: newNote,
+                    inspectorName: user?.name,
+                    timestamp: new Date().toLocaleString('vi-VN', { hour: '2-digit', minute: '2-digit', day: '2-digit', month: '2-digit', year: 'numeric' })
+                });
+
+                // 3. Log Inspection
+                const durationSeconds = Math.round((Date.now() - startTime) / 1000);
+
+                // Aggregate error details for the note
+                const errorDetails = items
+                    .filter(i => i.status === 'NOK')
+                    .map(i => i.content)
+                    .join(', ');
+
+                // 4. Sync NOK items to History (Error Summary)
+                const nokItems = items.filter(i => i.status === 'NOK');
+                for (const item of nokItems) {
+                    await saveHistoryItem(`${systemId}_${item.id}`, {
+                        id: `${systemId}_${item.id}`, // Unique history ID
+                        systemId: systemId,
+                        systemName: systemName,
+                        issueContent: item.content,
+                        itemId: item.id,
+                        timestamp: new Date().toLocaleString('vi-VN', { hour: '2-digit', minute: '2-digit', day: '2-digit', month: '2-digit', year: 'numeric' }),
+                        inspectorName: user?.name,
+                        inspectorCode: user?.code,
+                        // Leave resolved fields empty
+                    });
+                }
+
+                const logEntry = {
+                    id: Date.now().toString(),
+                    timestamp: new Date().toLocaleString('vi-VN', { hour: '2-digit', minute: '2-digit', day: '2-digit', month: '2-digit', year: 'numeric' }),
+                    inspectorName: user?.name || 'Unknown',
+                    inspectorCode: user?.code || 'UNKNOWN',
+                    systemId: systemId,
+                    systemName: systemName,
+                    result: newStatus,
+                    note: hasErrors ? `Lỗi: ${errorDetails}` : `Hệ thống bình thường. ${items.find(i => i.note)?.note || ''}`,
+                    duration: durationSeconds
+                };
+                await addLog(logEntry);
+            }
 
             // --- NAVIGATION ---
             // Find next NOK system

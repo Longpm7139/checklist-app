@@ -207,6 +207,13 @@ export const addHistoryItem = async (item: any) => {
     await addDoc(collection(db, "history"), removeUndefined(item));
 };
 
+export const saveHistoryItem = async (priorityId: string, item: any) => {
+    // Upsert history item with specific ID (e.g. systemId_itemId)
+    // If priorityId is provided, use it. Otherwise use item.id or auto-id
+    const docId = priorityId || item.id || Date.now().toString();
+    await setDoc(doc(db, "history", docId), removeUndefined(item), { merge: true });
+};
+
 export const deleteHistoryItem = async (id: string) => {
     await deleteDoc(doc(db, "history", id));
 };
