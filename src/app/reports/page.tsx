@@ -32,6 +32,8 @@ export default function ReportsPage() {
     const [dateFilter, setDateFilter] = useState(new Date().toISOString().split('T')[0]); // YYYY-MM-DD
     const [inspectorFilter, setInspectorFilter] = useState('');
     const [filteredLogs, setFilteredLogs] = useState<any[]>([]);
+    const [currentPage, setCurrentPage] = useState(1);
+    const ITEMS_PER_PAGE = 10;
 
     // Load Data from Firebase
     useEffect(() => {
@@ -70,7 +72,8 @@ export default function ReportsPage() {
         id: string;
         timestamp: string; // Sortable
         type: 'INSPECTION' | 'INCIDENT' | 'MAINTENANCE' | 'FIX';
-        inspectorName: string;
+        inspectorName: string; // Người phát hiện
+        resolverName: string;  // Người thực hiện
         inspectorCode: string; // Or user code
         systemName: string;
         result: string; // OK/NOK or Status
@@ -111,6 +114,7 @@ export default function ReportsPage() {
                 timestamp: l.timestamp,
                 type: 'INSPECTION',
                 inspectorName: l.inspectorName,
+                resolverName: '-',
                 inspectorCode: l.inspectorCode,
                 systemName: l.systemName,
                 result: l.result,
@@ -126,6 +130,7 @@ export default function ReportsPage() {
                 timestamp: inc.createdAt,
                 type: 'INCIDENT',
                 inspectorName: inc.reportedBy,
+                resolverName: '-',
                 inspectorCode: 'ADMIN',
                 systemName: inc.systemName,
                 result: 'OPEN',
@@ -148,7 +153,8 @@ export default function ReportsPage() {
                     id: `inc_resolve_${inc.id}`,
                     timestamp: inc.resolvedAt,
                     type: 'INCIDENT',
-                    inspectorName: performers,
+                    inspectorName: inc.reportedBy,
+                    resolverName: performers,
                     inspectorCode: '',
                     systemName: inc.systemName,
                     result: 'RESOLVED',
@@ -165,6 +171,7 @@ export default function ReportsPage() {
                 timestamp: task.createdAt,
                 type: 'MAINTENANCE',
                 inspectorName: task.assignedByName,
+                resolverName: '-',
                 inspectorCode: 'ADMIN',
                 systemName: task.title,
                 result: 'PENDING',
@@ -182,7 +189,8 @@ export default function ReportsPage() {
                     id: `maint_done_${task.id}`,
                     timestamp: task.completedAt,
                     type: 'MAINTENANCE',
-                    inspectorName: task.assigneeNames?.join(', ') || 'Team',
+                    inspectorName: task.assignedByName,
+                    resolverName: task.assigneeNames?.join(', ') || 'Team',
                     inspectorCode: '',
                     systemName: task.title,
                     result: 'COMPLETED',
@@ -199,8 +207,9 @@ export default function ReportsPage() {
                     id: `fix_${h.id}`,
                     timestamp: h.resolvedAt,
                     type: 'FIX',
-                    inspectorName: h.resolverName || h.inspectorName || 'Unknown',
-                    inspectorCode: '',
+                    inspectorName: h.inspectorName || 'Unknown',
+                    resolverName: h.resolverName || 'Unknown',
+                    inspectorCode: h.inspectorCode || '',
                     systemName: h.systemName,
                     result: 'RESOLVED',
                     note: `Sửa lỗi: ${h.issueContent}. Nội dung: ${h.actionNote}`
@@ -240,6 +249,9 @@ export default function ReportsPage() {
             result = result.filter(l => l.inspectorName.includes(inspectorFilter));
         }
 
+        // Reset to page 1 when filters change
+        setCurrentPage(1);
+
         // Sort by timestamp desc
         result.sort((a, b) => {
             // Parse "HH:mm dd/MM/yyyy" for comparison
@@ -259,6 +271,13 @@ export default function ReportsPage() {
         setFilteredUnifiedLogs(result);
 
     }, [unifiedLogs, dateFilter, inspectorFilter]);
+
+    // Pagination Logic
+    const totalPages = Math.ceil(filteredUnifiedLogs.length / ITEMS_PER_PAGE);
+    const paginatedLogs = filteredUnifiedLogs.slice(
+        (currentPage - 1) * ITEMS_PER_PAGE,
+        currentPage * ITEMS_PER_PAGE
+    );
 
     // Statistics Calculation (Keep old logic for stats or update? Let's update to use unified where possible or keep distinct)
     // Actually, distinct stats are better for the summary cards. We keeps 'stats' derived from 'filteredLogs' (Inspections only) for now
@@ -309,10 +328,12 @@ export default function ReportsPage() {
         // Unified Export Sheet? Or Separate? Separate is often better for analysis.
         // Let's export what is currently visible in the Unified List as one sheet, and then raw data as others.
 
-        const unifiedSheetData = filteredUnifiedLogs.map(l => ({
+        const unifiedSheetData = filteredUnifiedLogs.map((l, idx) => ({
+            "STT": idx + 1,
             "Loại": l.type === 'INSPECTION' ? 'Kiểm tra' : l.type === 'INCIDENT' ? 'Sự cố' : l.type === 'FIX' ? 'Sửa chữa' : 'Bảo trì',
             "Thời gian": l.timestamp,
-            "Người thực hiện": l.inspectorName,
+            "Người phát hiện": l.inspectorName,
+            "Người thực hiện": l.resolverName,
             "Hệ thống / CV": l.systemName,
             "Kết quả / Trạng thái": l.result,
             "Ghi chú": l.note
@@ -395,18 +416,23 @@ export default function ReportsPage() {
                     <table className="w-full text-left border-collapse">
                         <thead className="bg-slate-100 text-slate-700 font-bold uppercase text-xs border-b border-slate-200">
                             <tr>
+                                <th className="p-4 w-12 text-center">STT</th>
                                 <th className="p-4 w-32">Thời gian</th>
                                 <th className="p-4 w-24 text-center">Loại</th>
-                                <th className="p-4 w-48">Người thực hiện</th>
+                                <th className="p-4 w-40">Người phát hiện</th>
+                                <th className="p-4 w-40 text-blue-600">Người thực hiện</th>
                                 <th className="p-4">Hệ thống / Công việc</th>
                                 <th className="p-4 w-32 text-center">Kết quả</th>
                                 <th className="p-4">Ghi chú</th>
                             </tr>
                         </thead>
                         <tbody className="divide-y divide-slate-100 text-sm">
-                            {filteredUnifiedLogs.length > 0 ? (
-                                filteredUnifiedLogs.map((log) => (
+                            {paginatedLogs.length > 0 ? (
+                                paginatedLogs.map((log, index) => (
                                     <tr key={log.id} className="hover:bg-slate-50">
+                                        <td className="p-4 text-center font-medium text-slate-400">
+                                            {(currentPage - 1) * ITEMS_PER_PAGE + index + 1}
+                                        </td>
                                         <td className="p-4 font-mono text-slate-600 whitespace-nowrap text-xs">{log.timestamp}</td>
                                         <td className="p-4 text-center">
                                             <span className={clsx(
@@ -419,9 +445,11 @@ export default function ReportsPage() {
                                                 {log.type === 'INSPECTION' ? 'Kiểm tra' : log.type === 'INCIDENT' ? 'Sự cố' : log.type === 'FIX' ? 'Sửa chữa' : 'Bảo trì'}
                                             </span>
                                         </td>
-                                        <td className="p-4 font-bold text-slate-800">
+                                        <td className="p-4 text-slate-700 font-medium">
                                             {log.inspectorName}
-                                            {log.inspectorCode && <div className="text-xs font-normal text-slate-400">{log.inspectorCode}</div>}
+                                        </td>
+                                        <td className="p-4 font-bold text-blue-600">
+                                            {log.resolverName}
                                         </td>
                                         <td className="p-4 font-medium">{log.systemName}</td>
                                         <td className="p-4 text-center">
@@ -443,7 +471,7 @@ export default function ReportsPage() {
                                 ))
                             ) : (
                                 <tr>
-                                    <td colSpan={6} className="p-12 text-center text-slate-500">
+                                    <td colSpan={7} className="p-12 text-center text-slate-500">
                                         <div className="flex flex-col items-center gap-2">
                                             <Search size={32} className="text-slate-300" />
                                             <span className="italic">Không tìm thấy dữ liệu nào phù hợp.</span>
@@ -454,6 +482,42 @@ export default function ReportsPage() {
                         </tbody>
                     </table>
                 </div>
+
+                {/* Pagination Controls */}
+                {totalPages > 1 && (
+                    <div className="mt-6 flex justify-center items-center gap-2">
+                        <button
+                            onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
+                            disabled={currentPage === 1}
+                            className="px-4 py-2 bg-white border border-slate-200 rounded-lg text-sm font-medium hover:bg-slate-50 disabled:opacity-50 disabled:cursor-not-allowed transition"
+                        >
+                            Trước
+                        </button>
+                        <div className="flex items-center gap-1">
+                            {Array.from({ length: totalPages }, (_, i) => i + 1).map(page => (
+                                <button
+                                    key={page}
+                                    onClick={() => setCurrentPage(page)}
+                                    className={clsx(
+                                        "w-10 h-10 rounded-lg text-sm font-bold transition",
+                                        currentPage === page
+                                            ? "bg-blue-600 text-white shadow-md shadow-blue-200"
+                                            : "bg-white border border-slate-200 text-slate-600 hover:bg-slate-50"
+                                    )}
+                                >
+                                    {page}
+                                </button>
+                            ))}
+                        </div>
+                        <button
+                            onClick={() => setCurrentPage(prev => Math.min(totalPages, prev + 1))}
+                            disabled={currentPage === totalPages}
+                            className="px-4 py-2 bg-white border border-slate-200 rounded-lg text-sm font-medium hover:bg-slate-50 disabled:opacity-50 disabled:cursor-not-allowed transition"
+                        >
+                            Sau
+                        </button>
+                    </div>
+                )}
             </div>
         </div>
     );

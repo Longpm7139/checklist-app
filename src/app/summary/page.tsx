@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation';
 import { ChecklistItem, SystemCheck } from '@/lib/types';
 import { ArrowLeft, Save, RotateCcw, History as HistoryIcon, ChevronLeft, ChevronRight } from 'lucide-react';
 import clsx from 'clsx';
-import { subscribeToSystems, getAllDetails, addHistoryItem, saveSystem, saveChecklist } from '@/lib/firebase';
+import { subscribeToSystems, getAllDetails, saveHistoryItem, saveSystem, saveChecklist } from '@/lib/firebase';
 import { useUser } from '@/providers/UserProvider';
 
 interface SummaryRow {
@@ -132,17 +132,11 @@ export default function SummaryPage() {
         }
 
         try {
-            // 2. Save fixed items to History
-            const historyPromises = fixedRows.map(r => addHistoryItem({
-                // systemId + detailId helps tracing but history is flat log
-                originalId: r.id,
-                systemName: r.systemName,
-                issueContent: r.issueContent,
-                timestamp: r.timestamp || '',
+            const historyPromises = fixedRows.map(r => saveHistoryItem(r.id, {
+                // Merging resolution data into existing document (identified by r.id)
                 resolvedAt: new Date().toLocaleString('vi-VN', { hour: '2-digit', minute: '2-digit', day: '2-digit', month: '2-digit', year: 'numeric' }),
                 actionNote: r.actionDescription || '',
-                inspectorName: r.inspectorName || 'Unknown',
-                resolverName: r.executorName || user?.name || 'Unknown'
+                resolverName: r.executorName || 'Unknown'
             }));
             await Promise.all(historyPromises);
 
@@ -225,7 +219,8 @@ export default function SummaryPage() {
                             <th className="p-3 border border-slate-300 w-1/4">Hệ thống / Lỗi</th>
                             <th className="p-3 border border-slate-300 text-center w-64">Trạng thái (Fixed/Fixing/No Fix)</th>
                             <th className="p-3 border border-slate-300 w-32 text-center">Thời gian</th>
-                            <th className="p-3 border border-slate-300 w-32 text-center">Người thực hiện</th>
+                            <th className="p-3 border border-slate-300 w-32 text-center">Người phát hiện</th>
+                            <th className="p-3 border border-slate-300 w-32 text-center">Người sửa chữa</th>
                             <th className="p-3 border border-slate-300">Nội dung thực hiện (Giải pháp)</th>
                         </tr>
                     </thead>
@@ -260,6 +255,9 @@ export default function SummaryPage() {
                                 </td>
                                 <td className="p-3 border border-slate-300 text-center font-mono text-sm">
                                     <div>{row.timestamp}</div>
+                                </td>
+                                <td className="p-3 border border-slate-300 text-center font-medium text-slate-600 text-sm">
+                                    {row.inspectorName || '-'}
                                 </td>
                                 <td className="p-3 border border-slate-300 text-center font-bold text-blue-600 text-sm">
                                     {row.executorName || (row.fixStatus === 'Fixed' || row.fixStatus === 'Pending Material' ? user?.name : '-')}

@@ -12,8 +12,8 @@ interface HistoryItem {
     systemName: string;
     issueContent: string;
     timestamp: string;
-    resolvedAt: string;
-    actionNote: string;
+    resolvedAt?: string;
+    actionNote?: string;
     inspectorName?: string;
     resolverName?: string;
 }
@@ -38,9 +38,9 @@ export default function FixedPage() {
         if (!searchQuery.trim()) return true;
         const q = searchQuery.toLowerCase();
         return (
-            item.systemName.toLowerCase().includes(q) ||
-            item.issueContent.toLowerCase().includes(q) ||
-            item.actionNote.toLowerCase().includes(q)
+            (item.systemName ?? '').toLowerCase().includes(q) ||
+            (item.issueContent ?? '').toLowerCase().includes(q) ||
+            (item.actionNote ?? '').toLowerCase().includes(q)
         );
     });
 
@@ -63,7 +63,7 @@ export default function FixedPage() {
     };
 
     const handleExport = () => {
-        const header = ["STT", "Hệ thống", "Lỗi", "Thời gian lỗi", "Thời gian sửa", "Nội dung sửa", "Người sửa"];
+        const header = ["STT", "Hệ thống", "Lỗi", "Thời gian lỗi", "Thời gian sửa", "Nội dung sửa", "Người phát hiện", "Người sửa chữa"];
         const rows = history.map((h, index) => [
             `"${index + 1}"`,
             `"${h.systemName}"`,
@@ -71,7 +71,8 @@ export default function FixedPage() {
             `"${h.timestamp}"`,
             `"${h.resolvedAt}"`,
             `"${h.actionNote}"`,
-            `"${h.inspectorName || ''}"`
+            `"${h.inspectorName || ''}"`,
+            `"${h.resolverName || ''}"`
         ]);
         const csv = "\uFEFF" + [header.join(','), ...rows.map(r => r.join(','))].join('\n');
         const link = document.createElement('a');
@@ -129,7 +130,8 @@ export default function FixedPage() {
                                     <th className="p-4">Hệ thống</th>
                                     <th className="p-4">Lỗi</th>
                                     <th className="p-4">Thời gian</th>
-                                    <th className="p-4">Người thực hiện</th>
+                                    <th className="p-4">Người phát hiện</th>
+                                    <th className="p-4">Người sửa chữa</th>
                                     <th className="p-4">Khắc phục</th>
                                     {user?.role === 'ADMIN' && <th className="p-4 text-center">Hành động</th>}
                                 </tr>
@@ -144,16 +146,27 @@ export default function FixedPage() {
                                         <td className="p-4 text-red-600">{item.issueContent}</td>
                                         <td className="p-4 text-slate-500">
                                             <div>Err: {item.timestamp}</div>
-                                            <div className="text-green-600">Fix: {item.resolvedAt}</div>
+                                            {item.resolvedAt ? (
+                                                <div className="text-green-600">Fix: {item.resolvedAt}</div>
+                                            ) : (
+                                                <div className="text-amber-500 italic">Chờ xử lý...</div>
+                                            )}
+                                        </td>
+                                        <td className="p-4 text-slate-600 font-medium text-sm">
+                                            {item.inspectorName || '-'}
                                         </td>
                                         <td className="p-4 text-blue-600 font-bold text-sm">
-                                            {item.resolverName || item.inspectorName || '-'}
+                                            {item.resolverName || '-'}
                                         </td>
                                         <td className="p-4 text-slate-700">
-                                            <div className="flex items-center gap-2">
-                                                <CheckCircle size={16} className="text-green-500" />
-                                                {item.actionNote}
-                                            </div>
+                                            {item.actionNote ? (
+                                                <div className="flex items-center gap-2">
+                                                    <CheckCircle size={16} className="text-green-500" />
+                                                    {item.actionNote}
+                                                </div>
+                                            ) : (
+                                                <span className="text-slate-400 italic">Chưa khắc phục</span>
+                                            )}
                                         </td>
                                         {user?.role === 'ADMIN' && (
                                             <td className="p-4 text-center">
@@ -170,7 +183,7 @@ export default function FixedPage() {
                                 ))}
                                 {currentItems.length === 0 && (
                                     <tr>
-                                        <td colSpan={6} className="p-8 text-center text-slate-500 italic">
+                                        <td colSpan={7} className="p-8 text-center text-slate-500 italic">
                                             {searchQuery ? 'Không tìm thấy kết quả nào phù hợp.' : 'Chưa có lịch sử sửa chữa nào.'}
                                         </td>
                                     </tr>

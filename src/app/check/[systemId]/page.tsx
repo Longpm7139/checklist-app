@@ -75,7 +75,8 @@ export default function CheckPage() {
                     ...i,
                     status: val,
                     timestamp: now,
-                    inspectorName: user?.name, // Save who checked this
+                    // Preserve existing inspector if it's already set (to avoid overwriting detector with repairer who adds a note)
+                    inspectorName: i.inspectorName || user?.name,
                     note: val === 'OK' ? '' : i.note // Clear note if OK
                 };
             }
@@ -86,7 +87,7 @@ export default function CheckPage() {
 
     const handleNoteChange = (id: string, val: string) => {
         const now = new Date().toLocaleString('vi-VN', { hour: '2-digit', minute: '2-digit', day: '2-digit', month: '2-digit', year: 'numeric' });
-        setItems(prev => prev.map(i => i.id === id ? { ...i, note: val, timestamp: now, inspectorName: user?.name } : i));
+        setItems(prev => prev.map(i => i.id === id ? { ...i, note: val, timestamp: now, inspectorName: i.inspectorName || user?.name } : i));
         setIsDirty(true);
     };
 
@@ -199,7 +200,7 @@ export default function CheckPage() {
                         issueContent: item.content,
                         itemId: item.id,
                         timestamp: new Date().toLocaleString('vi-VN', { hour: '2-digit', minute: '2-digit', day: '2-digit', month: '2-digit', year: 'numeric' }),
-                        inspectorName: user?.name,
+                        inspectorName: item.inspectorName || user?.name,
                         inspectorCode: user?.code,
                         // Leave resolved fields empty
                     });

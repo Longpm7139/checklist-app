@@ -24,12 +24,12 @@ interface KPIRow {
 
 const SCORING_RULES = {
     INSPECTION: 1,
-    FAULT_FOUND: 2, // New: Inspector who found the issue
-    FIX: 2,
+    FAULT_FOUND: 3, // Increased from 2
+    FIX: 4,         // Increased from 2
     INCIDENT: 5,
-    PROJECT_EXEC: 10, // Was Maintenance
-    PROJECT_SUP: 5,   // New: Supervision
-    NEGLIGENCE: -5    // Fast check
+    PROJECT_EXEC: 10,
+    PROJECT_SUP: 6,   // Increased from 5
+    NEGLIGENCE: -10    // Decreased from -5 (stricter penalty)
 };
 
 export default function KPIPage() {

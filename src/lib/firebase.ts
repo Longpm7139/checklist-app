@@ -184,20 +184,21 @@ export const subscribeToHistory = (callback: (data: any[]) => void) => {
         querySnapshot.forEach((doc) => {
             items.push({ ...doc.data(), id: doc.id });
         });
-        // Sort by resolvedAt descending (newest first)
+        // Sort by timestamp descending (newest appeared issue first)
         items.sort((a, b) => {
-            const parseDate = (dateStr: string) => {
-                if (!dateStr) return 0;
-                // Format: HH:mm dd/MM/yyyy
-                const parts = dateStr.split(' ');
-                if (parts.length < 2) return 0;
-                const time = parts[0];
-                const date = parts[1];
-                const [hh, mm] = time.split(':').map(Number);
-                const [day, month, year] = date.split('/').map(Number);
-                return new Date(year, month - 1, day, hh, mm).getTime();
+            const parseDate = (t: string) => {
+                if (!t) return 0;
+                // Handle "HH:mm dd/MM/yyyy" or similar
+                const parts = t.split(' ');
+                const datePart = parts.find((p: string) => p.includes('/'));
+                if (datePart) {
+                    const [d, m, y] = datePart.split('/');
+                    const timePart = parts.find((p: string) => p.includes(':')) || '00:00';
+                    return new Date(`${y}-${m}-${d}T${timePart}:00`).getTime();
+                }
+                return new Date(t).getTime() || 0;
             };
-            return parseDate(b.resolvedAt) - parseDate(a.resolvedAt);
+            return parseDate(b.timestamp) - parseDate(a.timestamp);
         });
         callback(items);
     });

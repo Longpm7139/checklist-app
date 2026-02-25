@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { SystemCheck, Status, SystemCategory } from '@/lib/types';
 import { Save, AlertCircle, Edit2, Trash2, Plus, Check, X, RotateCcw, History as HistoryIcon, CheckCheck, Search, LogOut, Users, Lock, ClipboardList, BarChart2, Package, Wrench, QrCode, Key } from 'lucide-react';
@@ -559,16 +559,16 @@ export default function Home() {
 
                 const q = searchQuery.toLowerCase();
                 return (
-                  s.name.toLowerCase().includes(q) ||
-                  s.note.toLowerCase().includes(q) ||
-                  (s.status && s.status.toLowerCase().includes(q))
+                  (s.name ?? '').toLowerCase().includes(q) ||
+                  (s.note ?? '').toLowerCase().includes(q) ||
+                  (s.status ?? '').toLowerCase().includes(q)
                 );
               });
 
               if (catSystems.length === 0) return null; // Hide empty categories during search
 
               return (
-                <div key={cat.id} style={{ display: 'contents' }}>
+                <React.Fragment key={cat.id}>
                   {/* Category Header Row */}
                   <tr key={cat.id} className="bg-blue-50">
                     <td colSpan={3} className="p-3 border border-slate-300 font-bold text-blue-800">
@@ -653,7 +653,7 @@ export default function Home() {
                       </td>
                     </tr>
                   )}
-                </div>
+                </React.Fragment>
               )
             })}
           </tbody>
