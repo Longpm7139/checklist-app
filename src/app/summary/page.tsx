@@ -212,83 +212,85 @@ export default function SummaryPage() {
                     </button>
                 </div>
 
-                <table className="w-full text-left border-collapse">
-                    <thead className="bg-slate-200 text-slate-700 font-bold uppercase text-sm">
-                        <tr>
-                            <th className="p-3 border border-slate-300 w-16 text-center">STT</th>
-                            <th className="p-3 border border-slate-300 w-1/4">Hệ thống / Lỗi</th>
-                            <th className="p-3 border border-slate-300 text-center w-64">Trạng thái (Fixed/Fixing/No Fix)</th>
-                            <th className="p-3 border border-slate-300 w-32 text-center">Thời gian</th>
-                            <th className="p-3 border border-slate-300 w-32 text-center">Người phát hiện</th>
-                            <th className="p-3 border border-slate-300 w-32 text-center">Người sửa chữa</th>
-                            <th className="p-3 border border-slate-300">Nội dung thực hiện (Giải pháp)</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        {currentItems.map((row, idx) => (
-                            <tr key={row.id} className="hover:bg-slate-50">
-                                <td className="p-3 border border-slate-300 text-center font-bold text-slate-500">{indexOfFirstItem + idx + 1}</td>
-                                <td className="p-3 border border-slate-300 font-medium">
-                                    <div className="text-blue-800">{row.systemName}</div>
-                                    <div className="text-red-600 text-sm mt-1 italic">{row.issueContent}</div>
-                                </td>
-                                <td className="p-3 border border-slate-300 text-center">
-                                    <div className="flex gap-1 justify-center flex-wrap">
-                                        {[
-                                            { label: 'Fixed', cls: 'bg-green-600 border-green-700' },
-                                            { label: 'Fixing', cls: 'bg-blue-600 border-blue-700' },
-                                            { label: 'No Fix', cls: 'bg-red-600 border-red-700' },
-                                            { label: 'Pending Material', cls: 'bg-amber-500 border-amber-600' }
-                                        ].map(opt => (
-                                            <button
-                                                key={opt.label}
-                                                onClick={() => handleStatusChange(row.id, opt.label as any)}
-                                                className={clsx(
-                                                    "px-2 py-1 rounded text-xs font-bold border text-white transition",
-                                                    row.fixStatus === opt.label ? opt.cls : "bg-slate-300 border-slate-400 text-slate-600"
-                                                )}
-                                            >
-                                                {opt.label === 'Pending Material' ? 'Chờ vật tư' : opt.label}
-                                            </button>
-                                        ))}
-                                    </div>
-                                </td>
-                                <td className="p-3 border border-slate-300 text-center font-mono text-sm">
-                                    <div>{row.timestamp}</div>
-                                </td>
-                                <td className="p-3 border border-slate-300 text-center font-medium text-slate-600 text-sm">
-                                    {row.inspectorName || '-'}
-                                </td>
-                                <td className="p-3 border border-slate-300 text-center font-bold text-blue-600 text-sm">
-                                    {row.executorName || (row.fixStatus === 'Fixed' || row.fixStatus === 'Pending Material' ? user?.name : '-')}
-                                </td>
-                                <td className="p-3 border border-slate-300">
-                                    <input
-                                        disabled={row.fixStatus !== 'Fixed' && row.fixStatus !== 'Pending Material'}
-                                        className={clsx(
-                                            "w-full bg-transparent outline-none",
-                                            row.fixStatus !== 'Fixed' && "cursor-not-allowed text-slate-400"
-                                        )}
-                                        placeholder={
-                                            row.fixStatus === 'Fixed' ? "Nhập nội dung xử lý..." :
-                                                row.fixStatus === 'Pending Material' ? "Nhập tên vật tư..." :
-                                                    "Chỉ nhập khi Fixed hoặc cần Vật tư"
-                                        }
-                                        value={row.actionDescription}
-                                        onChange={(e) => handleActionChange(row.id, e.target.value)}
-                                    />
-                                </td>
-                            </tr>
-                        ))}
-                        {rows.length === 0 && (
+                <div className="overflow-x-auto w-full">
+                    <table className="w-full text-left border-collapse min-w-[900px]">
+                        <thead className="bg-slate-200 text-slate-700 font-bold uppercase text-sm">
                             <tr>
-                                <td colSpan={6} className="p-8 text-center text-slate-500 italic">
-                                    Hệ thống hoạt động bình thường, không có lỗi.
-                                </td>
+                                <th className="p-3 border border-slate-300 w-16 text-center">STT</th>
+                                <th className="p-3 border border-slate-300 w-1/4">Hệ thống / Lỗi</th>
+                                <th className="p-3 border border-slate-300 text-center w-64">Trạng thái (Fixed/Fixing/No Fix)</th>
+                                <th className="p-3 border border-slate-300 w-32 text-center">Thời gian</th>
+                                <th className="p-3 border border-slate-300 w-32 text-center">Người phát hiện</th>
+                                <th className="p-3 border border-slate-300 w-32 text-center">Người sửa chữa</th>
+                                <th className="p-3 border border-slate-300">Nội dung thực hiện (Giải pháp)</th>
                             </tr>
-                        )}
-                    </tbody>
-                </table>
+                        </thead>
+                        <tbody>
+                            {currentItems.map((row, idx) => (
+                                <tr key={row.id} className="hover:bg-slate-50">
+                                    <td className="p-3 border border-slate-300 text-center font-bold text-slate-500">{indexOfFirstItem + idx + 1}</td>
+                                    <td className="p-3 border border-slate-300 font-medium">
+                                        <div className="text-blue-800">{row.systemName}</div>
+                                        <div className="text-red-600 text-sm mt-1 italic">{row.issueContent}</div>
+                                    </td>
+                                    <td className="p-3 border border-slate-300 text-center">
+                                        <div className="flex gap-1 justify-center flex-wrap">
+                                            {[
+                                                { label: 'Fixed', cls: 'bg-green-600 border-green-700' },
+                                                { label: 'Fixing', cls: 'bg-blue-600 border-blue-700' },
+                                                { label: 'No Fix', cls: 'bg-red-600 border-red-700' },
+                                                { label: 'Pending Material', cls: 'bg-amber-500 border-amber-600' }
+                                            ].map(opt => (
+                                                <button
+                                                    key={opt.label}
+                                                    onClick={() => handleStatusChange(row.id, opt.label as any)}
+                                                    className={clsx(
+                                                        "px-2 py-1 rounded text-xs font-bold border text-white transition",
+                                                        row.fixStatus === opt.label ? opt.cls : "bg-slate-300 border-slate-400 text-slate-600"
+                                                    )}
+                                                >
+                                                    {opt.label === 'Pending Material' ? 'Chờ vật tư' : opt.label}
+                                                </button>
+                                            ))}
+                                        </div>
+                                    </td>
+                                    <td className="p-3 border border-slate-300 text-center font-mono text-sm">
+                                        <div>{row.timestamp}</div>
+                                    </td>
+                                    <td className="p-3 border border-slate-300 text-center font-medium text-slate-600 text-sm">
+                                        {row.inspectorName || '-'}
+                                    </td>
+                                    <td className="p-3 border border-slate-300 text-center font-bold text-blue-600 text-sm">
+                                        {row.executorName || (row.fixStatus === 'Fixed' || row.fixStatus === 'Pending Material' ? user?.name : '-')}
+                                    </td>
+                                    <td className="p-3 border border-slate-300">
+                                        <input
+                                            disabled={row.fixStatus !== 'Fixed' && row.fixStatus !== 'Pending Material'}
+                                            className={clsx(
+                                                "w-full bg-transparent outline-none",
+                                                row.fixStatus !== 'Fixed' && "cursor-not-allowed text-slate-400"
+                                            )}
+                                            placeholder={
+                                                row.fixStatus === 'Fixed' ? "Nhập nội dung xử lý..." :
+                                                    row.fixStatus === 'Pending Material' ? "Nhập tên vật tư..." :
+                                                        "Chỉ nhập khi Fixed hoặc cần Vật tư"
+                                            }
+                                            value={row.actionDescription}
+                                            onChange={(e) => handleActionChange(row.id, e.target.value)}
+                                        />
+                                    </td>
+                                </tr>
+                            ))}
+                            {rows.length === 0 && (
+                                <tr>
+                                    <td colSpan={6} className="p-8 text-center text-slate-500 italic">
+                                        Hệ thống hoạt động bình thường, không có lỗi.
+                                    </td>
+                                </tr>
+                            )}
+                        </tbody>
+                    </table>
+                </div>
 
 
                 {totalPages > 1 && (
@@ -332,7 +334,6 @@ export default function SummaryPage() {
                     </button>
                 </div>
             </div>
-
         </div>
     );
 }

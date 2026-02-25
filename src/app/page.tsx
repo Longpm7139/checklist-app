@@ -540,124 +540,126 @@ export default function Home() {
           </button>
         </div>
 
-        <table className="w-full text-left border-collapse">
-          <thead className="bg-slate-200 text-slate-700 font-bold uppercase text-sm">
-            <tr>
-              <th className="p-3 border border-slate-300 w-1/3">Hệ thống</th>
-              <th className="p-3 border border-slate-300 text-center w-1/3">Status</th>
-              <th className="p-3 border border-slate-300 w-1/3">Note</th>
-            </tr>
-          </thead>
-          <tbody>
-            {categories.map(cat => {
-              // Filter logic included here
-              const catSystems = systems.filter(s => {
-                const matchesCategory = s.categoryId === cat.id;
-                if (!matchesCategory) return false;
+        <div className="overflow-x-auto w-full">
+          <table className="w-full text-left border-collapse min-w-[600px]">
+            <thead className="bg-slate-200 text-slate-700 font-bold uppercase text-sm">
+              <tr>
+                <th className="p-3 border border-slate-300 w-1/3">Hệ thống</th>
+                <th className="p-3 border border-slate-300 text-center w-1/3">Status</th>
+                <th className="p-3 border border-slate-300 w-1/3">Note</th>
+              </tr>
+            </thead>
+            <tbody>
+              {categories.map(cat => {
+                // Filter logic included here
+                const catSystems = systems.filter(s => {
+                  const matchesCategory = s.categoryId === cat.id;
+                  if (!matchesCategory) return false;
 
-                if (!searchQuery.trim()) return true;
+                  if (!searchQuery.trim()) return true;
 
-                const q = searchQuery.toLowerCase();
+                  const q = searchQuery.toLowerCase();
+                  return (
+                    (s.name ?? '').toLowerCase().includes(q) ||
+                    (s.note ?? '').toLowerCase().includes(q) ||
+                    (s.status ?? '').toLowerCase().includes(q)
+                  );
+                });
+
+                if (catSystems.length === 0) return null; // Hide empty categories during search
+
                 return (
-                  (s.name ?? '').toLowerCase().includes(q) ||
-                  (s.note ?? '').toLowerCase().includes(q) ||
-                  (s.status ?? '').toLowerCase().includes(q)
-                );
-              });
-
-              if (catSystems.length === 0) return null; // Hide empty categories during search
-
-              return (
-                <React.Fragment key={cat.id}>
-                  {/* Category Header Row */}
-                  <tr key={cat.id} className="bg-blue-50">
-                    <td colSpan={3} className="p-3 border border-slate-300 font-bold text-blue-800">
-                      {cat.name}
-                    </td>
-                  </tr>
-                  {/* System Rows */}
-                  {catSystems.map(sys => (
-                    <tr key={sys.id} className="hover:bg-slate-50">
-                      <td className="p-3 border border-slate-300 font-medium pl-8">
-                        {isEditMode ? (
-                          <div className="flex items-center gap-2">
-                            <input
-                              value={sys.name}
-                              onChange={(e) => handleUpdateSystemName(sys.id, e.target.value)}
-                              className="border border-slate-300 rounded px-2 py-1 w-full text-sm focus:border-blue-500 outline-none"
-                            />
-                            <button
-                              onClick={() => handleUpdateSystemId(sys.id)}
-                              className="text-blue-500 hover:text-blue-700 p-1 rounded hover:bg-blue-50"
-                              title="Đổi Mã ID (Migrate ID)"
-                            >
-                              <Key size={16} />
-                            </button>
-                            <button
-                              onClick={() => handleDeleteSystem(sys.id)}
-                              className="text-red-500 hover:text-red-700 p-1 rounded hover:bg-red-50"
-                              title="Xóa hệ thống"
-                            >
-                              <Trash2 size={16} />
-                            </button>
-                          </div>
-                        ) : (
-                          <span>{sys.name} <span className="text-xs text-slate-400 font-normal">({sys.id})</span></span>
-                        )}
+                  <React.Fragment key={cat.id}>
+                    {/* Category Header Row */}
+                    <tr key={cat.id} className="bg-blue-50">
+                      <td colSpan={3} className="p-3 border border-slate-300 font-bold text-blue-800">
+                        {cat.name}
                       </td>
-                      <td className="p-3 border border-slate-300 text-center">
-                        <div className={clsx("flex gap-1 justify-center", isEditMode && "opacity-50 pointer-events-none")}>
-                          {(['OK', 'NOK', 'NA'] as Status[]).map(st => (
-                            <button
-                              key={st}
-                              onClick={() => handleStatusChange(sys.id, st)}
-                              className={clsx(
-                                "px-3 py-1 rounded font-bold text-xs border transition w-12",
-                                sys.status === st
-                                  ? (st === 'OK' ? "bg-green-600 text-white border-green-700" :
-                                    st === 'NOK' ? "bg-red-600 text-white border-red-700" :
-                                      "bg-slate-600 text-white border-slate-700")
-                                  : "bg-white text-slate-500 border-slate-300 hover:bg-slate-100"
-                              )}
-                            >
-                              {st}
-                            </button>
-                          ))}
-                        </div>
-                      </td>
-                      <td className="p-3 border border-slate-300">
-                        <input
-                          disabled={isEditMode || sys.status === 'OK'}
-                          className={clsx(
-                            "w-full p-2 border rounded text-sm outline-none",
-                            errors.has(sys.id) ? "border-red-500 bg-red-50 placeholder-red-300" : "border-slate-200 focus:border-blue-500",
-                            (isEditMode || sys.status === 'OK') && "bg-slate-100 text-slate-400 cursor-not-allowed"
+                    </tr>
+                    {/* System Rows */}
+                    {catSystems.map(sys => (
+                      <tr key={sys.id} className="hover:bg-slate-50">
+                        <td className="p-3 border border-slate-300 font-medium pl-8">
+                          {isEditMode ? (
+                            <div className="flex items-center gap-2">
+                              <input
+                                value={sys.name}
+                                onChange={(e) => handleUpdateSystemName(sys.id, e.target.value)}
+                                className="border border-slate-300 rounded px-2 py-1 w-full text-sm focus:border-blue-500 outline-none"
+                              />
+                              <button
+                                onClick={() => handleUpdateSystemId(sys.id)}
+                                className="text-blue-500 hover:text-blue-700 p-1 rounded hover:bg-blue-50"
+                                title="Đổi Mã ID (Migrate ID)"
+                              >
+                                <Key size={16} />
+                              </button>
+                              <button
+                                onClick={() => handleDeleteSystem(sys.id)}
+                                className="text-red-500 hover:text-red-700 p-1 rounded hover:bg-red-50"
+                                title="Xóa hệ thống"
+                              >
+                                <Trash2 size={16} />
+                              </button>
+                            </div>
+                          ) : (
+                            <span>{sys.name} <span className="text-xs text-slate-400 font-normal">({sys.id})</span></span>
                           )}
-                          placeholder={errors.has(sys.id) ? "Bắt buộc nhập ghi chú!" : (sys.status === 'OK' ? "OK không cần ghi chú" : "Ghi chú...")}
-                          value={sys.note}
-                          onChange={(e) => handleNoteChange(sys.id, e.target.value)}
-                        />
-                      </td>
-                    </tr>
-                  ))}
-                  {/* Add System Button (Edit Mode Only) */}
-                  {isEditMode && (
-                    <tr className="bg-slate-50 border-b border-slate-300">
-                      <td colSpan={3} className="p-2 text-center">
-                        <button
-                          onClick={() => handleAddSystem(cat.id)}
-                          className="text-blue-600 hover:text-blue-800 text-sm font-medium flex items-center justify-center gap-1 mx-auto py-1 px-3 border border-dashed border-blue-300 rounded hover:bg-blue-50 w-full"
-                        >
-                          <Plus size={14} /> Thêm hệ thống vào {cat.name}
-                        </button>
-                      </td>
-                    </tr>
-                  )}
-                </React.Fragment>
-              )
-            })}
-          </tbody>
-        </table>
+                        </td>
+                        <td className="p-3 border border-slate-300 text-center">
+                          <div className={clsx("flex gap-1 justify-center", isEditMode && "opacity-50 pointer-events-none")}>
+                            {(['OK', 'NOK', 'NA'] as Status[]).map(st => (
+                              <button
+                                key={st}
+                                onClick={() => handleStatusChange(sys.id, st)}
+                                className={clsx(
+                                  "px-3 py-1 rounded font-bold text-xs border transition w-12",
+                                  sys.status === st
+                                    ? (st === 'OK' ? "bg-green-600 text-white border-green-700" :
+                                      st === 'NOK' ? "bg-red-600 text-white border-red-700" :
+                                        "bg-slate-600 text-white border-slate-700")
+                                    : "bg-white text-slate-500 border-slate-300 hover:bg-slate-100"
+                                )}
+                              >
+                                {st}
+                              </button>
+                            ))}
+                          </div>
+                        </td>
+                        <td className="p-3 border border-slate-300">
+                          <input
+                            disabled={isEditMode || sys.status === 'OK'}
+                            className={clsx(
+                              "w-full p-2 border rounded text-sm outline-none",
+                              errors.has(sys.id) ? "border-red-500 bg-red-50 placeholder-red-300" : "border-slate-200 focus:border-blue-500",
+                              (isEditMode || sys.status === 'OK') && "bg-slate-100 text-slate-400 cursor-not-allowed"
+                            )}
+                            placeholder={errors.has(sys.id) ? "Bắt buộc nhập ghi chú!" : (sys.status === 'OK' ? "OK không cần ghi chú" : "Ghi chú...")}
+                            value={sys.note}
+                            onChange={(e) => handleNoteChange(sys.id, e.target.value)}
+                          />
+                        </td>
+                      </tr>
+                    ))}
+                    {/* Add System Button (Edit Mode Only) */}
+                    {isEditMode && (
+                      <tr className="bg-slate-50 border-b border-slate-300">
+                        <td colSpan={3} className="p-2 text-center">
+                          <button
+                            onClick={() => handleAddSystem(cat.id)}
+                            className="text-blue-600 hover:text-blue-800 text-sm font-medium flex items-center justify-center gap-1 mx-auto py-1 px-3 border border-dashed border-blue-300 rounded hover:bg-blue-50 w-full"
+                          >
+                            <Plus size={14} /> Thêm hệ thống vào {cat.name}
+                          </button>
+                        </td>
+                      </tr>
+                    )}
+                  </React.Fragment>
+                )
+              })}
+            </tbody>
+          </table>
+        </div>
 
         {
           !isEditMode && (

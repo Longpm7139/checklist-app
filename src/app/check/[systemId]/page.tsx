@@ -286,103 +286,105 @@ export default function CheckPage() {
                 </div>
 
                 {/* TABLE */}
-                <table className="w-full text-left border-collapse">
-                    <thead className="bg-slate-200 text-slate-700 font-bold uppercase text-sm">
-                        <tr>
-                            <th className="p-3 border border-slate-300 w-16 text-center">STT</th>
-                            <th className="p-3 border border-slate-300">Nội dung kiểm tra</th>
-                            <th className="p-3 border border-slate-300 w-48 text-center">{isEditing ? 'Thao tác' : 'Status'}</th>
-                            <th className="p-3 border border-slate-300 w-1/4">Note</th>
-                            <th className="p-3 border border-slate-300 w-32 text-center">Thời gian</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        {items.map((item, idx) => (
-                            <tr key={item.id} className="hover:bg-slate-50">
-                                <td className="p-3 border border-slate-300 text-center font-bold text-slate-500">
-                                    {idx + 1}
-                                </td>
-                                <td className="p-3 border border-slate-300 font-medium">
-                                    {isEditing ? (
-                                        <input
-                                            className="w-full border border-slate-300 rounded px-2 py-1"
-                                            value={item.content}
-                                            onChange={(e) => handleUpdateContent(item.id, e.target.value)}
-                                            placeholder="Nhập nội dung kiểm tra..."
-                                        />
-                                    ) : (
-                                        item.content
-                                    )}
-                                </td>
-                                <td className="p-3 border border-slate-300 text-center">
-                                    {isEditing ? (
-                                        <button
-                                            onClick={() => handleDeleteItem(item.id)}
-                                            className="p-2 bg-red-100 text-red-600 rounded hover:bg-red-200"
-                                            title="Xóa mục này"
-                                        >
-                                            <Trash2 size={18} />
-                                        </button>
-                                    ) : (
-                                        <div className="flex gap-1 justify-center">
-                                            {(['OK', 'NOK', 'NA'] as Status[]).map(st => (
-                                                <button
-                                                    key={st}
-                                                    onClick={() => handleStatusChange(item.id, st)}
-                                                    className={clsx(
-                                                        "px-3 py-1 rounded text-xs font-bold border transition w-12",
-                                                        item.status === st
-                                                            ? (st === 'OK' ? "bg-green-600 text-white border-green-700" :
-                                                                st === 'NOK' ? "bg-red-600 text-white border-red-700" :
-                                                                    "bg-slate-600 text-white border-slate-700")
-                                                            : "bg-white text-slate-500 border-slate-300 hover:bg-slate-100"
-                                                    )}
-                                                >
-                                                    {st}
-                                                </button>
-                                            ))}
-                                        </div>
-                                    )}
-                                </td>
-                                <td className="p-3 border border-slate-300">
-                                    <input
-                                        disabled={item.status === 'OK'}
-                                        className={clsx(
-                                            "w-full bg-transparent outline-none text-sm placeholder-slate-300",
-                                            item.status === 'OK' && "text-slate-400 cursor-not-allowed"
-                                        )}
-                                        placeholder={item.status === 'OK' ? "OK không cần ghi chú" : ""}
-                                        value={item.note}
-                                        onChange={(e) => handleNoteChange(item.id, e.target.value)}
-                                    />
-                                </td>
-                                <td className="p-3 border border-slate-300 text-center text-sm font-mono text-slate-600">
-                                    {item.timestamp || '-'}
-                                </td>
-                            </tr>
-                        ))}
-                    </tbody>
-                    {isEditing && (
-                        <tfoot>
+                <div className="overflow-x-auto w-full">
+                    <table className="w-full text-left border-collapse min-w-[800px]">
+                        <thead className="bg-slate-200 text-slate-700 font-bold uppercase text-sm">
                             <tr>
-                                <td colSpan={5} className="p-2 border border-slate-300 bg-slate-50">
-                                    <button
-                                        onClick={handleAddItem}
-                                        className="w-full py-2 border-2 border-dashed border-slate-300 text-slate-500 rounded hover:border-blue-400 hover:text-blue-500 flex justify-center items-center gap-2 font-medium"
-                                    >
-                                        <Plus size={18} /> Thêm dòng kiểm tra
-                                    </button>
-                                </td>
+                                <th className="p-3 border border-slate-300 w-16 text-center">STT</th>
+                                <th className="p-3 border border-slate-300">Nội dung kiểm tra</th>
+                                <th className="p-3 border border-slate-300 w-48 text-center">{isEditing ? 'Thao tác' : 'Status'}</th>
+                                <th className="p-3 border border-slate-300 w-1/4">Note</th>
+                                <th className="p-3 border border-slate-300 w-32 text-center">Thời gian</th>
                             </tr>
-                        </tfoot>
-                    )}
-                </table>
+                        </thead>
+                        <tbody>
+                            {items.map((item, idx) => (
+                                <tr key={item.id} className="hover:bg-slate-50">
+                                    <td className="p-3 border border-slate-300 text-center font-bold text-slate-500">
+                                        {idx + 1}
+                                    </td>
+                                    <td className="p-3 border border-slate-300 font-medium">
+                                        {isEditing ? (
+                                            <input
+                                                className="w-full border border-slate-300 rounded px-2 py-1"
+                                                value={item.content}
+                                                onChange={(e) => handleUpdateContent(item.id, e.target.value)}
+                                                placeholder="Nhập nội dung kiểm tra..."
+                                            />
+                                        ) : (
+                                            item.content
+                                        )}
+                                    </td>
+                                    <td className="p-3 border border-slate-300 text-center">
+                                        {isEditing ? (
+                                            <button
+                                                onClick={() => handleDeleteItem(item.id)}
+                                                className="p-2 bg-red-100 text-red-600 rounded hover:bg-red-200"
+                                                title="Xóa mục này"
+                                            >
+                                                <Trash2 size={18} />
+                                            </button>
+                                        ) : (
+                                            <div className="flex gap-1 justify-center">
+                                                {(['OK', 'NOK', 'NA'] as Status[]).map(st => (
+                                                    <button
+                                                        key={st}
+                                                        onClick={() => handleStatusChange(item.id, st)}
+                                                        className={clsx(
+                                                            "px-3 py-1 rounded text-xs font-bold border transition w-12",
+                                                            item.status === st
+                                                                ? (st === 'OK' ? "bg-green-600 text-white border-green-700" :
+                                                                    st === 'NOK' ? "bg-red-600 text-white border-red-700" :
+                                                                        "bg-slate-600 text-white border-slate-700")
+                                                                : "bg-white text-slate-500 border-slate-300 hover:bg-slate-100"
+                                                        )}
+                                                    >
+                                                        {st}
+                                                    </button>
+                                                ))}
+                                            </div>
+                                        )}
+                                    </td>
+                                    <td className="p-3 border border-slate-300">
+                                        <input
+                                            disabled={item.status === 'OK'}
+                                            className={clsx(
+                                                "w-full bg-transparent outline-none text-sm placeholder-slate-300",
+                                                item.status === 'OK' && "text-slate-400 cursor-not-allowed"
+                                            )}
+                                            placeholder={item.status === 'OK' ? "OK không cần ghi chú" : ""}
+                                            value={item.note}
+                                            onChange={(e) => handleNoteChange(item.id, e.target.value)}
+                                        />
+                                    </td>
+                                    <td className="p-3 border border-slate-300 text-center text-sm font-mono text-slate-600">
+                                        {item.timestamp || '-'}
+                                    </td>
+                                </tr>
+                            ))}
+                        </tbody>
+                        {isEditing && (
+                            <tfoot>
+                                <tr>
+                                    <td colSpan={5} className="p-2 border border-slate-300 bg-slate-50">
+                                        <button
+                                            onClick={handleAddItem}
+                                            className="w-full py-2 border-2 border-dashed border-slate-300 text-slate-500 rounded hover:border-blue-400 hover:text-blue-500 flex justify-center items-center gap-2 font-medium"
+                                        >
+                                            <Plus size={18} /> Thêm dòng kiểm tra
+                                        </button>
+                                    </td>
+                                </tr>
+                            </tfoot>
+                        )}
+                    </table>
+                </div>
 
                 {/* FOOTER */}
-                <div className="p-4 bg-slate-100 border-t border-slate-300 flex justify-between items-center sticky bottom-0 z-50 shadow-[0_-4px_6px_-1px_rgba(0,0,0,0.1)]">
-                    <div className="flex-1 mr-4">
+                <div className="p-4 bg-slate-100 border-t border-slate-300 flex flex-col sm:flex-row justify-between items-center sticky bottom-0 z-50 shadow-[0_-4px_6px_-1px_rgba(0,0,0,0.1)] gap-4">
+                    <div className="w-full sm:flex-1">
                         {errorMessage && (
-                            <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-2 rounded font-bold animate-pulse">
+                            <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-2 rounded font-bold animate-pulse text-sm">
                                 {errorMessage}
                             </div>
                         )}
@@ -391,7 +393,7 @@ export default function CheckPage() {
                         type="button"
                         onClick={isEditing ? handleSaveConfig : handleSave}
                         className={clsx(
-                            "px-6 py-3 font-bold uppercase rounded shadow flex items-center gap-2 active:scale-95 transition-transform",
+                            "w-full sm:w-auto px-6 py-3 font-bold uppercase rounded shadow flex items-center justify-center gap-2 active:scale-95 transition-transform",
                             isEditing
                                 ? "bg-yellow-500 text-slate-900 hover:bg-yellow-400"
                                 : "bg-blue-700 text-white hover:bg-blue-800"

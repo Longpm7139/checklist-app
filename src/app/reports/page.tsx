@@ -413,111 +413,113 @@ export default function ReportsPage() {
 
                 {/* Unified Table */}
                 <div className="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
-                    <table className="w-full text-left border-collapse">
-                        <thead className="bg-slate-100 text-slate-700 font-bold uppercase text-xs border-b border-slate-200">
-                            <tr>
-                                <th className="p-4 w-12 text-center">STT</th>
-                                <th className="p-4 w-32">Thời gian</th>
-                                <th className="p-4 w-24 text-center">Loại</th>
-                                <th className="p-4 w-40">Người phát hiện</th>
-                                <th className="p-4 w-40 text-blue-600">Người thực hiện</th>
-                                <th className="p-4">Hệ thống / Công việc</th>
-                                <th className="p-4 w-32 text-center">Kết quả</th>
-                                <th className="p-4">Ghi chú</th>
-                            </tr>
-                        </thead>
-                        <tbody className="divide-y divide-slate-100 text-sm">
-                            {paginatedLogs.length > 0 ? (
-                                paginatedLogs.map((log, index) => (
-                                    <tr key={log.id} className="hover:bg-slate-50">
-                                        <td className="p-4 text-center font-medium text-slate-400">
-                                            {(currentPage - 1) * ITEMS_PER_PAGE + index + 1}
-                                        </td>
-                                        <td className="p-4 font-mono text-slate-600 whitespace-nowrap text-xs">{log.timestamp}</td>
-                                        <td className="p-4 text-center">
-                                            <span className={clsx(
-                                                "px-2 py-1 rounded-full text-[10px] font-bold border uppercase",
-                                                log.type === 'INSPECTION' ? "bg-blue-50 text-blue-700 border-blue-200" :
-                                                    log.type === 'INCIDENT' ? "bg-red-50 text-red-700 border-red-200" :
-                                                        log.type === 'FIX' ? "bg-purple-50 text-purple-700 border-purple-200" :
-                                                            "bg-amber-50 text-amber-700 border-amber-200"
-                                            )}>
-                                                {log.type === 'INSPECTION' ? 'Kiểm tra' : log.type === 'INCIDENT' ? 'Sự cố' : log.type === 'FIX' ? 'Sửa chữa' : 'Bảo trì'}
-                                            </span>
-                                        </td>
-                                        <td className="p-4 text-slate-700 font-medium">
-                                            {log.inspectorName}
-                                        </td>
-                                        <td className="p-4 font-bold text-blue-600">
-                                            {log.resolverName}
-                                        </td>
-                                        <td className="p-4 font-medium">{log.systemName}</td>
-                                        <td className="p-4 text-center">
-                                            <span className={clsx(
-                                                "inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-bold border",
-                                                (log.result === 'OK' || log.result === 'COMPLETED' || log.result === 'RESOLVED') ? "bg-green-50 text-green-700 border-green-200" :
-                                                    (log.result === 'NOK' || log.result === 'OPEN') ? "bg-red-50 text-red-700 border-red-200" :
-                                                        "bg-slate-50 text-slate-600 border-slate-200"
-                                            )}>
-                                                {log.result === 'OK' || log.result === 'COMPLETED' || log.result === 'RESOLVED' ? <CheckCircle size={12} /> :
-                                                    log.result === 'NOK' || log.result === 'OPEN' ? <XCircle size={12} /> : null}
-                                                {log.result}
-                                            </span>
-                                        </td>
-                                        <td className="p-4 text-slate-500 italic">
-                                            {log.note || '-'}
+                    <div className="overflow-x-auto w-full">
+                        <table className="w-full text-left border-collapse min-w-[1000px]">
+                            <thead className="bg-slate-100 text-slate-700 font-bold uppercase text-xs border-b border-slate-200">
+                                <tr>
+                                    <th className="p-4 w-12 text-center">STT</th>
+                                    <th className="p-4 w-32">Thời gian</th>
+                                    <th className="p-4 w-24 text-center">Loại</th>
+                                    <th className="p-4 w-40">Người phát hiện</th>
+                                    <th className="p-4 w-40 text-blue-600">Người thực hiện</th>
+                                    <th className="p-4">Hệ thống / Công việc</th>
+                                    <th className="p-4 w-32 text-center">Kết quả</th>
+                                    <th className="p-4">Ghi chú</th>
+                                </tr>
+                            </thead>
+                            <tbody className="divide-y divide-slate-100 text-sm">
+                                {paginatedLogs.length > 0 ? (
+                                    paginatedLogs.map((log, index) => (
+                                        <tr key={log.id} className="hover:bg-slate-50">
+                                            <td className="p-4 text-center font-medium text-slate-400">
+                                                {(currentPage - 1) * ITEMS_PER_PAGE + index + 1}
+                                            </td>
+                                            <td className="p-4 font-mono text-slate-600 whitespace-nowrap text-xs">{log.timestamp}</td>
+                                            <td className="p-4 text-center">
+                                                <span className={clsx(
+                                                    "px-2 py-1 rounded-full text-[10px] font-bold border uppercase",
+                                                    log.type === 'INSPECTION' ? "bg-blue-50 text-blue-700 border-blue-200" :
+                                                        log.type === 'INCIDENT' ? "bg-red-50 text-red-700 border-red-200" :
+                                                            log.type === 'FIX' ? "bg-purple-50 text-purple-700 border-purple-200" :
+                                                                "bg-amber-50 text-amber-700 border-amber-200"
+                                                )}>
+                                                    {log.type === 'INSPECTION' ? 'Kiểm tra' : log.type === 'INCIDENT' ? 'Sự cố' : log.type === 'FIX' ? 'Sửa chữa' : 'Bảo trì'}
+                                                </span>
+                                            </td>
+                                            <td className="p-4 text-slate-700 font-medium">
+                                                {log.inspectorName}
+                                            </td>
+                                            <td className="p-4 font-bold text-blue-600">
+                                                {log.resolverName}
+                                            </td>
+                                            <td className="p-4 font-medium">{log.systemName}</td>
+                                            <td className="p-4 text-center">
+                                                <span className={clsx(
+                                                    "inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-bold border",
+                                                    (log.result === 'OK' || log.result === 'COMPLETED' || log.result === 'RESOLVED') ? "bg-green-50 text-green-700 border-green-200" :
+                                                        (log.result === 'NOK' || log.result === 'OPEN') ? "bg-red-50 text-red-700 border-red-200" :
+                                                            "bg-slate-50 text-slate-600 border-slate-200"
+                                                )}>
+                                                    {log.result === 'OK' || log.result === 'COMPLETED' || log.result === 'RESOLVED' ? <CheckCircle size={12} /> :
+                                                        log.result === 'NOK' || log.result === 'OPEN' ? <XCircle size={12} /> : null}
+                                                    {log.result}
+                                                </span>
+                                            </td>
+                                            <td className="p-4 text-slate-500 italic">
+                                                {log.note || '-'}
+                                            </td>
+                                        </tr>
+                                    ))
+                                ) : (
+                                    <tr>
+                                        <td colSpan={7} className="p-12 text-center text-slate-500">
+                                            <div className="flex flex-col items-center gap-2">
+                                                <Search size={32} className="text-slate-300" />
+                                                <span className="italic">Không tìm thấy dữ liệu nào phù hợp.</span>
+                                            </div>
                                         </td>
                                     </tr>
-                                ))
-                            ) : (
-                                <tr>
-                                    <td colSpan={7} className="p-12 text-center text-slate-500">
-                                        <div className="flex flex-col items-center gap-2">
-                                            <Search size={32} className="text-slate-300" />
-                                            <span className="italic">Không tìm thấy dữ liệu nào phù hợp.</span>
-                                        </div>
-                                    </td>
-                                </tr>
-                            )}
-                        </tbody>
-                    </table>
-                </div>
-
-                {/* Pagination Controls */}
-                {totalPages > 1 && (
-                    <div className="mt-6 flex justify-center items-center gap-2">
-                        <button
-                            onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
-                            disabled={currentPage === 1}
-                            className="px-4 py-2 bg-white border border-slate-200 rounded-lg text-sm font-medium hover:bg-slate-50 disabled:opacity-50 disabled:cursor-not-allowed transition"
-                        >
-                            Trước
-                        </button>
-                        <div className="flex items-center gap-1">
-                            {Array.from({ length: totalPages }, (_, i) => i + 1).map(page => (
-                                <button
-                                    key={page}
-                                    onClick={() => setCurrentPage(page)}
-                                    className={clsx(
-                                        "w-10 h-10 rounded-lg text-sm font-bold transition",
-                                        currentPage === page
-                                            ? "bg-blue-600 text-white shadow-md shadow-blue-200"
-                                            : "bg-white border border-slate-200 text-slate-600 hover:bg-slate-50"
-                                    )}
-                                >
-                                    {page}
-                                </button>
-                            ))}
-                        </div>
-                        <button
-                            onClick={() => setCurrentPage(prev => Math.min(totalPages, prev + 1))}
-                            disabled={currentPage === totalPages}
-                            className="px-4 py-2 bg-white border border-slate-200 rounded-lg text-sm font-medium hover:bg-slate-50 disabled:opacity-50 disabled:cursor-not-allowed transition"
-                        >
-                            Sau
-                        </button>
+                                )}
+                            </tbody>
+                        </table>
                     </div>
-                )}
+
+                    {/* Pagination Controls */}
+                    {totalPages > 1 && (
+                        <div className="mt-6 flex justify-center items-center gap-2">
+                            <button
+                                onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
+                                disabled={currentPage === 1}
+                                className="px-4 py-2 bg-white border border-slate-200 rounded-lg text-sm font-medium hover:bg-slate-50 disabled:opacity-50 disabled:cursor-not-allowed transition"
+                            >
+                                Trước
+                            </button>
+                            <div className="flex items-center gap-1">
+                                {Array.from({ length: totalPages }, (_, i) => i + 1).map(page => (
+                                    <button
+                                        key={page}
+                                        onClick={() => setCurrentPage(page)}
+                                        className={clsx(
+                                            "w-10 h-10 rounded-lg text-sm font-bold transition",
+                                            currentPage === page
+                                                ? "bg-blue-600 text-white shadow-md shadow-blue-200"
+                                                : "bg-white border border-slate-200 text-slate-600 hover:bg-slate-50"
+                                        )}
+                                    >
+                                        {page}
+                                    </button>
+                                ))}
+                            </div>
+                            <button
+                                onClick={() => setCurrentPage(prev => Math.min(totalPages, prev + 1))}
+                                disabled={currentPage === totalPages}
+                                className="px-4 py-2 bg-white border border-slate-200 rounded-lg text-sm font-medium hover:bg-slate-50 disabled:opacity-50 disabled:cursor-not-allowed transition"
+                            >
+                                Sau
+                            </button>
+                        </div>
+                    )}
+                </div>
             </div>
         </div>
     );
