@@ -65,6 +65,9 @@ export default function SummaryPage() {
 
             setRows(newRows);
             setIsLoaded(true);
+        }, (err: any) => {
+            console.error("Summary load error:", err);
+            setIsLoaded(true);
         });
 
         return () => unsub();

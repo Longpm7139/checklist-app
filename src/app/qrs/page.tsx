@@ -14,11 +14,16 @@ export default function QRPage() {
     const [systems, setSystems] = useState<SystemCheck[]>([]);
     const [baseUrl, setBaseUrl] = useState('');
 
+    const [error, setError] = useState<string | null>(null);
+
     useEffect(() => {
         // Load systems from Firebase
         const unsub = subscribeToSystems((data) => {
             const sorted = (data as SystemCheck[]).sort((a, b) => a.id.localeCompare(b.id, undefined, { numeric: true }));
             setSystems(sorted);
+        }, (err: any) => {
+            console.error("QR load error:", err);
+            setError("Không thể tải danh sách mã QR. Vui lòng kiểm tra quyền truy cập hoặc kết nối.");
         });
 
         // Base URL
@@ -62,6 +67,12 @@ export default function QRPage() {
                     <Printer size={20} /> In Danh Sách (A4)
                 </button>
             </div>
+
+            {error && (
+                <div className="max-w-5xl mx-auto mb-8 bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded">
+                    {error}
+                </div>
+            )}
 
             {/* QR Grid */}
             <div className="max-w-5xl mx-auto grid grid-cols-2 md:grid-cols-3 gap-8 print:grid-cols-2 print:gap-4">

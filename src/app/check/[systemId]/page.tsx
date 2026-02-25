@@ -19,7 +19,7 @@ const DEFAULT_TEMPLATE = [
 export default function CheckPage() {
     const router = useRouter();
     const params = useParams();
-    const systemId = params.systemId as string;
+    const systemId = (params.systemId as string)?.trim() || "";
     const { user } = useUser();
 
     // Data state
@@ -37,11 +37,19 @@ export default function CheckPage() {
     const [isDirty, setIsDirty] = useState(false);
 
     useEffect(() => {
+        if (!systemId) {
+            setErrorMessage("Mã hệ thống không hợp lệ hoặc bị thiếu.");
+            setIsLoaded(true);
+            return;
+        }
+
         // 1. Subscribe to Systems (for name & navigation)
         const unsubSys = subscribeToSystems((data) => {
             setSystems(data as SystemCheck[]);
             const current = data.find(s => s.id === systemId);
             if (current) setSystemName(current.name);
+        }, (err: any) => {
+            console.error("Systems subscription error:", err);
         });
 
         // 2. Subscribe to Checklist Details
@@ -57,6 +65,10 @@ export default function CheckPage() {
                     timestamp: ''
                 })));
             }
+            setIsLoaded(true);
+        }, (err: any) => {
+            console.error("Checklist subscription error:", err);
+            setErrorMessage("Không thể tải dữ liệu chi tiết kiểm tra. Vui lòng kiểm tra kết nối mạng.");
             setIsLoaded(true);
         });
 

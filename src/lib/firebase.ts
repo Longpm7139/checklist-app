@@ -43,7 +43,7 @@ const removeUndefined = (obj: any) => {
 };
 
 // Systems
-export const subscribeToSystems = (callback: (data: any[]) => void) => {
+export const subscribeToSystems = (callback: (data: any[]) => void, onError?: (error: any) => void) => {
     const q = query(collection(db, "systems"));
     return onSnapshot(q, (querySnapshot) => {
         const systems: any[] = [];
@@ -51,6 +51,9 @@ export const subscribeToSystems = (callback: (data: any[]) => void) => {
             systems.push({ ...doc.data(), id: doc.id });
         });
         callback(systems);
+    }, (error) => {
+        console.error("subscribeToSystems error:", error);
+        if (onError) onError(error);
     });
 };
 
@@ -114,13 +117,16 @@ export const subscribeToMaintenance = (callback: (data: any[]) => void) => {
 };
 
 // Checklist Details
-export const subscribeToChecklist = (systemId: string, callback: (data: any) => void) => {
+export const subscribeToChecklist = (systemId: string, callback: (data: any) => void, onError?: (error: any) => void) => {
     return onSnapshot(doc(db, "details", systemId), (doc) => {
         if (doc.exists()) {
             callback(doc.data().items || []);
         } else {
             callback([]);
         }
+    }, (error) => {
+        console.error("subscribeToChecklist error:", error);
+        if (onError) onError(error);
     });
 };
 
