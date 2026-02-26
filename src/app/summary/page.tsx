@@ -5,8 +5,9 @@ import { useRouter } from 'next/navigation';
 import { ChecklistItem, SystemCheck } from '@/lib/types';
 import { ArrowLeft, Save, RotateCcw, History as HistoryIcon, ChevronLeft, ChevronRight } from 'lucide-react';
 import clsx from 'clsx';
-import { subscribeToSystems, getAllDetails, saveHistoryItem, saveSystem, saveChecklist } from '@/lib/firebase';
+import { subscribeToSystems, getAllDetails, saveHistoryItem, saveSystem, saveChecklist, getUsers } from '@/lib/firebase';
 import { useUser } from '@/providers/UserProvider';
+import { User } from '@/lib/types'; // Assuming User type is in types.ts or adding it here if needed
 
 interface SummaryRow {
     id: string;
@@ -19,16 +20,26 @@ interface SummaryRow {
     // Helper to know where this came from
     systemId: string;
     detailId?: string;
-    executorName?: string;
+    executorNames: string[];
 }
 
 export default function SummaryPage() {
     const router = useRouter();
     const { user } = useUser();
     const [rows, setRows] = useState<SummaryRow[]>([]);
+    const [users, setUsers] = useState<User[]>([]);
     const [currentPage, setCurrentPage] = useState(1);
     const ITEMS_PER_PAGE = 10;
     const [isLoaded, setIsLoaded] = useState(false);
+    const [activeRowSelector, setActiveRowSelector] = useState<string | null>(null);
+
+    useEffect(() => {
+        const fetchUsers = async () => {
+            const usersData = await getUsers();
+            setUsers(usersData);
+        };
+        fetchUsers();
+    }, []);
 
     useEffect(() => {
         // Load data from Firebase
@@ -56,7 +67,7 @@ export default function SummaryPage() {
                                 inspectorName: item.inspectorName,
                                 systemId: sys.id,
                                 detailId: item.id,
-                                executorName: item.executorName || '',
+                                executorNames: (item.materialRequest || item.status === 'Fixed') ? (item.executorNames || (item.executorName ? [item.executorName] : [])) : [],
                             });
                         }
                     });
@@ -76,12 +87,29 @@ export default function SummaryPage() {
     const handleStatusChange = (id: string, status: SummaryRow['fixStatus']) => {
         setRows(prev => prev.map(r => {
             if (r.id === id) {
+                const isActionable = status === 'Fixed' || status === 'Pending Material';
+                const defaultExecutors = isActionable ? (r.executorNames.length > 0 ? r.executorNames : [user?.name || '']) : [];
                 return {
                     ...r,
                     fixStatus: status,
-                    actionDescription: status === 'Fixed' ? r.actionDescription : '', // Clear if not Fixed
-                    executorName: (status === 'Fixed' || status === 'Pending Material') ? user?.name : ''
+                    actionDescription: status === 'Fixed' ? r.actionDescription : (status === 'Pending Material' ? r.actionDescription : ''),
+                    executorNames: defaultExecutors
                 };
+            }
+            return r;
+        }));
+    };
+
+    const handleToggleExecutor = (rowId: string, userName: string) => {
+        setRows(prev => prev.map(r => {
+            if (r.id === rowId) {
+                const current = r.executorNames;
+                if (current.includes(userName)) {
+                    const next = current.filter(n => n !== userName);
+                    return { ...r, executorNames: next };
+                } else {
+                    return { ...r, executorNames: [...current, userName] };
+                }
             }
             return r;
         }));
@@ -139,7 +167,7 @@ export default function SummaryPage() {
                 // Merging resolution data into existing document (identified by r.id)
                 resolvedAt: new Date().toLocaleString('vi-VN', { hour: '2-digit', minute: '2-digit', day: '2-digit', month: '2-digit', year: 'numeric' }),
                 actionNote: r.actionDescription || '',
-                resolverName: r.executorName || 'Unknown'
+                resolverName: r.executorNames.join(', ') || 'Unknown'
             }));
             await Promise.all(historyPromises);
 
@@ -164,12 +192,13 @@ export default function SummaryPage() {
 
                     if (fixedRow) {
                         modified = true;
-                        const { materialRequest, ...rest } = item;
-                        return { ...rest, status: 'OK', note: '' }; // Reset to OK and remove materialRequest
+                        // eslint-disable-next-line @typescript-eslint/no-unused-vars
+                        const { materialRequest, executorName, ...rest } = item;
+                        return { ...rest, status: 'OK', note: '', executorNames: fixedRow.executorNames }; // Reset to OK and remove materialRequest
                     }
                     if (materialRow) {
                         modified = true;
-                        return { ...item, materialRequest: materialRow.actionDescription, executorName: materialRow.executorName };
+                        return { ...item, materialRequest: materialRow.actionDescription, executorNames: materialRow.executorNames };
                     }
                     return item;
                 });
@@ -263,8 +292,38 @@ export default function SummaryPage() {
                                     <td className="p-3 border border-slate-300 text-center font-medium text-slate-600 text-sm">
                                         {row.inspectorName || '-'}
                                     </td>
-                                    <td className="p-3 border border-slate-300 text-center font-bold text-blue-600 text-sm">
-                                        {row.executorName || (row.fixStatus === 'Fixed' || row.fixStatus === 'Pending Material' ? user?.name : '-')}
+                                    <td className="p-3 border border-slate-300 text-center font-bold text-blue-600 text-sm relative">
+                                        <div
+                                            className={clsx(
+                                                "p-1 rounded transition-colors min-h-[2.5rem] flex items-center justify-center",
+                                                (row.fixStatus === 'Fixed' || row.fixStatus === 'Pending Material') ? "cursor-pointer hover:bg-slate-100" : "cursor-not-allowed opacity-50"
+                                            )}
+                                            onClick={() => (row.fixStatus === 'Fixed' || row.fixStatus === 'Pending Material') && setActiveRowSelector(activeRowSelector === row.id ? null : row.id)}
+                                        >
+                                            {row.executorNames.length > 0 ? row.executorNames.join(', ') : '-'}
+                                        </div>
+
+                                        {activeRowSelector === row.id && (
+                                            <div className="absolute z-50 top-full left-1/2 -translate-x-1/2 mt-1 w-64 bg-white border border-slate-300 shadow-xl rounded-md overflow-hidden text-left font-normal text-slate-700">
+                                                <div className="p-2 bg-slate-100 border-b border-slate-200 font-bold text-xs uppercase flex justify-between items-center">
+                                                    Chọn người thực hiện
+                                                    <button onClick={() => setActiveRowSelector(null)} className="text-slate-400 hover:text-slate-600 text-lg">&times;</button>
+                                                </div>
+                                                <div className="max-h-60 overflow-y-auto">
+                                                    {users.map(u => (
+                                                        <label key={u.id} className="flex items-center gap-3 p-2 hover:bg-blue-50 cursor-pointer border-b border-slate-50 last:border-0">
+                                                            <input
+                                                                type="checkbox"
+                                                                className="w-4 h-4 rounded border-slate-300 text-blue-600 focus:ring-blue-500"
+                                                                checked={row.executorNames.includes(u.name)}
+                                                                onChange={() => handleToggleExecutor(row.id, u.name)}
+                                                            />
+                                                            <span className="text-sm font-medium">{u.name}</span>
+                                                        </label>
+                                                    ))}
+                                                </div>
+                                            </div>
+                                        )}
                                     </td>
                                     <td className="p-3 border border-slate-300">
                                         <input

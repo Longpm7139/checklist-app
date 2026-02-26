@@ -1,5 +1,12 @@
 export type Status = 'OK' | 'NOK' | 'NA';
 
+export interface User {
+  id?: string;
+  code: string;
+  name: string;
+  role: string;
+}
+
 export interface SystemCategory {
   id: string;
   name: string;
@@ -27,6 +34,7 @@ export interface ChecklistItem {
   actionNote?: string;
   inspectorName?: string;
   materialRequest?: string;
+  executorNames?: string[];
 }
 
 export interface ErrorReport {

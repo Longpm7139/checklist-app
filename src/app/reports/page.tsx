@@ -246,7 +246,10 @@ export default function ReportsPage() {
         let result = unifiedLogs.filter(l => isMatchDate(l.timestamp));
 
         if (inspectorFilter) {
-            result = result.filter(l => l.inspectorName.includes(inspectorFilter));
+            result = result.filter(l =>
+                l.inspectorName.includes(inspectorFilter) ||
+                l.resolverName.includes(inspectorFilter)
+            );
         }
 
         // Reset to page 1 when filters change
