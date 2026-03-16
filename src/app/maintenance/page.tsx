@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { ArrowLeft, Wrench, Calendar, CheckSquare, Plus, User, Clock } from 'lucide-react';
+import { ArrowLeft, Wrench, Calendar, CheckSquare, Plus, User, Clock, AlertTriangle } from 'lucide-react';
 import { useUser } from '@/providers/UserProvider';
 import { MaintenanceTask } from '@/lib/types';
 import clsx from 'clsx';
@@ -290,65 +290,79 @@ export default function MaintenancePage() {
 
                     {tasks.map(task => (
                         <div key={task.id} className={clsx(
-                            "bg-white rounded-xl shadow-sm border p-5 transition relative overflow-hidden",
-                            task.status === 'COMPLETED' ? "border-green-200" : "border-slate-200 hover:border-blue-300"
+                            "bg-white rounded-xl shadow-sm border transition relative overflow-hidden group",
+                            task.status === 'COMPLETED' ? "border-green-100" : "border-slate-200 hover:border-blue-300"
                         )}>
-                            {task.status === 'COMPLETED' && (
-                                <div className="absolute top-0 right-0 bg-green-500 text-white text-xs font-bold px-3 py-1 rounded-bl-xl">
-                                    ĐÃ HOÀN THÀNH
-                                </div>
-                            )}
+                            <div className="p-4 md:p-5">
+                                <div className="flex flex-col sm:flex-row justify-between items-start gap-4 mb-4">
+                                    <div className="flex-1 min-w-0">
+                                        <div className="flex flex-wrap items-center gap-2 mb-2">
+                                            <h3 className="font-bold text-lg text-slate-800 leading-tight">{task.title}</h3>
+                                            {task.status === 'COMPLETED' ? (
+                                                <span className="bg-green-50 text-green-700 text-[10px] font-black px-2.5 py-1 rounded-full border border-green-200 uppercase tracking-tight shadow-sm">ĐÃ XONG</span>
+                                            ) : (
+                                                <span className="bg-blue-50 text-blue-700 text-[10px] font-black px-2.5 py-1 rounded-full border border-blue-200 uppercase tracking-tight">CẦN LÀM</span>
+                                            )}
+                                        </div>
 
-                            <div className="flex justify-between items-start mb-2">
-                                <div>
-                                    <h3 className="font-bold text-lg text-slate-800">{task.title}</h3>
-                                    <div className="text-sm text-slate-500 flex flex-col gap-1 mt-1">
-                                        <div className="flex items-start gap-1">
-                                            <User size={14} className="mt-0.5" />
-                                            <div>
-                                                Giao cho: <b className="text-slate-700">{
-                                                    [...(task.assigneeNames || []), ...(task.supervisorNames || [])]
-                                                        .filter((v, i, a) => a.indexOf(v) === i) // Unique
-                                                        .join(', ') || 'Chưa giao'
-                                                }</b>
+                                        <div className="space-y-1.5">
+                                            <div className="text-[11px] text-slate-500 font-medium flex items-start gap-2">
+                                                <User size={14} className="mt-0.5 text-blue-500 shrink-0" />
+                                                <div className="leading-snug">
+                                                    Giao cho: <span className="text-slate-700 font-bold">{
+                                                        [...(task.assigneeNames || []), ...(task.supervisorNames || [])]
+                                                            .filter((v, i, a) => a.indexOf(v) === i)
+                                                            .join(', ') || 'Chưa giao'
+                                                    }</span>
+                                                </div>
+                                            </div>
+                                            <div className="text-[11px] text-slate-500 font-medium flex items-center gap-2">
+                                                <Calendar size={14} className="text-red-500 shrink-0" />
+                                                Hạn chót: <span className="text-red-600 font-bold">{task.deadline}</span>
                                             </div>
                                         </div>
-                                        <span className="flex items-center gap-1"><Calendar size={14} /> Deadline: {task.deadline}</span>
                                     </div>
+
+                                    {task.status === 'PENDING' && (
+                                        (task.assignees?.includes(currentUser?.code || '') || task.supervisors?.includes(currentUser?.code || '') || currentUser?.role === 'ADMIN')
+                                    ) && (
+                                            <button
+                                                onClick={() => openCompleteModal(task.id)}
+                                                className="w-full sm:w-auto px-5 py-2.5 bg-blue-600 text-white text-sm font-black rounded-lg shadow-md hover:bg-blue-700 active:scale-95 transition-all flex items-center justify-center gap-2"
+                                            >
+                                                <CheckSquare size={16} /> Báo cáo Xong
+                                            </button>
+                                        )}
                                 </div>
-                                {task.status === 'PENDING' && (
-                                    (task.assignees?.includes(currentUser?.code || '') || task.supervisors?.includes(currentUser?.code || '') || currentUser?.role === 'ADMIN')
-                                ) && (
-                                        <button
-                                            onClick={() => openCompleteModal(task.id)}
-                                            className="px-4 py-2 bg-blue-600 text-white text-sm font-bold rounded shadow hover:bg-blue-700 flex items-center gap-2"
-                                        >
-                                            <CheckSquare size={16} /> Báo cáo Xong
-                                        </button>
-                                    )}
-                            </div>
 
-                            <div className="bg-slate-50 p-3 rounded text-slate-700 text-sm mb-3 border border-slate-100">
-                                <span className="font-semibold block text-xs text-slate-400 uppercase mb-1">Nội dung:</span>
-                                {task.description || 'Không có mô tả.'}
-                            </div>
+                                <div className="bg-slate-50/80 p-3 rounded-lg text-slate-700 text-sm mb-0 border border-slate-100 italic leading-relaxed">
+                                    <span className="font-black block text-[10px] text-slate-400 uppercase mb-1 tracking-widest">Nội dung kế hoạch:</span>
+                                    {task.description || 'Không có mô tả chi tiết.'}
+                                </div>
 
-                            {task.status === 'COMPLETED' && (
-                                <div className="mt-3 border-t border-slate-100 pt-3 bg-green-50 -mx-5 -mb-5 p-5">
-                                    <div className="flex items-center gap-2 text-green-800 font-bold text-sm mb-1">
-                                        <Clock size={16} /> Hoàn thành lúc: {task.completedAt}
-                                    </div>
-                                    <div className="text-sm text-slate-700 italic mb-2">
-                                        "Kết quả: {task.completedNote}"
-                                    </div>
-                                    {task.remainingIssues && (
-                                        <div className="mt-2 p-2 bg-yellow-50 border border-yellow-200 rounded text-sm text-slate-700">
-                                            <span className="font-bold text-yellow-700 block mb-1">⚠️ Tồn tại sau bảo dưỡng:</span>
-                                            {task.remainingIssues}
+                                {task.status === 'COMPLETED' && (
+                                    <div className="mt-4 pt-4 border-t border-slate-100">
+                                        <div className="bg-green-50/50 p-3 rounded-lg border border-green-100/50">
+                                            <div className="flex items-center gap-2 text-green-800 font-black text-[10px] uppercase tracking-wider mb-2">
+                                                <Clock size={14} /> Hoàn thành lúc {task.completedAt}
+                                            </div>
+                                            <div className="text-sm text-slate-700 font-medium italic mb-3 leading-relaxed">
+                                                "Kết quả: {task.completedNote}"
+                                            </div>
+                                            {task.remainingIssues && (
+                                                <div className="p-3 bg-white border border-yellow-200 rounded-lg shadow-sm">
+                                                    <div className="flex items-center gap-1.5 text-yellow-700 font-black text-[10px] uppercase mb-1.5">
+                                                        <AlertTriangle size={12} /> Tồn tại sau bảo dưỡng
+                                                    </div>
+                                                    <div className="text-xs text-slate-600 font-medium">
+                                                        {task.remainingIssues}
+                                                    </div>
+                                                </div>
+                                            )}
                                         </div>
-                                    )}
-                                </div>
-                            )}
+                                    </div>
+                                )}
+                            </div>
                         </div>
                     ))}
                 </div>

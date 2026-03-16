@@ -3,7 +3,7 @@
 import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { SystemCheck, Status, SystemCategory } from '@/lib/types';
-import { Save, AlertCircle, Edit2, Trash2, Plus, Check, X, RotateCcw, History as HistoryIcon, CheckCheck, Search, LogOut, Users, Lock, ClipboardList, BarChart2, Package, Wrench, QrCode, Key } from 'lucide-react';
+import { Save, AlertCircle, Edit2, Trash2, Plus, Check, X, RotateCcw, History as HistoryIcon, CheckCheck, Search, LogOut, Users, Lock, ClipboardList, BarChart2, Package, Wrench, QrCode, Key, UserCheck } from 'lucide-react';
 import clsx from 'clsx';
 import { useUser } from '@/providers/UserProvider';
 import ChangePasswordModal from '@/components/ChangePasswordModal';
@@ -60,13 +60,14 @@ const DEFAULT_SYSTEMS: SystemCheck[] = [
   { id: 'K2', categoryId: 'CAT11', name: 'Cửa trượt 2', status: null, note: '' },
 ];
 
-import { subscribeToSystems, saveSystem, deleteSystem, subscribeToIncidents, backupAllData } from '@/lib/firebase';
+import { subscribeToSystems, saveSystem, deleteSystem, subscribeToIncidents, backupAllData, subscribeToDuties } from '@/lib/firebase';
 
 export default function Home() {
   const router = useRouter();
   const [categories, setCategories] = useState<SystemCategory[]>(DEFAULT_CATEGORIES);
   const [systems, setSystems] = useState<SystemCheck[]>([]);
   const [incidents, setIncidents] = useState<any[]>([]);
+  const [duties, setDuties] = useState<any[]>([]);
   const [isLoaded, setIsLoaded] = useState(false);
   const [errors, setErrors] = useState<Set<string>>(new Set());
   const [isEditMode, setIsEditMode] = useState(false);
@@ -95,11 +96,29 @@ export default function Home() {
       setIncidents(data);
     });
 
+    // 3. Subscribe to Duties
+    const unsubDuties = subscribeToDuties((data) => {
+      setDuties(data);
+    });
+
     return () => {
       unsubSys();
       unsubInc();
+      unsubDuties();
     };
   }, []);
+
+  const todayStr = new Date().toISOString().slice(0, 10);
+  const dayDuty = duties.find(d => d.date === todayStr);
+  const isUserOnDuty = dayDuty?.assignments?.some((a: any) => a.userCode === user?.code);
+
+  // Collective categories for the whole team today
+  const teamCategoryIds = dayDuty?.assignments?.reduce((acc: string[], a: any) => {
+    const ids = a.categoryIds || [];
+    return [...acc, ...ids];
+  }, []) || [];
+
+  const teamAssignedCategories = categories.filter(c => teamCategoryIds.includes(c.id));
 
   const handleStatusChange = async (id: string, status: Status) => {
     const now = new Date().toLocaleString('vi-VN', { hour: '2-digit', minute: '2-digit', day: '2-digit', month: '2-digit', year: 'numeric' });
@@ -349,6 +368,13 @@ export default function Home() {
                 >
                   <Users size={16} />
                 </button>
+                <button
+                  onClick={() => router.push('/duties')}
+                  className="p-2 rounded text-sm font-normal flex items-center gap-1 bg-indigo-600 hover:bg-indigo-700 text-white transition"
+                  title="Phân công trực"
+                >
+                  <UserCheck size={16} />
+                </button>
 
                 <button
                   onClick={async () => {
@@ -437,6 +463,36 @@ export default function Home() {
 
         {/* DASHBOARD ANALYTICS */}
         <div className="bg-slate-50 p-4 border-b border-slate-200">
+          {isUserOnDuty && teamAssignedCategories.length > 0 && (
+            <div className="mb-4 bg-indigo-600 text-white p-4 rounded-lg shadow-md animate-in fade-in slide-in-from-top-4 duration-500">
+              <div className="flex flex-col md:flex-row items-center justify-between gap-4">
+                <div className="flex items-center gap-3 w-full">
+                  <div className="p-2 bg-white/20 rounded-full">
+                    <UserCheck size={24} />
+                  </div>
+                  <div className="flex-1">
+                    <div className="text-xs font-bold uppercase tracking-widest opacity-80">Đội trực hôm nay</div>
+                    <div className="text-lg font-bold">
+                      Nhóm hệ thống cần kiểm tra:
+                      <div className="flex flex-wrap gap-2 mt-1">
+                        {teamAssignedCategories.map(cat => (
+                          <span
+                            key={cat.id}
+                            className="text-sm bg-white/20 px-2 py-0.5 rounded border border-white/30 font-medium"
+                          >
+                            {cat.name}
+                          </span>
+                        ))}
+                      </div>
+                    </div>
+                  </div>
+                </div>
+                <div className="text-right w-full md:w-auto">
+                  <span className="text-xs font-medium opacity-70 italic">* Bạn và đồng đội hỗ trợ nhau kiểm tra các nhóm trên.</span>
+                </div>
+              </div>
+            </div>
+          )}
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             {/* Progress Card */}
             {/* Progress Card */}
@@ -540,125 +596,207 @@ export default function Home() {
           </button>
         </div>
 
-        <div className="overflow-x-auto w-full">
-          <table className="w-full text-left border-collapse min-w-[600px]">
-            <thead className="bg-slate-200 text-slate-700 font-bold uppercase text-sm">
-              <tr>
-                <th className="p-3 border border-slate-300 w-1/3">Hệ thống</th>
-                <th className="p-3 border border-slate-300 text-center w-1/3">Status</th>
-                <th className="p-3 border border-slate-300 w-1/3">Note</th>
-              </tr>
-            </thead>
-            <tbody>
-              {categories.map(cat => {
-                // Filter logic included here
-                const catSystems = systems.filter(s => {
-                  const matchesCategory = s.categoryId === cat.id;
-                  if (!matchesCategory) return false;
-
-                  if (!searchQuery.trim()) return true;
-
-                  const q = searchQuery.toLowerCase();
-                  return (
-                    (s.name ?? '').toLowerCase().includes(q) ||
-                    (s.note ?? '').toLowerCase().includes(q) ||
-                    (s.status ?? '').toLowerCase().includes(q)
-                  );
-                });
-
-                if (catSystems.length === 0) return null; // Hide empty categories during search
-
+        {/* RESPONSIVE SYSTEMS LIST */}
+        <div className="w-full">
+          {/* Mobile Card View (hidden on md-up) */}
+          <div className="block md:hidden">
+            {categories.map(cat => {
+              const catSystems = systems.filter(s => {
+                const matchesCategory = s.categoryId === cat.id;
+                if (!matchesCategory) return false;
+                if (!searchQuery.trim()) return true;
+                const q = searchQuery.toLowerCase();
                 return (
-                  <React.Fragment key={cat.id}>
-                    {/* Category Header Row */}
-                    <tr key={cat.id} className="bg-blue-50">
-                      <td colSpan={3} className="p-3 border border-slate-300 font-bold text-blue-800">
-                        {cat.name}
-                      </td>
-                    </tr>
-                    {/* System Rows */}
+                  (s.name ?? '').toLowerCase().includes(q) ||
+                  (s.note ?? '').toLowerCase().includes(q) ||
+                  (s.status ?? '').toLowerCase().includes(q)
+                );
+              });
+
+              if (catSystems.length === 0) return null;
+
+              return (
+                <div key={cat.id} className="mb-6">
+                  <div className="bg-blue-600 text-white px-4 py-2 font-bold uppercase text-sm tracking-widest shadow-sm rounded-t-lg">
+                    {cat.name}
+                  </div>
+                  <div className="bg-white border-x border-b border-slate-200 rounded-b-lg overflow-hidden divide-y divide-slate-100 shadow-sm">
                     {catSystems.map(sys => (
-                      <tr key={sys.id} className="hover:bg-slate-50">
-                        <td className="p-3 border border-slate-300 font-medium pl-8">
-                          {isEditMode ? (
-                            <div className="flex items-center gap-2">
+                      <div key={sys.id} className="p-4 active:bg-slate-50 transition-colors">
+                        <div className="flex justify-between items-start mb-3">
+                          <div className="flex-1">
+                            {isEditMode ? (
                               <input
                                 value={sys.name}
                                 onChange={(e) => handleUpdateSystemName(sys.id, e.target.value)}
-                                className="border border-slate-300 rounded px-2 py-1 w-full text-sm focus:border-blue-500 outline-none"
+                                className="border border-slate-300 rounded px-2 py-1 w-full text-sm font-bold focus:border-blue-500 outline-none"
                               />
-                              <button
-                                onClick={() => handleUpdateSystemId(sys.id)}
-                                className="text-blue-500 hover:text-blue-700 p-1 rounded hover:bg-blue-50"
-                                title="Đổi Mã ID (Migrate ID)"
-                              >
-                                <Key size={16} />
-                              </button>
-                              <button
-                                onClick={() => handleDeleteSystem(sys.id)}
-                                className="text-red-500 hover:text-red-700 p-1 rounded hover:bg-red-50"
-                                title="Xóa hệ thống"
-                              >
+                            ) : (
+                              <div className="font-bold text-slate-800 flex items-center gap-2">
+                                {sys.name} <span className="text-[10px] bg-slate-100 px-1.5 py-0.5 rounded text-slate-500 uppercase font-mono">{sys.id}</span>
+                              </div>
+                            )}
+                          </div>
+                          {isEditMode && (
+                            <div className="flex gap-1 ml-2">
+                              <button onClick={() => handleDeleteSystem(sys.id)} className="p-2 text-red-500 bg-red-50 rounded">
                                 <Trash2 size={16} />
                               </button>
                             </div>
-                          ) : (
-                            <span>{sys.name} <span className="text-xs text-slate-400 font-normal">({sys.id})</span></span>
                           )}
-                        </td>
-                        <td className="p-3 border border-slate-300 text-center">
-                          <div className={clsx("flex gap-1 justify-center", isEditMode && "opacity-50 pointer-events-none")}>
-                            {(['OK', 'NOK', 'NA'] as Status[]).map(st => (
-                              <button
-                                key={st}
-                                onClick={() => handleStatusChange(sys.id, st)}
-                                className={clsx(
-                                  "px-3 py-1 rounded font-bold text-xs border transition w-12",
-                                  sys.status === st
-                                    ? (st === 'OK' ? "bg-green-600 text-white border-green-700" :
-                                      st === 'NOK' ? "bg-red-600 text-white border-red-700" :
-                                        "bg-slate-600 text-white border-slate-700")
-                                    : "bg-white text-slate-500 border-slate-300 hover:bg-slate-100"
-                                )}
-                              >
-                                {st}
-                              </button>
-                            ))}
-                          </div>
-                        </td>
-                        <td className="p-3 border border-slate-300">
+                        </div>
+
+                        {/* Status Selection (Mobile optimized) */}
+                        <div className={clsx("grid grid-cols-3 gap-2 mb-3", isEditMode && "opacity-50 pointer-events-none")}>
+                          {(['OK', 'NOK', 'NA'] as Status[]).map(st => (
+                            <button
+                              key={st}
+                              onClick={() => handleStatusChange(sys.id, st)}
+                              className={clsx(
+                                "py-3 rounded-lg font-bold text-sm border shadow-sm transition active:scale-95 flex items-center justify-center",
+                                sys.status === st
+                                  ? (st === 'OK' ? "bg-green-600 text-white border-green-700" :
+                                    st === 'NOK' ? "bg-red-600 text-white border-red-700" :
+                                      "bg-slate-600 text-white border-slate-700")
+                                  : "bg-white text-slate-500 border-slate-300"
+                              )}
+                            >
+                              {st}
+                            </button>
+                          ))}
+                        </div>
+
+                        {/* Note Input */}
+                        <div className="relative">
                           <input
                             disabled={isEditMode || sys.status === 'OK'}
                             className={clsx(
-                              "w-full p-2 border rounded text-sm outline-none",
-                              errors.has(sys.id) ? "border-red-500 bg-red-50 placeholder-red-300" : "border-slate-200 focus:border-blue-500",
-                              (isEditMode || sys.status === 'OK') && "bg-slate-100 text-slate-400 cursor-not-allowed"
+                              "w-full p-3 border rounded-lg text-sm outline-none transition-all",
+                              errors.has(sys.id) ? "border-red-500 bg-red-50 ring-2 ring-red-200" : "border-slate-200 focus:border-blue-500 bg-slate-50/50",
+                              (isEditMode || sys.status === 'OK') && "bg-slate-100 text-slate-400 cursor-not-allowed opacity-60"
                             )}
-                            placeholder={errors.has(sys.id) ? "Bắt buộc nhập ghi chú!" : (sys.status === 'OK' ? "OK không cần ghi chú" : "Ghi chú...")}
+                            placeholder={errors.has(sys.id) ? "⚠️ Bắt buộc nhập ghi chú!" : (sys.status === 'OK' ? "✅ OK - Không ghi chú" : "📝 Ghi chú...")}
                             value={sys.note}
                             onChange={(e) => handleNoteChange(sys.id, e.target.value)}
                           />
-                        </td>
-                      </tr>
+                        </div>
+                      </div>
                     ))}
-                    {/* Add System Button (Edit Mode Only) */}
                     {isEditMode && (
-                      <tr className="bg-slate-50 border-b border-slate-300">
-                        <td colSpan={3} className="p-2 text-center">
-                          <button
-                            onClick={() => handleAddSystem(cat.id)}
-                            className="text-blue-600 hover:text-blue-800 text-sm font-medium flex items-center justify-center gap-1 mx-auto py-1 px-3 border border-dashed border-blue-300 rounded hover:bg-blue-50 w-full"
-                          >
-                            <Plus size={14} /> Thêm hệ thống vào {cat.name}
-                          </button>
+                      <button
+                        onClick={() => handleAddSystem(cat.id)}
+                        className="w-full py-4 text-blue-600 font-bold text-sm bg-slate-50 hover:bg-blue-50 transition border-t border-slate-100 flex items-center justify-center gap-2"
+                      >
+                        <Plus size={18} /> Thêm hệ thống mới
+                      </button>
+                    )}
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+
+          {/* Desktop Table View (hidden on small screens) */}
+          <div className="hidden md:block overflow-x-auto">
+            <table className="w-full text-left border-collapse min-w-[600px]">
+              <thead className="bg-slate-200 text-slate-700 font-bold uppercase text-sm">
+                <tr>
+                  <th className="p-3 border border-slate-300 w-1/3">Hệ thống</th>
+                  <th className="p-3 border border-slate-300 text-center w-1/3">Status</th>
+                  <th className="p-3 border border-slate-300 w-1/3">Note</th>
+                </tr>
+              </thead>
+              <tbody>
+                {categories.map(cat => {
+                  const catSystems = systems.filter(s => {
+                    const matchesCategory = s.categoryId === cat.id;
+                    if (!matchesCategory) return false;
+                    if (!searchQuery.trim()) return true;
+                    const q = searchQuery.toLowerCase();
+                    return (
+                      (s.name ?? '').toLowerCase().includes(q) ||
+                      (s.note ?? '').toLowerCase().includes(q) ||
+                      (s.status ?? '').toLowerCase().includes(q)
+                    );
+                  });
+
+                  if (catSystems.length === 0) return null;
+
+                  return (
+                    <React.Fragment key={cat.id}>
+                      <tr className="bg-blue-50">
+                        <td colSpan={3} className="p-3 border border-slate-300 font-bold text-blue-800">
+                          {cat.name}
                         </td>
                       </tr>
-                    )}
-                  </React.Fragment>
-                )
-              })}
-            </tbody>
-          </table>
+                      {catSystems.map(sys => (
+                        <tr key={sys.id} className="hover:bg-slate-50">
+                          <td className="p-3 border border-slate-300 font-medium pl-8">
+                            {isEditMode ? (
+                              <div className="flex items-center gap-2">
+                                <input
+                                  value={sys.name}
+                                  onChange={(e) => handleUpdateSystemName(sys.id, e.target.value)}
+                                  className="border border-slate-300 rounded px-2 py-1 w-full text-sm focus:border-blue-500 outline-none"
+                                />
+                                <button onClick={() => handleDeleteSystem(sys.id)} className="text-red-500 hover:text-red-700 p-1">
+                                  <Trash2 size={16} />
+                                </button>
+                              </div>
+                            ) : (
+                              <span>{sys.name} <span className="text-xs text-slate-400 font-normal">({sys.id})</span></span>
+                            )}
+                          </td>
+                          <td className="p-3 border border-slate-300 text-center">
+                            <div className={clsx("flex gap-1 justify-center", isEditMode && "opacity-50 pointer-events-none")}>
+                              {(['OK', 'NOK', 'NA'] as Status[]).map(st => (
+                                <button
+                                  key={st}
+                                  onClick={() => handleStatusChange(sys.id, st)}
+                                  className={clsx(
+                                    "px-3 py-1 rounded font-bold text-xs border transition w-12",
+                                    sys.status === st
+                                      ? (st === 'OK' ? "bg-green-600 text-white border-green-700" :
+                                        st === 'NOK' ? "bg-red-600 text-white border-red-700" :
+                                          "bg-slate-600 text-white border-slate-700")
+                                      : "bg-white text-slate-500 border-slate-300 hover:bg-slate-100"
+                                  )}
+                                >
+                                  {st}
+                                </button>
+                              ))}
+                            </div>
+                          </td>
+                          <td className="p-3 border border-slate-300">
+                            <input
+                              disabled={isEditMode || sys.status === 'OK'}
+                              className={clsx(
+                                "w-full p-2 border rounded text-sm outline-none",
+                                errors.has(sys.id) ? "border-red-500 bg-red-50 placeholder-red-300" : "border-slate-200 focus:border-blue-500",
+                                (isEditMode || sys.status === 'OK') && "bg-slate-100 text-slate-400 cursor-not-allowed"
+                              )}
+                              placeholder={errors.has(sys.id) ? "Bắt buộc nhập ghi chú!" : (sys.status === 'OK' ? "OK không cần ghi chú" : "Ghi chú...")}
+                              value={sys.note}
+                              onChange={(e) => handleNoteChange(sys.id, e.target.value)}
+                            />
+                          </td>
+                        </tr>
+                      ))}
+                      {isEditMode && (
+                        <tr className="bg-slate-50 border-b border-slate-300">
+                          <td colSpan={3} className="p-2 text-center" onClick={() => handleAddSystem(cat.id)}>
+                            <button className="text-blue-600 hover:text-blue-800 text-sm font-medium flex items-center justify-center gap-1 mx-auto py-1 px-3 border border-dashed border-blue-300 rounded hover:bg-blue-50 w-full">
+                              <Plus size={14} /> Thêm hệ thống mới
+                            </button>
+                          </td>
+                        </tr>
+                      )}
+                    </React.Fragment>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
         </div>
 
         {

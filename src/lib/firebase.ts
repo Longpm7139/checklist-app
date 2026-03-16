@@ -116,6 +116,22 @@ export const subscribeToMaintenance = (callback: (data: any[]) => void) => {
     });
 };
 
+// Duties
+export const saveDuty = async (date: string, assignments: any[]) => {
+    await setDoc(doc(db, "duties", date), { date, assignments: removeUndefined(assignments) });
+};
+
+export const subscribeToDuties = (callback: (data: any[]) => void) => {
+    const q = query(collection(db, "duties"));
+    return onSnapshot(q, (querySnapshot) => {
+        const items: any[] = [];
+        querySnapshot.forEach((doc) => {
+            items.push(doc.data());
+        });
+        callback(items);
+    });
+};
+
 // Checklist Details
 export const subscribeToChecklist = (systemId: string, callback: (data: any) => void, onError?: (error: any) => void) => {
     return onSnapshot(doc(db, "details", systemId), (doc) => {

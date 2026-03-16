@@ -13,9 +13,23 @@ body {
     color: var(--foreground);
     font-family: system-ui, -apple-system, sans-serif;
     -webkit-font-smoothing: antialiased;
+    touch-action: manipulation;
+    /* Reduce tap delay (300ms) */
 }
 
-/* Ensure buttons are clickable and visually distinct without custom classes */
+/* Ensure buttons are clickable and visually distinct */
 button {
     cursor: pointer;
+    touch-action: manipulation;
+}
+
+/* Mobile-friendly specific utilities */
+@layer utilities {
+    .truncate-2-lines {
+        display: -webkit-box;
+        -webkit-line-clamp: 2;
+        line-clamp: 2;
+        -webkit-box-orient: vertical;
+        overflow: hidden;
+    }
 }

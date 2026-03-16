@@ -298,61 +298,78 @@ export default function IncidentsPage() {
                         </div>
                     ) : (
                         filteredIncidents.map(inc => (
-                            <div key={inc.id} className="bg-white rounded-xl shadow-sm border border-slate-200 p-5 hover:shadow-md transition">
-                                <div className="flex justify-between items-start mb-3">
-                                    <div>
-                                        <h3 className="font-bold text-lg text-slate-800 flex items-center gap-2">
-                                            {inc.title}
-                                            {inc.status === 'OPEN' ? (
-                                                <span className="bg-red-100 text-red-700 text-xs px-2 py-0.5 rounded-full border border-red-200">ĐANG XỬ LÝ</span>
-                                            ) : (
-                                                <span className="bg-green-100 text-green-700 text-xs px-2 py-0.5 rounded-full border border-green-200">ĐÃ XONG</span>
-                                            )}
-                                        </h3>
-                                        <div className="text-sm text-slate-500 flex items-center gap-2 mt-1">
-                                            <AlertTriangle size={14} /> {inc.systemName}
-                                            <span className="text-slate-300">|</span>
-                                            <Clock size={14} /> {inc.createdAt}
+                            <div key={inc.id} className="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden hover:shadow-md transition group">
+                                <div className="p-4 md:p-5">
+                                    <div className="flex flex-col sm:flex-row justify-between items-start gap-3 mb-4">
+                                        <div className="flex-1 min-w-0">
+                                            <div className="flex flex-wrap items-center gap-2 mb-1.5">
+                                                <h3 className="font-bold text-lg text-slate-800 leading-tight">
+                                                    {inc.title}
+                                                </h3>
+                                                {inc.status === 'OPEN' ? (
+                                                    <span className="bg-red-50 text-red-700 text-[10px] font-black px-2 py-0.5 rounded-full border border-red-200 uppercase tracking-tighter">ĐANG XỬ LÝ</span>
+                                                ) : (
+                                                    <span className="bg-green-50 text-green-700 text-[10px] font-black px-2 py-0.5 rounded-full border border-green-200 uppercase tracking-tighter shadow-sm">ĐÃ XONG</span>
+                                                )}
+                                            </div>
+                                            <div className="text-[11px] text-slate-400 font-medium flex flex-wrap items-center gap-x-3 gap-y-1">
+                                                <div className="flex items-center gap-1.5 bg-slate-100 px-2 py-0.5 rounded text-slate-600">
+                                                    <AlertTriangle size={12} className="text-amber-500" /> {inc.systemName}
+                                                </div>
+                                                <div className="flex items-center gap-1.5">
+                                                    <Clock size={12} /> {inc.createdAt}
+                                                </div>
+                                                <div className="flex items-center gap-1.5">
+                                                    <User size={12} /> {inc.reportedBy}
+                                                </div>
+                                            </div>
                                         </div>
+                                        {inc.status === 'OPEN' && (
+                                            <button
+                                                onClick={() => startResolve(inc.id)}
+                                                className="w-full sm:w-auto px-4 py-2 bg-blue-600 text-white text-sm font-black rounded-lg shadow-md hover:bg-blue-700 active:scale-95 transition-all flex items-center justify-center gap-2"
+                                            >
+                                                <CheckCircle size={16} /> Báo cáo Xong
+                                            </button>
+                                        )}
                                     </div>
-                                    {inc.status === 'OPEN' && (
-                                        <button
-                                            onClick={() => startResolve(inc.id)}
-                                            className="px-3 py-1 bg-blue-600 text-white text-sm font-bold rounded shadow hover:bg-blue-700"
-                                        >
-                                            Báo cáo Xong
-                                        </button>
+
+                                    <div className="bg-slate-50/80 p-3 rounded-lg text-slate-700 text-sm mb-4 border border-slate-100 italic leading-relaxed">
+                                        {inc.description || 'Không có mô tả chi tiết.'}
+                                    </div>
+
+                                    {(inc.assignedTo || inc.status === 'RESOLVED') && (
+                                        <div className="space-y-3 pt-3 border-t border-slate-100">
+                                            {inc.assignedTo && (
+                                                <div className="text-xs text-slate-500 flex items-center gap-1.5">
+                                                    <div className="w-1.5 h-1.5 rounded-full bg-blue-400"></div>
+                                                    Giao cho: <span className="font-bold text-slate-700">{inc.assignedTo}</span>
+                                                </div>
+                                            )}
+
+                                            {inc.status === 'RESOLVED' && (
+                                                <div className="bg-green-50/50 p-3 rounded-lg border border-green-100/50">
+                                                    <div className="flex items-center gap-2 text-green-700 font-black text-xs uppercase tracking-wider mb-2">
+                                                        <CheckCircle size={14} /> Đã khắc phục bởi {inc.resolvedBy}
+                                                    </div>
+                                                    <div className="text-sm text-slate-700 font-medium leading-relaxed">
+                                                        "{inc.resolutionNote}"
+                                                    </div>
+                                                    <div className="flex flex-wrap items-center justify-between gap-2 mt-3 text-[10px]">
+                                                        {inc.participants && inc.participants.length > 0 && (
+                                                            <div className="text-slate-500 bg-white px-2 py-0.5 rounded border border-slate-100">
+                                                                Tham gia: <span className="font-bold text-slate-700">{inc.participants.join(', ')}</span>
+                                                            </div>
+                                                        )}
+                                                        <div className="text-slate-400 italic ml-auto">
+                                                            Phút: {inc.resolvedAt}
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            )}
+                                        </div>
                                     )}
                                 </div>
-
-                                <div className="bg-slate-50 p-3 rounded text-slate-700 text-sm mb-3 border border-slate-100">
-                                    {inc.description || 'Không có mô tả chi tiết.'}
-                                </div>
-
-                                {inc.assignedTo && (
-                                    <div className="text-xs text-slate-500 flex items-center gap-1 mb-2">
-                                        <User size={12} /> Giao cho: <span className="font-bold text-slate-700">{inc.assignedTo}</span>
-                                    </div>
-                                )}
-
-                                {inc.status === 'RESOLVED' && (
-                                    <div className="mt-3 border-t border-slate-100 pt-3">
-                                        <div className="flex items-center gap-2 text-green-700 font-bold text-sm mb-1">
-                                            <CheckCircle size={16} /> Đã khắc phục bởi {inc.resolvedBy}
-                                        </div>
-                                        <div className="text-sm text-slate-600 italic">
-                                            "{inc.resolutionNote}"
-                                        </div>
-                                        {inc.participants && inc.participants.length > 0 && (
-                                            <div className="text-xs text-slate-500 mt-1">
-                                                Tham gia: <span className="font-bold">{inc.participants.join(', ')}</span>
-                                            </div>
-                                        )}
-                                        <div className="text-xs text-slate-400 mt-1 text-right">
-                                            Hoàn thành: {inc.resolvedAt}
-                                        </div>
-                                    </div>
-                                )}
                             </div>
                         ))
                     )}

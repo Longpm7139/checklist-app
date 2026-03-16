@@ -163,15 +163,13 @@ export default function CheckPage() {
             }
 
             // --- NEW: DIRTY CHECK REFINED ---
-            // If system has status (already checked)
-            // AND no changes made (isDirty is false)
-            // AND the last inspector is the SAME as the current user
-            // THEN skip saving and just navigate
+            // If system has status (already checked) AND no changes made (isDirty is false)
+            // THEN skip saving and logging, regardless of who is accessing it.
+            // This prevents team members from "claiming" each other's work by just clicking Save.
             const isFirstTime = !currentSystem?.status;
-            const isSameUser = currentSystem?.inspectorName === user?.name;
 
-            if (!isFirstTime && !isDirty && isSameUser) {
-                console.log("No changes detected by same user. Skipping save and log.");
+            if (!isFirstTime && !isDirty) {
+                console.log("No changes detected. Skipping save and log for already-checked system.");
                 // Proceed to navigation directly
             } else {
                 // --- SAVE TO FIREBASE ---
@@ -299,56 +297,50 @@ export default function CheckPage() {
 
                 {/* TABLE */}
                 <div className="overflow-x-auto w-full">
-                    <table className="w-full text-left border-collapse min-w-[800px]">
-                        <thead className="bg-slate-200 text-slate-700 font-bold uppercase text-sm">
-                            <tr>
-                                <th className="p-3 border border-slate-300 w-16 text-center">STT</th>
-                                <th className="p-3 border border-slate-300">Nội dung kiểm tra</th>
-                                <th className="p-3 border border-slate-300 w-48 text-center">{isEditing ? 'Thao tác' : 'Status'}</th>
-                                <th className="p-3 border border-slate-300 w-1/4">Note</th>
-                                <th className="p-3 border border-slate-300 w-32 text-center">Thời gian</th>
-                            </tr>
-                        </thead>
-                        <tbody>
+                    {/* RESPONSIVE CHECKLIST CONTENT */}
+                    <div className="w-full">
+                        {/* Mobile Card View (hidden on md-up) */}
+                        <div className="block md:hidden space-y-4 p-4">
                             {items.map((item, idx) => (
-                                <tr key={item.id} className="hover:bg-slate-50">
-                                    <td className="p-3 border border-slate-300 text-center font-bold text-slate-500">
-                                        {idx + 1}
-                                    </td>
-                                    <td className="p-3 border border-slate-300 font-medium">
-                                        {isEditing ? (
-                                            <input
-                                                className="w-full border border-slate-300 rounded px-2 py-1"
-                                                value={item.content}
-                                                onChange={(e) => handleUpdateContent(item.id, e.target.value)}
-                                                placeholder="Nhập nội dung kiểm tra..."
-                                            />
-                                        ) : (
-                                            item.content
-                                        )}
-                                    </td>
-                                    <td className="p-3 border border-slate-300 text-center">
-                                        {isEditing ? (
-                                            <button
-                                                onClick={() => handleDeleteItem(item.id)}
-                                                className="p-2 bg-red-100 text-red-600 rounded hover:bg-red-200"
-                                                title="Xóa mục này"
-                                            >
-                                                <Trash2 size={18} />
+                                <div key={item.id} className="bg-white rounded-lg shadow-sm border border-slate-200 overflow-hidden">
+                                    <div className="p-4 bg-slate-50 border-b border-slate-200 flex justify-between items-center">
+                                        <span className="text-sm font-bold text-slate-500 uppercase tracking-widest">Mục #{idx + 1}</span>
+                                        {item.timestamp && <span className="text-[10px] font-mono text-slate-400">{item.timestamp}</span>}
+                                        {isEditing && (
+                                            <button onClick={() => handleDeleteItem(item.id)} className="p-1.5 text-red-500 bg-red-50 rounded shadow-sm">
+                                                <Trash2 size={16} />
                                             </button>
-                                        ) : (
-                                            <div className="flex gap-1 justify-center">
+                                        )}
+                                    </div>
+                                    <div className="p-4 space-y-4">
+                                        {/* Content */}
+                                        <div className="text-slate-800 font-medium leading-relaxed">
+                                            {isEditing ? (
+                                                <textarea
+                                                    className="w-full border border-slate-300 rounded-lg p-3 text-sm focus:border-blue-500 outline-none min-h-[80px]"
+                                                    value={item.content}
+                                                    onChange={(e) => handleUpdateContent(item.id, e.target.value)}
+                                                    placeholder="Nội dung kiểm tra..."
+                                                />
+                                            ) : (
+                                                item.content
+                                            )}
+                                        </div>
+
+                                        {/* Status selection (only if not editing) */}
+                                        {!isEditing && (
+                                            <div className="grid grid-cols-3 gap-2">
                                                 {(['OK', 'NOK', 'NA'] as Status[]).map(st => (
                                                     <button
                                                         key={st}
                                                         onClick={() => handleStatusChange(item.id, st)}
                                                         className={clsx(
-                                                            "px-3 py-1 rounded text-xs font-bold border transition w-12",
+                                                            "py-4 rounded-xl font-bold text-sm border shadow-sm transition active:scale-95 flex items-center justify-center",
                                                             item.status === st
                                                                 ? (st === 'OK' ? "bg-green-600 text-white border-green-700" :
                                                                     st === 'NOK' ? "bg-red-600 text-white border-red-700" :
                                                                         "bg-slate-600 text-white border-slate-700")
-                                                                : "bg-white text-slate-500 border-slate-300 hover:bg-slate-100"
+                                                                : "bg-white text-slate-500 border-slate-300"
                                                         )}
                                                     >
                                                         {st}
@@ -356,40 +348,130 @@ export default function CheckPage() {
                                                 ))}
                                             </div>
                                         )}
-                                    </td>
-                                    <td className="p-3 border border-slate-300">
-                                        <input
-                                            disabled={item.status === 'OK'}
-                                            className={clsx(
-                                                "w-full bg-transparent outline-none text-sm placeholder-slate-300",
-                                                item.status === 'OK' && "text-slate-400 cursor-not-allowed"
-                                            )}
-                                            placeholder={item.status === 'OK' ? "OK không cần ghi chú" : ""}
-                                            value={item.note}
-                                            onChange={(e) => handleNoteChange(item.id, e.target.value)}
-                                        />
-                                    </td>
-                                    <td className="p-3 border border-slate-300 text-center text-sm font-mono text-slate-600">
-                                        {item.timestamp || '-'}
-                                    </td>
-                                </tr>
+
+                                        {/* Note field */}
+                                        {!isEditing && (
+                                            <div className="relative">
+                                                <input
+                                                    disabled={item.status === 'OK'}
+                                                    className={clsx(
+                                                        "w-full p-4 border rounded-xl text-sm outline-none transition-all",
+                                                        item.status === 'OK' ? "bg-slate-50 text-slate-400 opacity-60" : "bg-slate-50/50 border-slate-200 focus:border-blue-500 ring-offset-2 focus:ring-2 focus:ring-blue-100"
+                                                    )}
+                                                    placeholder={item.status === 'OK' ? "✅ OK - Không ghi chú" : "📝 Nhập ghi chú tại đây..."}
+                                                    value={item.note}
+                                                    onChange={(e) => handleNoteChange(item.id, e.target.value)}
+                                                />
+                                            </div>
+                                        )}
+                                    </div>
+                                </div>
                             ))}
-                        </tbody>
-                        {isEditing && (
-                            <tfoot>
-                                <tr>
-                                    <td colSpan={5} className="p-2 border border-slate-300 bg-slate-50">
-                                        <button
-                                            onClick={handleAddItem}
-                                            className="w-full py-2 border-2 border-dashed border-slate-300 text-slate-500 rounded hover:border-blue-400 hover:text-blue-500 flex justify-center items-center gap-2 font-medium"
-                                        >
-                                            <Plus size={18} /> Thêm dòng kiểm tra
-                                        </button>
-                                    </td>
-                                </tr>
-                            </tfoot>
-                        )}
-                    </table>
+                            {isEditing && (
+                                <button
+                                    onClick={handleAddItem}
+                                    className="w-full py-5 border-2 border-dashed border-slate-300 text-slate-500 rounded-xl hover:bg-blue-50 hover:border-blue-300 hover:text-blue-600 flex justify-center items-center gap-2 font-bold transition-all shadow-sm"
+                                >
+                                    <Plus size={20} /> THÊM MỤC MỚI
+                                </button>
+                            )}
+                        </div>
+
+                        {/* Desktop Table View (hidden on mobile) */}
+                        <div className="hidden md:block overflow-x-auto">
+                            <table className="w-full text-left border-collapse min-w-[800px]">
+                                <thead className="bg-slate-200 text-slate-700 font-bold uppercase text-sm">
+                                    <tr>
+                                        <th className="p-3 border border-slate-300 w-16 text-center">STT</th>
+                                        <th className="p-3 border border-slate-300">Nội dung kiểm tra</th>
+                                        <th className="p-3 border border-slate-300 w-48 text-center">{isEditing ? 'Thao tác' : 'Status'}</th>
+                                        <th className="p-3 border border-slate-300 w-1/4">Note</th>
+                                        <th className="p-3 border border-slate-300 w-32 text-center">Thời gian</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {items.map((item, idx) => (
+                                        <tr key={item.id} className="hover:bg-slate-50">
+                                            <td className="p-3 border border-slate-300 text-center font-bold text-slate-500">
+                                                {idx + 1}
+                                            </td>
+                                            <td className="p-3 border border-slate-300 font-medium text-slate-800">
+                                                {isEditing ? (
+                                                    <input
+                                                        className="w-full border border-slate-300 rounded px-2 py-1 focus:border-blue-500 outline-none"
+                                                        value={item.content}
+                                                        onChange={(e) => handleUpdateContent(item.id, e.target.value)}
+                                                        placeholder="Nhập nội dung kiểm tra..."
+                                                    />
+                                                ) : (
+                                                    item.content
+                                                )}
+                                            </td>
+                                            <td className="p-3 border border-slate-300 text-center">
+                                                {isEditing ? (
+                                                    <button
+                                                        onClick={() => handleDeleteItem(item.id)}
+                                                        className="p-2 bg-red-100 text-red-600 rounded hover:bg-red-200 shadow-sm"
+                                                        title="Xóa mục này"
+                                                    >
+                                                        <Trash2 size={18} />
+                                                    </button>
+                                                ) : (
+                                                    <div className="flex gap-1 justify-center">
+                                                        {(['OK', 'NOK', 'NA'] as Status[]).map(st => (
+                                                            <button
+                                                                key={st}
+                                                                onClick={() => handleStatusChange(item.id, st)}
+                                                                className={clsx(
+                                                                    "px-3 py-1 rounded text-xs font-bold border transition w-12 shadow-sm",
+                                                                    item.status === st
+                                                                        ? (st === 'OK' ? "bg-green-600 text-white border-green-700" :
+                                                                            st === 'NOK' ? "bg-red-600 text-white border-red-700" :
+                                                                                "bg-slate-600 text-white border-slate-700")
+                                                                        : "bg-white text-slate-500 border-slate-300 hover:bg-slate-100"
+                                                                )}
+                                                            >
+                                                                {st}
+                                                            </button>
+                                                        ))}
+                                                    </div>
+                                                )}
+                                            </td>
+                                            <td className="p-3 border border-slate-300">
+                                                <input
+                                                    disabled={item.status === 'OK'}
+                                                    className={clsx(
+                                                        "w-full bg-transparent outline-none text-sm placeholder-slate-300",
+                                                        item.status === 'OK' && "text-slate-400 cursor-not-allowed"
+                                                    )}
+                                                    placeholder={item.status === 'OK' ? "OK không cần ghi chú" : "Nhập ghi chú..."}
+                                                    value={item.note}
+                                                    onChange={(e) => handleNoteChange(item.id, e.target.value)}
+                                                />
+                                            </td>
+                                            <td className="p-3 border border-slate-300 text-center text-xs font-mono text-slate-500">
+                                                {item.timestamp || '-'}
+                                            </td>
+                                        </tr>
+                                    ))}
+                                </tbody>
+                                {isEditing && (
+                                    <tfoot>
+                                        <tr>
+                                            <td colSpan={5} className="p-2 border border-slate-300 bg-slate-50">
+                                                <button
+                                                    onClick={handleAddItem}
+                                                    className="w-full py-2 border-2 border-dashed border-slate-300 text-slate-500 rounded hover:border-blue-400 hover:text-blue-500 flex justify-center items-center gap-2 font-medium transition-colors"
+                                                >
+                                                    <Plus size={18} /> Thêm dòng kiểm tra
+                                                </button>
+                                            </td>
+                                        </tr>
+                                    </tfoot>
+                                )}
+                            </table>
+                        </div>
+                    </div>
                 </div>
 
                 {/* FOOTER */}

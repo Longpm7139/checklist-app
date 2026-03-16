@@ -244,114 +244,226 @@ export default function SummaryPage() {
                     </button>
                 </div>
 
-                <div className="overflow-x-auto w-full">
-                    <table className="w-full text-left border-collapse min-w-[900px]">
-                        <thead className="bg-slate-200 text-slate-700 font-bold uppercase text-sm">
-                            <tr>
-                                <th className="p-3 border border-slate-300 w-16 text-center">STT</th>
-                                <th className="p-3 border border-slate-300 w-1/4">Hệ thống / Lỗi</th>
-                                <th className="p-3 border border-slate-300 text-center w-64">Trạng thái (Fixed/Fixing/No Fix)</th>
-                                <th className="p-3 border border-slate-300 w-32 text-center">Thời gian</th>
-                                <th className="p-3 border border-slate-300 w-32 text-center">Người phát hiện</th>
-                                <th className="p-3 border border-slate-300 w-32 text-center">Người sửa chữa</th>
-                                <th className="p-3 border border-slate-300">Nội dung thực hiện (Giải pháp)</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            {currentItems.map((row, idx) => (
-                                <tr key={row.id} className="hover:bg-slate-50">
-                                    <td className="p-3 border border-slate-300 text-center font-bold text-slate-500">{indexOfFirstItem + idx + 1}</td>
-                                    <td className="p-3 border border-slate-300 font-medium">
-                                        <div className="text-blue-800">{row.systemName}</div>
-                                        <div className="text-red-600 text-sm mt-1 italic">{row.issueContent}</div>
-                                    </td>
-                                    <td className="p-3 border border-slate-300 text-center">
-                                        <div className="flex gap-1 justify-center flex-wrap">
-                                            {[
-                                                { label: 'Fixed', cls: 'bg-green-600 border-green-700' },
-                                                { label: 'Fixing', cls: 'bg-blue-600 border-blue-700' },
-                                                { label: 'No Fix', cls: 'bg-red-600 border-red-700' },
-                                                { label: 'Pending Material', cls: 'bg-amber-500 border-amber-600' }
-                                            ].map(opt => (
-                                                <button
-                                                    key={opt.label}
-                                                    onClick={() => handleStatusChange(row.id, opt.label as any)}
-                                                    className={clsx(
-                                                        "px-2 py-1 rounded text-xs font-bold border text-white transition",
-                                                        row.fixStatus === opt.label ? opt.cls : "bg-slate-300 border-slate-400 text-slate-600"
-                                                    )}
-                                                >
-                                                    {opt.label === 'Pending Material' ? 'Chờ vật tư' : opt.label}
-                                                </button>
-                                            ))}
+                <div className="w-full">
+                    {/* Mobile Card View (hidden on md-up) */}
+                    <div className="block md:hidden p-4 space-y-4">
+                        {currentItems.length > 0 ? (
+                            currentItems.map((row, idx) => (
+                                <div key={row.id} className="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
+                                    <div className="p-4 bg-slate-50 border-b border-slate-200">
+                                        <div className="flex justify-between items-start gap-2 mb-2">
+                                            <span className="text-xs font-black text-slate-400">STT: {indexOfFirstItem + idx + 1}</span>
+                                            <span className="text-[10px] font-mono text-slate-400">{row.timestamp}</span>
                                         </div>
-                                    </td>
-                                    <td className="p-3 border border-slate-300 text-center font-mono text-sm">
-                                        <div>{row.timestamp}</div>
-                                    </td>
-                                    <td className="p-3 border border-slate-300 text-center font-medium text-slate-600 text-sm">
-                                        {row.inspectorName || '-'}
-                                    </td>
-                                    <td className="p-3 border border-slate-300 text-center font-bold text-blue-600 text-sm relative">
-                                        <div
-                                            className={clsx(
-                                                "p-1 rounded transition-colors min-h-[2.5rem] flex items-center justify-center",
-                                                (row.fixStatus === 'Fixed' || row.fixStatus === 'Pending Material') ? "cursor-pointer hover:bg-slate-100" : "cursor-not-allowed opacity-50"
-                                            )}
-                                            onClick={() => (row.fixStatus === 'Fixed' || row.fixStatus === 'Pending Material') && setActiveRowSelector(activeRowSelector === row.id ? null : row.id)}
-                                        >
-                                            {row.executorNames.length > 0 ? row.executorNames.join(', ') : '-'}
+                                        <div className="font-bold text-blue-800 leading-snug">{row.systemName}</div>
+                                        <div className="text-red-600 text-sm mt-1 italic font-medium">{row.issueContent}</div>
+                                    </div>
+
+                                    <div className="p-4 space-y-4">
+                                        {/* Status Selection */}
+                                        <div className="space-y-2">
+                                            <div className="text-[10px] text-slate-400 uppercase font-bold tracking-wider">Trạng thái xử lý</div>
+                                            <div className="grid grid-cols-2 gap-2">
+                                                {[
+                                                    { label: 'Fixed', cls: 'bg-green-600 border-green-700', text: 'Fixed' },
+                                                    { label: 'Fixing', cls: 'bg-blue-600 border-blue-700', text: 'Fixing' },
+                                                    { label: 'No Fix', cls: 'bg-red-600 border-red-700', text: 'No Fix' },
+                                                    { label: 'Pending Material', cls: 'bg-amber-500 border-amber-600', text: 'Chờ vật tư' }
+                                                ].map(opt => (
+                                                    <button
+                                                        key={opt.label}
+                                                        onClick={() => handleStatusChange(row.id, opt.label as any)}
+                                                        className={clsx(
+                                                            "px-2 py-2 rounded-lg text-xs font-bold border text-white transition-all active:scale-95",
+                                                            row.fixStatus === opt.label ? opt.cls : "bg-slate-100 border-slate-200 text-slate-500"
+                                                        )}
+                                                    >
+                                                        {opt.text}
+                                                    </button>
+                                                ))}
+                                            </div>
                                         </div>
 
-                                        {activeRowSelector === row.id && (
-                                            <div className="absolute z-50 top-full left-1/2 -translate-x-1/2 mt-1 w-64 bg-white border border-slate-300 shadow-xl rounded-md overflow-hidden text-left font-normal text-slate-700">
-                                                <div className="p-2 bg-slate-100 border-b border-slate-200 font-bold text-xs uppercase flex justify-between items-center">
-                                                    Chọn người thực hiện
-                                                    <button onClick={() => setActiveRowSelector(null)} className="text-slate-400 hover:text-slate-600 text-lg">&times;</button>
-                                                </div>
-                                                <div className="max-h-60 overflow-y-auto">
-                                                    {users.map(u => (
-                                                        <label key={u.id} className="flex items-center gap-3 p-2 hover:bg-blue-50 cursor-pointer border-b border-slate-50 last:border-0">
-                                                            <input
-                                                                type="checkbox"
-                                                                className="w-4 h-4 rounded border-slate-300 text-blue-600 focus:ring-blue-500"
-                                                                checked={row.executorNames.includes(u.name)}
-                                                                onChange={() => handleToggleExecutor(row.id, u.name)}
-                                                            />
-                                                            <span className="text-sm font-medium">{u.name}</span>
-                                                        </label>
-                                                    ))}
-                                                </div>
+                                        {/* Executor Selection */}
+                                        <div className="space-y-2">
+                                            <div className="text-[10px] text-slate-400 uppercase font-bold tracking-wider flex justify-between items-center">
+                                                Người thực hiện
+                                                {row.inspectorName && <span className="normal-case font-medium text-slate-400 italic">Bởi: {row.inspectorName}</span>}
                                             </div>
-                                        )}
-                                    </td>
-                                    <td className="p-3 border border-slate-300">
-                                        <input
-                                            disabled={row.fixStatus !== 'Fixed' && row.fixStatus !== 'Pending Material'}
-                                            className={clsx(
-                                                "w-full bg-transparent outline-none",
-                                                row.fixStatus !== 'Fixed' && "cursor-not-allowed text-slate-400"
+                                            <div
+                                                className={clsx(
+                                                    "w-full p-3 rounded-lg border text-sm font-bold text-center transition-all",
+                                                    (row.fixStatus === 'Fixed' || row.fixStatus === 'Pending Material')
+                                                        ? "bg-blue-50 border-blue-200 text-blue-700 active:bg-blue-100"
+                                                        : "bg-slate-50 border-slate-100 text-slate-300 opacity-50 cursor-not-allowed"
+                                                )}
+                                                onClick={() => (row.fixStatus === 'Fixed' || row.fixStatus === 'Pending Material') && setActiveRowSelector(activeRowSelector === row.id ? null : row.id)}
+                                            >
+                                                {row.executorNames.length > 0 ? row.executorNames.join(', ') : 'Nhấn để chọn người sửa'}
+                                            </div>
+
+                                            {activeRowSelector === row.id && (
+                                                <div className="p-3 bg-white border border-blue-200 rounded-lg shadow-inner space-y-2">
+                                                    <div className="flex justify-between items-center mb-1">
+                                                        <span className="text-[10px] font-bold text-blue-500">DANH SÁCH NHÂN VIÊN</span>
+                                                        <button onClick={() => setActiveRowSelector(null)} className="text-slate-400 font-bold text-lg leading-none">&times;</button>
+                                                    </div>
+                                                    <div className="grid grid-cols-2 gap-2 max-h-40 overflow-y-auto pr-1">
+                                                        {users.map(u => (
+                                                            <label key={u.id} className={clsx(
+                                                                "flex items-center gap-2 p-2 rounded border text-xs font-medium transition",
+                                                                row.executorNames.includes(u.name) ? "bg-blue-600 border-blue-700 text-white shadow-sm" : "bg-white border-slate-100 text-slate-600"
+                                                            )}>
+                                                                <input
+                                                                    type="checkbox"
+                                                                    className="hidden"
+                                                                    checked={row.executorNames.includes(u.name)}
+                                                                    onChange={() => handleToggleExecutor(row.id, u.name)}
+                                                                />
+                                                                <span className="truncate">{u.name}</span>
+                                                            </label>
+                                                        ))}
+                                                    </div>
+                                                </div>
                                             )}
-                                            placeholder={
-                                                row.fixStatus === 'Fixed' ? "Nhập nội dung xử lý..." :
-                                                    row.fixStatus === 'Pending Material' ? "Nhập tên vật tư..." :
-                                                        "Chỉ nhập khi Fixed hoặc cần Vật tư"
-                                            }
-                                            value={row.actionDescription}
-                                            onChange={(e) => handleActionChange(row.id, e.target.value)}
-                                        />
-                                    </td>
-                                </tr>
-                            ))}
-                            {rows.length === 0 && (
+                                        </div>
+
+                                        {/* Action Description */}
+                                        <div className="space-y-2">
+                                            <div className="text-[10px] text-slate-400 uppercase font-bold tracking-wider">
+                                                {row.fixStatus === 'Pending Material' ? 'Vật tư cần thay thế' : 'Nội dung thực hiện'}
+                                            </div>
+                                            <textarea
+                                                disabled={row.fixStatus !== 'Fixed' && row.fixStatus !== 'Pending Material'}
+                                                className={clsx(
+                                                    "w-full p-3 rounded-lg border text-sm outline-none transition-all focus:ring-2 focus:ring-blue-100",
+                                                    (row.fixStatus === 'Fixed' || row.fixStatus === 'Pending Material')
+                                                        ? "bg-white border-slate-300 focus:border-blue-500"
+                                                        : "bg-slate-50 border-slate-100 text-slate-400 cursor-not-allowed"
+                                                )}
+                                                rows={2}
+                                                placeholder={
+                                                    row.fixStatus === 'Fixed' ? "Nhập chi tiết công việc..." :
+                                                        row.fixStatus === 'Pending Material' ? "Nhập tên vật tư..." :
+                                                            "Chỉ nhập khi Fixed hoặc cần Vật tư"
+                                                }
+                                                value={row.actionDescription}
+                                                onChange={(e) => handleActionChange(row.id, e.target.value)}
+                                            />
+                                        </div>
+                                    </div>
+                                </div>
+                            ))
+                        ) : (
+                            <div className="p-12 text-center bg-white rounded-xl border border-dashed border-slate-300">
+                                <span className="italic text-slate-400">Hệ thống hoạt động bình thường, không có lỗi.</span>
+                            </div>
+                        )}
+                    </div>
+
+                    {/* Desktop Table View (hidden on mobile) */}
+                    <div className="hidden md:block">
+                        <table className="w-full text-left border-collapse">
+                            <thead className="bg-slate-200 text-slate-700 font-bold uppercase text-sm">
                                 <tr>
-                                    <td colSpan={6} className="p-8 text-center text-slate-500 italic">
-                                        Hệ thống hoạt động bình thường, không có lỗi.
-                                    </td>
+                                    <th className="p-3 border border-slate-300 w-16 text-center">STT</th>
+                                    <th className="p-3 border border-slate-300 w-1/4">Hệ thống / Lỗi</th>
+                                    <th className="p-3 border border-slate-300 text-center w-64">Trạng thái (Fixed/Fixing/No Fix)</th>
+                                    <th className="p-3 border border-slate-300 w-32 text-center">Thời gian</th>
+                                    <th className="p-3 border border-slate-300 w-32 text-center">Người phát hiện</th>
+                                    <th className="p-3 border border-slate-300 w-32 text-center">Người sửa chữa</th>
+                                    <th className="p-3 border border-slate-300">Nội dung thực hiện (Giải pháp)</th>
                                 </tr>
-                            )}
-                        </tbody>
-                    </table>
+                            </thead>
+                            <tbody>
+                                {currentItems.map((row, idx) => (
+                                    <tr key={row.id} className="hover:bg-slate-50">
+                                        <td className="p-3 border border-slate-300 text-center font-bold text-slate-500">{indexOfFirstItem + idx + 1}</td>
+                                        <td className="p-3 border border-slate-300 font-medium">
+                                            <div className="text-blue-800">{row.systemName}</div>
+                                            <div className="text-red-600 text-sm mt-1 italic">{row.issueContent}</div>
+                                        </td>
+                                        <td className="p-3 border border-slate-300 text-center">
+                                            <div className="flex gap-1 justify-center flex-wrap">
+                                                {[
+                                                    { label: 'Fixed', cls: 'bg-green-600 border-green-700' },
+                                                    { label: 'Fixing', cls: 'bg-blue-600 border-blue-700' },
+                                                    { label: 'No Fix', cls: 'bg-red-600 border-red-700' },
+                                                    { label: 'Pending Material', cls: 'bg-amber-500 border-amber-600' }
+                                                ].map(opt => (
+                                                    <button
+                                                        key={opt.label}
+                                                        onClick={() => handleStatusChange(row.id, opt.label as any)}
+                                                        className={clsx(
+                                                            "px-2 py-1 rounded text-xs font-bold border text-white transition",
+                                                            row.fixStatus === opt.label ? opt.cls : "bg-slate-300 border-slate-400 text-slate-600"
+                                                        )}
+                                                    >
+                                                        {opt.label === 'Pending Material' ? 'Chờ vật tư' : opt.label}
+                                                    </button>
+                                                ))}
+                                            </div>
+                                        </td>
+                                        <td className="p-3 border border-slate-300 text-center font-mono text-sm">
+                                            <div>{row.timestamp}</div>
+                                        </td>
+                                        <td className="p-3 border border-slate-300 text-center font-medium text-slate-600 text-sm">
+                                            {row.inspectorName || '-'}
+                                        </td>
+                                        <td className="p-3 border border-slate-300 text-center font-bold text-blue-600 text-sm relative">
+                                            <div
+                                                className={clsx(
+                                                    "p-1 rounded transition-colors min-h-[2.5rem] flex items-center justify-center",
+                                                    (row.fixStatus === 'Fixed' || row.fixStatus === 'Pending Material') ? "cursor-pointer hover:bg-slate-100" : "cursor-not-allowed opacity-50"
+                                                )}
+                                                onClick={() => (row.fixStatus === 'Fixed' || row.fixStatus === 'Pending Material') && setActiveRowSelector(activeRowSelector === row.id ? null : row.id)}
+                                            >
+                                                {row.executorNames.length > 0 ? row.executorNames.join(', ') : '-'}
+                                            </div>
+
+                                            {activeRowSelector === row.id && (
+                                                <div className="absolute z-50 top-full left-1/2 -translate-x-1/2 mt-1 w-64 bg-white border border-slate-300 shadow-xl rounded-md overflow-hidden text-left font-normal text-slate-700">
+                                                    <div className="p-2 bg-slate-100 border-b border-slate-200 font-bold text-xs uppercase flex justify-between items-center">
+                                                        Chọn người thực hiện
+                                                        <button onClick={() => setActiveRowSelector(null)} className="text-slate-400 hover:text-slate-600 text-lg">&times;</button>
+                                                    </div>
+                                                    <div className="max-h-60 overflow-y-auto">
+                                                        {users.map(u => (
+                                                            <label key={u.id} className="flex items-center gap-3 p-2 hover:bg-blue-50 cursor-pointer border-b border-slate-50 last:border-0">
+                                                                <input
+                                                                    type="checkbox"
+                                                                    className="w-4 h-4 rounded border-slate-300 text-blue-600 focus:ring-blue-500"
+                                                                    checked={row.executorNames.includes(u.name)}
+                                                                    onChange={() => handleToggleExecutor(row.id, u.name)}
+                                                                />
+                                                                <span className="text-sm font-medium">{u.name}</span>
+                                                            </label>
+                                                        ))}
+                                                    </div>
+                                                </div>
+                                            )}
+                                        </td>
+                                        <td className="p-3 border border-slate-300">
+                                            <input
+                                                disabled={row.fixStatus !== 'Fixed' && row.fixStatus !== 'Pending Material'}
+                                                className={clsx(
+                                                    "w-full bg-transparent outline-none",
+                                                    row.fixStatus !== 'Fixed' && "cursor-not-allowed text-slate-400"
+                                                )}
+                                                placeholder={
+                                                    row.fixStatus === 'Fixed' ? "Nhập nội dung xử lý..." :
+                                                        row.fixStatus === 'Pending Material' ? "Nhập tên vật tư..." :
+                                                            "Chỉ nhập khi Fixed hoặc cần Vật tư"
+                                                }
+                                                value={row.actionDescription}
+                                                onChange={(e) => handleActionChange(row.id, e.target.value)}
+                                            />
+                                        </td>
+                                    </tr>
+                                ))}
+                            </tbody>
+                        </table>
+                    </div>
                 </div>
 
 

@@ -3,7 +3,7 @@ $timestamp = Get-Date -Format "yyyy-MM-dd_HH-mm-ss"
 $projectName = "ChecklistApp_Backup"
 $backupFileName = "$projectName`_$timestamp.zip"
 $sourceDir = "c:\Users\thais\OneDrive\Desktop\Checklist\checklist-app"
-$artifactDir = "C:\Users\thais\.gemini\antigravity\brain\4a70ecd1-6e20-4d23-bdbc-27bce889ba34"
+$artifactDir = "C:\Users\thais\.gemini\antigravity\brain\2482f961-9a96-4822-b596-79f6880d391f"
 $destinationDir = "c:\Users\thais\OneDrive\Desktop\Checklist\_Backups"
 
 # Ensure backup directory exists
