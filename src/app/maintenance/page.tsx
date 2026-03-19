@@ -17,6 +17,7 @@ export default function MaintenancePage() {
 
     // Form State
     const [title, setTitle] = useState('');
+    const [taskType, setTaskType] = useState<'MAINTENANCE' | 'PROJECT'>('MAINTENANCE');
     const [desc, setDesc] = useState('');
     const [deadline, setDeadline] = useState('');
 
@@ -98,6 +99,7 @@ export default function MaintenancePage() {
         const newTask: MaintenanceTask = {
             id: Date.now().toString(),
             title,
+            type: taskType,
             description: desc,
             deadline,
             assignees: selectedUserCodes, // New field
@@ -114,6 +116,7 @@ export default function MaintenancePage() {
 
         // Reset
         setTitle('');
+        setTaskType('MAINTENANCE');
         setDesc('');
         setDeadline('');
         setSelectedUserCodes([]);
@@ -182,10 +185,37 @@ export default function MaintenancePage() {
                         <h2 className="font-bold text-lg mb-4 text-slate-800 border-b pb-2">Giao việc Bảo trì Mới</h2>
                         <div className="space-y-4">
                             <div>
+                                <label className="block text-sm font-medium text-slate-700 mb-1">Loại công việc *</label>
+                                <div className="flex gap-4">
+                                    <label className="flex items-center gap-2 cursor-pointer">
+                                        <input
+                                            type="radio"
+                                            name="taskType"
+                                            value="MAINTENANCE"
+                                            checked={taskType === 'MAINTENANCE'}
+                                            onChange={() => setTaskType('MAINTENANCE')}
+                                            className="w-4 h-4 text-blue-600 focus:ring-blue-500"
+                                        />
+                                        <span className="text-sm font-bold text-slate-700">Bảo dưỡng định kỳ <span className="text-slate-500 font-normal">(8 điểm KPI)</span></span>
+                                    </label>
+                                    <label className="flex items-center gap-2 cursor-pointer">
+                                        <input
+                                            type="radio"
+                                            name="taskType"
+                                            value="PROJECT"
+                                            checked={taskType === 'PROJECT'}
+                                            onChange={() => setTaskType('PROJECT')}
+                                            className="w-4 h-4 text-orange-600 focus:ring-orange-500"
+                                        />
+                                        <span className="text-sm font-bold text-slate-700">Dự án / Thi công <span className="text-slate-500 font-normal">(10 điểm KPI)</span></span>
+                                    </label>
+                                </div>
+                            </div>
+                            <div>
                                 <label className="block text-sm font-medium text-slate-700 mb-1">Tên công việc *</label>
                                 <input
                                     className="w-full border border-slate-300 rounded p-2 focus:border-blue-500 outline-none"
-                                    placeholder="VD: Bảo dưỡng Cầu A1 tháng 10..."
+                                    placeholder="VD: Cầu A1..."
                                     value={title}
                                     onChange={e => setTitle(e.target.value)}
                                 />
@@ -257,9 +287,15 @@ export default function MaintenancePage() {
                                         value={deadline}
                                         onChange={e => setDeadline(e.target.value)}
                                     />
-                                    <div className="mt-4 bg-yellow-50 p-3 rounded text-sm text-yellow-800 border border-yellow-200">
-                                        <p className="font-bold mb-1">Cơ chế KPI:</p>
-                                        Khi hoàn thành, <b>TẤT CẢ</b> nhân viên được chọn sẽ nhận được 10 điểm thưởng.
+                                    <div className="mt-4 bg-yellow-50 p-3 rounded-lg text-sm text-yellow-800 border border-yellow-200 shadow-sm">
+                                        <div className="font-bold flex items-center gap-1 mb-1">
+                                            <AlertTriangle size={14} className="text-yellow-600" /> Cơ chế KPI:
+                                        </div>
+                                        <ul className="list-disc ml-5 space-y-1 mt-1">
+                                            <li><span className="font-bold">Bảo dưỡng định kỳ:</span> Người thực hiện nhận <span className="font-bold text-blue-700">8 điểm</span>.</li>
+                                            <li><span className="font-bold">Dự án / Thi công:</span> Người thực hiện nhận <span className="font-bold text-orange-700">10 điểm</span>.</li>
+                                            <li><span className="font-bold">Người giám sát:</span> Nhận <span className="font-bold text-purple-700">6 điểm</span> cho cả hai loại.</li>
+                                        </ul>
                                     </div>
                                 </div>
                             </div>

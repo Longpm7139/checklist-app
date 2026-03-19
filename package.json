@@ -12,6 +12,8 @@
     "@types/bcryptjs": "^2.4.6",
     "bcryptjs": "^3.0.3",
     "clsx": "^2.1.1",
+    "docx": "^9.6.1",
+    "file-saver": "^2.0.5",
     "firebase": "^12.9.0",
     "lucide-react": "^0.562.0",
     "next": "16.1.4",
@@ -23,6 +25,7 @@
   },
   "devDependencies": {
     "@tailwindcss/postcss": "^4",
+    "@types/file-saver": "^2.0.7",
     "@types/node": "^20",
     "@types/react": "^19",
     "@types/react-dom": "^19",

@@ -165,7 +165,9 @@ export default function IncidentsPage() {
         const ws = XLSX.utils.json_to_sheet(data);
         const wb = XLSX.utils.book_new();
         XLSX.utils.book_append_sheet(wb, ws, "Danh sách sự cố");
-        XLSX.writeFile(wb, `Su_co_bat_thuong_${new Date().toISOString().slice(0, 10)}.xlsx`);
+        const nowD = new Date();
+        const todayStr = `${nowD.getFullYear()}-${String(nowD.getMonth() + 1).padStart(2, '0')}-${String(nowD.getDate()).padStart(2, '0')}`;
+        XLSX.writeFile(wb, `Su_co_bat_thuong_${todayStr}.xlsx`);
     };
 
     const filteredIncidents = incidents.filter(inc =>

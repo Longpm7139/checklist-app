@@ -1,0 +1,4858 @@
+{
+  "systems": [
+    {
+      "timestamp": null,
+      "status": "OK",
+      "id": "A1",
+      "name": "Cầu hành khách số 21",
+      "note": "",
+      "categoryId": "CAT1",
+      "inspectorName": null,
+      "_id": "A1"
+    },
+    {
+      "categoryId": "CAT1",
+      "inspectorName": null,
+      "note": "",
+      "status": "OK",
+      "timestamp": null,
+      "id": "A2",
+      "name": "Cầu hành khách số 22",
+      "_id": "A2"
+    },
+    {
+      "name": "Cầu hành khách số 23",
+      "id": "A3",
+      "status": "OK",
+      "timestamp": null,
+      "note": "",
+      "categoryId": "CAT1",
+      "inspectorName": null,
+      "_id": "A3"
+    },
+    {
+      "name": "Cầu hành khách số 25",
+      "id": "A4",
+      "status": "OK",
+      "timestamp": null,
+      "note": "",
+      "categoryId": "CAT1",
+      "inspectorName": null,
+      "_id": "A4"
+    },
+    {
+      "categoryId": "CAT1",
+      "inspectorName": null,
+      "name": "Cầu hành khách số 27",
+      "status": "OK",
+      "timestamp": null,
+      "id": "A5",
+      "note": "",
+      "_id": "A5"
+    },
+    {
+      "note": "",
+      "timestamp": null,
+      "status": "OK",
+      "id": "A6",
+      "name": "Cầu hành khách số 28",
+      "categoryId": "CAT1",
+      "inspectorName": null,
+      "_id": "A6"
+    },
+    {
+      "categoryId": "CAT2",
+      "inspectorName": "Quản trị viên",
+      "note": "1",
+      "id": "B1",
+      "timestamp": "20:43 18/03/2026",
+      "status": "OK",
+      "name": "VDGS số 21",
+      "_id": "B1"
+    },
+    {
+      "note": "1",
+      "status": "OK",
+      "timestamp": "20:44 18/03/2026",
+      "id": "B2",
+      "name": "VDGS số 22",
+      "categoryId": "CAT2",
+      "inspectorName": "Quản trị viên",
+      "_id": "B2"
+    },
+    {
+      "categoryId": "CAT2",
+      "inspectorName": null,
+      "note": "",
+      "id": "B3",
+      "timestamp": null,
+      "status": "OK",
+      "name": "VDGS số 23",
+      "_id": "B3"
+    },
+    {
+      "categoryId": "CAT2",
+      "inspectorName": null,
+      "note": "",
+      "name": "VDGS số 25",
+      "id": "B4",
+      "status": "OK",
+      "timestamp": null,
+      "_id": "B4"
+    },
+    {
+      "name": "VDGS số 27",
+      "status": "OK",
+      "timestamp": null,
+      "id": "B5",
+      "note": "",
+      "categoryId": "CAT2",
+      "inspectorName": null,
+      "_id": "B5"
+    },
+    {
+      "categoryId": "CAT2",
+      "inspectorName": null,
+      "name": "VDGS số 28",
+      "timestamp": null,
+      "status": "OK",
+      "id": "B6",
+      "note": "",
+      "_id": "B6"
+    },
+    {
+      "note": "",
+      "name": "Máy soi xách tay số 1",
+      "id": "C1",
+      "status": "OK",
+      "timestamp": null,
+      "categoryId": "CAT3",
+      "inspectorName": null,
+      "_id": "C1"
+    },
+    {
+      "note": "",
+      "name": "Máy soi hành lý Line 2",
+      "timestamp": null,
+      "status": "OK",
+      "id": "C10",
+      "categoryId": "CAT3",
+      "inspectorName": null,
+      "_id": "C10"
+    },
+    {
+      "name": "Máy soi hành lý Line 3",
+      "id": "C11",
+      "status": "OK",
+      "timestamp": null,
+      "note": "",
+      "categoryId": "CAT3",
+      "inspectorName": null,
+      "_id": "C11"
+    },
+    {
+      "categoryId": "CAT3",
+      "inspectorName": null,
+      "note": "",
+      "name": "Máy soi hành lý Line 4",
+      "status": "OK",
+      "timestamp": null,
+      "id": "C12",
+      "_id": "C12"
+    },
+    {
+      "categoryId": "CAT3",
+      "inspectorName": null,
+      "name": "Máy soi hành lý quá khổ",
+      "id": "C13",
+      "timestamp": null,
+      "status": "OK",
+      "note": "",
+      "_id": "C13"
+    },
+    {
+      "categoryId": "CAT3",
+      "inspectorName": null,
+      "timestamp": null,
+      "status": "OK",
+      "id": "C14",
+      "name": "Máy soi nội bộ",
+      "note": "",
+      "_id": "C14"
+    },
+    {
+      "note": "",
+      "name": "Máy soi rác",
+      "id": "C15",
+      "status": "OK",
+      "timestamp": null,
+      "categoryId": "CAT3",
+      "inspectorName": null,
+      "_id": "C15"
+    },
+    {
+      "categoryId": "CAT3",
+      "inspectorName": null,
+      "id": "C16",
+      "status": "OK",
+      "timestamp": null,
+      "name": "Máy soi kho hàng 1",
+      "note": "",
+      "_id": "C16"
+    },
+    {
+      "note": "1",
+      "id": "C17",
+      "timestamp": "20:31 18/03/2026",
+      "status": "OK",
+      "name": "Máy soi kho hàng 2",
+      "categoryId": "CAT3",
+      "inspectorName": "Quản trị viên",
+      "_id": "C17"
+    },
+    {
+      "timestamp": "20:32 18/03/2026",
+      "status": "OK",
+      "id": "C18",
+      "name": "Máy soi nhà VIP",
+      "note": "1",
+      "categoryId": "CAT3",
+      "inspectorName": "Quản trị viên",
+      "_id": "C18"
+    },
+    {
+      "id": "C2",
+      "status": "OK",
+      "timestamp": null,
+      "name": "Máy soi xách tay số 2",
+      "note": "",
+      "categoryId": "CAT3",
+      "inspectorName": null,
+      "_id": "C2"
+    },
+    {
+      "categoryId": "CAT3",
+      "inspectorName": null,
+      "note": "",
+      "id": "C3",
+      "timestamp": null,
+      "status": "OK",
+      "name": "Máy soi xách tay số 3",
+      "_id": "C3"
+    },
+    {
+      "categoryId": "CAT3",
+      "inspectorName": null,
+      "timestamp": null,
+      "status": "OK",
+      "id": "C4",
+      "name": "Máy soi xách tay số 4",
+      "note": "",
+      "_id": "C4"
+    },
+    {
+      "categoryId": "CAT3",
+      "inspectorName": null,
+      "name": "Máy soi xách tay số 5",
+      "id": "C5",
+      "status": "OK",
+      "timestamp": null,
+      "note": "",
+      "_id": "C5"
+    },
+    {
+      "categoryId": "CAT3",
+      "inspectorName": null,
+      "name": "Máy soi xách tay số 6",
+      "id": "C6",
+      "timestamp": null,
+      "status": "OK",
+      "note": "",
+      "_id": "C6"
+    },
+    {
+      "name": "Máy soi transis số 1",
+      "id": "C7",
+      "timestamp": "20:21 18/03/2026",
+      "status": "OK",
+      "note": "1",
+      "categoryId": "CAT3",
+      "inspectorName": "Quản trị viên",
+      "_id": "C7"
+    },
+    {
+      "categoryId": "CAT3",
+      "inspectorName": null,
+      "id": "C8",
+      "status": "OK",
+      "timestamp": null,
+      "name": "Máy soi transis số 2",
+      "note": "",
+      "_id": "C8"
+    },
+    {
+      "categoryId": "CAT3",
+      "inspectorName": null,
+      "note": "",
+      "name": "Máy soi hành lý Line 1",
+      "id": "C9",
+      "status": "OK",
+      "timestamp": null,
+      "_id": "C9"
+    },
+    {
+      "note": "1",
+      "name": "Cổng từ số 1",
+      "id": "D1",
+      "timestamp": "20:50 18/03/2026",
+      "status": "OK",
+      "categoryId": "CAT4",
+      "inspectorName": "Quản trị viên",
+      "_id": "D1"
+    },
+    {
+      "note": "",
+      "name": "Cổng từ nhà VIP",
+      "timestamp": null,
+      "status": "OK",
+      "id": "D10",
+      "categoryId": "CAT4",
+      "inspectorName": null,
+      "_id": "D10"
+    },
+    {
+      "categoryId": "CAT4",
+      "inspectorName": null,
+      "note": "",
+      "name": "Cổng từ số 2",
+      "timestamp": null,
+      "status": "OK",
+      "id": "D2",
+      "_id": "D2"
+    },
+    {
+      "id": "D3",
+      "timestamp": null,
+      "status": "OK",
+      "name": "Cổng từ số 3",
+      "note": "",
+      "categoryId": "CAT4",
+      "inspectorName": null,
+      "_id": "D3"
+    },
+    {
+      "categoryId": "CAT4",
+      "inspectorName": null,
+      "name": "Cổng từ số 4",
+      "id": "D4",
+      "timestamp": null,
+      "status": "OK",
+      "note": "",
+      "_id": "D4"
+    },
+    {
+      "name": "Cổng từ số 5",
+      "timestamp": null,
+      "status": "OK",
+      "id": "D5",
+      "note": "",
+      "categoryId": "CAT4",
+      "inspectorName": null,
+      "_id": "D5"
+    },
+    {
+      "categoryId": "CAT4",
+      "inspectorName": "Quản trị viên",
+      "note": "1",
+      "timestamp": "20:53 18/03/2026",
+      "status": "OK",
+      "id": "D6",
+      "name": "Cổng từ số 6",
+      "_id": "D6"
+    },
+    {
+      "categoryId": "CAT4",
+      "inspectorName": null,
+      "timestamp": null,
+      "status": "OK",
+      "id": "D7",
+      "name": "Cổng từ transis",
+      "note": "",
+      "_id": "D7"
+    },
+    {
+      "categoryId": "CAT4",
+      "inspectorName": null,
+      "name": "Cổng từ nội bộ",
+      "id": "D8",
+      "status": "OK",
+      "timestamp": null,
+      "note": "",
+      "_id": "D8"
+    },
+    {
+      "categoryId": "CAT4",
+      "inspectorName": null,
+      "id": "D9",
+      "status": "OK",
+      "timestamp": null,
+      "name": "Cổng từ soi rác",
+      "note": "",
+      "_id": "D9"
+    },
+    {
+      "note": "",
+      "name": "TDS 1",
+      "id": "E1",
+      "status": "OK",
+      "timestamp": null,
+      "categoryId": "CAT5",
+      "inspectorName": null,
+      "_id": "E1"
+    },
+    {
+      "categoryId": "CAT5",
+      "inspectorName": null,
+      "name": "TDS 2",
+      "id": "E2",
+      "status": "OK",
+      "timestamp": null,
+      "note": "",
+      "_id": "E2"
+    },
+    {
+      "name": "ACS Cửa boarding số 1",
+      "status": "OK",
+      "timestamp": "21:25 18/03/2026",
+      "id": "F1",
+      "note": "1",
+      "categoryId": "CAT6",
+      "inspectorName": "Quản trị viên",
+      "_id": "F1"
+    },
+    {
+      "status": "OK",
+      "timestamp": "21:22 18/03/2026",
+      "id": "F10",
+      "name": "ACS Cửa boarding số 10",
+      "note": "",
+      "categoryId": "CAT6",
+      "inspectorName": "Quản trị viên",
+      "_id": "F10"
+    },
+    {
+      "categoryId": "CAT6",
+      "inspectorName": "Quản trị viên",
+      "name": "ACS Cửa boarding số 11",
+      "id": "F11",
+      "status": "OK",
+      "timestamp": "21:22 18/03/2026",
+      "note": "",
+      "_id": "F11"
+    },
+    {
+      "categoryId": "CAT6",
+      "inspectorName": null,
+      "name": "ACS Cửa boarding số 2",
+      "id": "F2",
+      "timestamp": null,
+      "status": "OK",
+      "note": "",
+      "_id": "F2"
+    },
+    {
+      "note": "1",
+      "id": "F3",
+      "status": "OK",
+      "timestamp": "21:28 18/03/2026",
+      "name": "ACS Cửa boarding số 3",
+      "categoryId": "CAT6",
+      "inspectorName": "Quản trị viên",
+      "_id": "F3"
+    },
+    {
+      "note": "",
+      "name": "ACS Cửa boarding số 4",
+      "id": "F4",
+      "status": "OK",
+      "timestamp": "21:22 18/03/2026",
+      "categoryId": "CAT6",
+      "inspectorName": "Quản trị viên",
+      "_id": "F4"
+    },
+    {
+      "categoryId": "CAT6",
+      "inspectorName": "Quản trị viên",
+      "note": "",
+      "id": "F5",
+      "status": "OK",
+      "timestamp": "21:22 18/03/2026",
+      "name": "ACS Cửa boarding số 5",
+      "_id": "F5"
+    },
+    {
+      "id": "F6",
+      "status": "OK",
+      "timestamp": "21:22 18/03/2026",
+      "name": "ACS Cửa boarding số 6",
+      "note": "",
+      "categoryId": "CAT6",
+      "inspectorName": "Quản trị viên",
+      "_id": "F6"
+    },
+    {
+      "categoryId": "CAT6",
+      "inspectorName": "Quản trị viên",
+      "note": "",
+      "name": "ACS Cửa boarding số 7",
+      "status": "OK",
+      "timestamp": "21:22 18/03/2026",
+      "id": "F7",
+      "_id": "F7"
+    },
+    {
+      "categoryId": "CAT6",
+      "inspectorName": "Quản trị viên",
+      "note": "",
+      "name": "ACS Cửa boarding số 8",
+      "status": "OK",
+      "timestamp": "21:22 18/03/2026",
+      "id": "F8",
+      "_id": "F8"
+    },
+    {
+      "note": "",
+      "name": "ACS Cửa boarding số 9",
+      "status": "OK",
+      "timestamp": "21:22 18/03/2026",
+      "id": "F9",
+      "categoryId": "CAT6",
+      "inspectorName": "Quản trị viên",
+      "_id": "F9"
+    },
+    {
+      "id": "G1",
+      "status": "OK",
+      "timestamp": "21:47 18/03/2026",
+      "name": "Kiểm tra Trạng thái Tổng đài (PBX/IP PBX):",
+      "note": "1",
+      "categoryId": "CAT7",
+      "inspectorName": "Quản trị viên",
+      "_id": "G1"
+    },
+    {
+      "categoryId": "CAT8",
+      "inspectorName": "Quản trị viên",
+      "note": "1",
+      "id": "H1",
+      "status": "OK",
+      "timestamp": "21:37 18/03/2026",
+      "name": "CCTV nhà ga T1",
+      "_id": "H1"
+    },
+    {
+      "id": "H2",
+      "status": "OK",
+      "timestamp": null,
+      "name": "CCTV sân đỗ ô tô",
+      "note": "",
+      "categoryId": "CAT8",
+      "inspectorName": null,
+      "_id": "H2"
+    },
+    {
+      "note": "",
+      "id": "H3",
+      "status": "OK",
+      "timestamp": "21:32 18/03/2026",
+      "name": "CCTV sân đỗ tàu bay",
+      "categoryId": "CAT8",
+      "inspectorName": "Quản trị viên",
+      "_id": "H3"
+    },
+    {
+      "categoryId": "CAT8",
+      "inspectorName": "Quản trị viên",
+      "id": "H4",
+      "status": "OK",
+      "timestamp": "21:32 18/03/2026",
+      "name": "CCTV nhà điều hành",
+      "note": "",
+      "_id": "H4"
+    },
+    {
+      "categoryId": "CAT8",
+      "inspectorName": "Quản trị viên",
+      "note": "1",
+      "id": "H5",
+      "status": "OK",
+      "timestamp": "21:40 18/03/2026",
+      "name": "CCTV nhà VIP",
+      "_id": "H5"
+    },
+    {
+      "id": "H6",
+      "timestamp": "21:41 18/03/2026",
+      "status": "OK",
+      "name": "CCTV kho hàng",
+      "note": "1",
+      "categoryId": "CAT8",
+      "inspectorName": "Quản trị viên",
+      "_id": "H6"
+    },
+    {
+      "name": "Làn ra Duy Tân ",
+      "id": "I1",
+      "status": "OK",
+      "timestamp": null,
+      "note": "",
+      "categoryId": "CAT9",
+      "inspectorName": null,
+      "_id": "I1"
+    },
+    {
+      "id": "I2",
+      "status": "OK",
+      "timestamp": null,
+      "name": "Làn vào Duy Tân ",
+      "note": "",
+      "categoryId": "CAT9",
+      "inspectorName": null,
+      "_id": "I2"
+    },
+    {
+      "categoryId": "CAT9",
+      "inspectorName": null,
+      "name": "Làn ra Nguyễn Văn Linh",
+      "status": "OK",
+      "timestamp": null,
+      "id": "I3",
+      "note": "",
+      "_id": "I3"
+    },
+    {
+      "name": "Làn vào Nguyễn Văn Linh",
+      "id": "I4",
+      "timestamp": null,
+      "status": "OK",
+      "note": "",
+      "categoryId": "CAT9",
+      "inspectorName": null,
+      "_id": "I4"
+    },
+    {
+      "categoryId": "CAT9",
+      "inspectorName": null,
+      "id": "I5",
+      "timestamp": null,
+      "status": "OK",
+      "name": "Làn vào/ra khu hành chính",
+      "note": "",
+      "_id": "I5"
+    },
+    {
+      "categoryId": "CAT9",
+      "inspectorName": null,
+      "id": "I6",
+      "status": "OK",
+      "timestamp": null,
+      "name": "Làn vào Duy Tân bổ sung",
+      "note": "",
+      "_id": "I6"
+    },
+    {
+      "categoryId": "CAT10",
+      "inspectorName": "Quản trị viên",
+      "note": "1",
+      "name": "Thu phí làn vào 1",
+      "id": "J1",
+      "status": "OK",
+      "timestamp": "21:15 18/03/2026",
+      "_id": "J1"
+    },
+    {
+      "categoryId": "CAT10",
+      "inspectorName": "Quản trị viên",
+      "timestamp": "21:05 18/03/2026",
+      "status": "OK",
+      "id": "J2",
+      "name": "Thu phí làn vào 2",
+      "note": "",
+      "_id": "J2"
+    },
+    {
+      "categoryId": "CAT10",
+      "inspectorName": "Quản trị viên",
+      "status": "OK",
+      "timestamp": "21:16 18/03/2026",
+      "id": "J3",
+      "name": "Thu phí làn ra 1",
+      "note": "1",
+      "_id": "J3"
+    },
+    {
+      "categoryId": "CAT10",
+      "inspectorName": "Quản trị viên",
+      "timestamp": "21:16 18/03/2026",
+      "status": "OK",
+      "id": "J4",
+      "name": "Thu phí làn ra 2",
+      "note": "1",
+      "_id": "J4"
+    },
+    {
+      "categoryId": "CAT11",
+      "inspectorName": "Quản trị viên",
+      "status": "OK",
+      "timestamp": "20:57 18/03/2026",
+      "id": "K1",
+      "name": "Cửa trượt tự động D1 lớp ngoài",
+      "note": "1",
+      "_id": "K1"
+    },
+    {
+      "categoryId": "CAT11",
+      "inspectorName": "Quản trị viên",
+      "note": "1",
+      "name": "Cửa trượt tự động D1 lớp trong",
+      "status": "OK",
+      "timestamp": "21:02 18/03/2026",
+      "id": "K2",
+      "_id": "K2"
+    },
+    {
+      "categoryId": "CAT11",
+      "inspectorName": null,
+      "timestamp": null,
+      "status": "OK",
+      "id": "K3",
+      "name": "Cửa trượt tự động D21 lớp ngoài",
+      "note": "",
+      "_id": "K3"
+    },
+    {
+      "categoryId": "CAT11",
+      "inspectorName": null,
+      "name": "Cửa trượt tự động D21 lớp trong",
+      "id": "K4",
+      "status": "OK",
+      "timestamp": null,
+      "note": "",
+      "_id": "K4"
+    },
+    {
+      "note": "",
+      "id": "K5",
+      "timestamp": null,
+      "status": "OK",
+      "name": "Cửa trượt tự động D22 lớp ngoài",
+      "categoryId": "CAT11",
+      "inspectorName": null,
+      "_id": "K5"
+    },
+    {
+      "note": "",
+      "name": "Cửa trượt tự động D22 lớp trong",
+      "id": "K6",
+      "status": "OK",
+      "timestamp": null,
+      "categoryId": "CAT11",
+      "inspectorName": null,
+      "_id": "K6"
+    },
+    {
+      "categoryId": "CAT11",
+      "inspectorName": null,
+      "id": "K7",
+      "timestamp": null,
+      "status": "OK",
+      "name": "Cửa trượt tự động D3 lớp ngoài",
+      "note": "",
+      "_id": "K7"
+    },
+    {
+      "categoryId": "CAT11",
+      "inspectorName": null,
+      "note": "",
+      "status": "OK",
+      "timestamp": null,
+      "id": "K8",
+      "name": "Cửa trượt tự động D3 lớp trong",
+      "_id": "K8"
+    }
+  ],
+  "details": [
+    {
+      "items": [
+        {
+          "note": "",
+          "id": "1",
+          "timestamp": "",
+          "status": null,
+          "inspectorName": null,
+          "content": "Kiểm tra tủ điện và nguồn cấp (không có mùi khét, không có dấu hiệu cháy sém dây dẫn, không có nước rò rỉ vào tủ điện, không có đèn báo lỗi màu đỏ trên tủ, cửa tủ điện đóng kín, khóa an toàn)",
+          "executorNames": [
+            "Nguyễn Lê Kim Thịnh"
+          ]
+        },
+        {
+          "inspectorName": null,
+          "content": "Kiểm tra PLC – HMI – CABIN (màn hình HMI hiển thị bình thường, không có cảnh báo (Alarm) đang active, Joystick hoạt động trơn tru, không kẹt/lỏng, nút Emergency Stop nguyên vẹn, không kẹt, không có dây điện lộ ra ngoài hoặc bong tróc cách điện)",
+          "id": "2",
+          "timestamp": "",
+          "status": null,
+          "note": ""
+        },
+        {
+          "content": "Kiểm tra hệ thống chiếu sáng (đèn Tunnel sáng đầy đủ, đèn Cabin hoạt động bình thường, đèn Floodlight Apron)",
+          "inspectorName": null,
+          "note": "",
+          "timestamp": "",
+          "status": null,
+          "id": "3"
+        },
+        {
+          "note": "",
+          "status": null,
+          "timestamp": "",
+          "id": "1772123807266",
+          "content": "Kiểm tra Rotunda (Rèm Rotunda không rách, không kẹt, Quan sát khe hở 2 bên ổ bi công rotunda)",
+          "inspectorName": null
+        },
+        {
+          "note": "",
+          "status": null,
+          "timestamp": "",
+          "id": "1772123871591",
+          "inspectorName": null,
+          "content": "Kiểm traTunnel (Kính không nứt vỡ, Ramps nối giữa các Tunnel chắc chắn, không lệch… Su ván sàn không bong tróc)"
+        },
+        {
+          "note": "",
+          "timestamp": "",
+          "id": "1772123915088",
+          "status": null,
+          "content": "Kiểm tra hệ thống bánh lái và khung di chuyển (Bánh xe không nứt cao su, Không mòn lệch bất thường, Không có vật cản dưới gầm cầu, Kết cấu không nghiêng hẳn, đỗ về 1 phía bất thường)",
+          "executorNames": [
+            "Quản trị viên",
+            "Nguyễn Đình Tâm",
+            "Nguyễn Đức Phúc"
+          ],
+          "inspectorName": null
+        },
+        {
+          "content": "Kiêm tra hệ thống nâng hạ (Không rò rỉ dầu thủy lực, Kiểm tra mức dầu trong thùng dầu)",
+          "executorNames": [
+            "Nguyễn Lê Kim Thịnh",
+            "Nguyễn Đình Tâm"
+          ],
+          "inspectorName": null,
+          "timestamp": "",
+          "id": "1772124071844",
+          "status": null,
+          "note": ""
+        }
+      ],
+      "_id": "A1"
+    },
+    {
+      "items": [
+        {
+          "fixStatus": null,
+          "content": "Kiểm tra tủ điện và nguồn cấp (không có mùi khét, không có dấu hiệu cháy sém dây dẫn, không có nước rò rỉ vào tủ điện, không có đèn báo lỗi màu đỏ trên tủ, cửa tủ điện đóng kín, khóa an toàn)",
+          "note": "",
+          "status": null,
+          "timestamp": "",
+          "materialRequest": null,
+          "actionNote": null,
+          "executorNames": null,
+          "inspectorName": null,
+          "id": "1"
+        },
+        {
+          "fixStatus": null,
+          "content": "Kiểm tra PLC – HMI – CABIN (màn hình HMI hiển thị bình thường, không có cảnh báo (Alarm) đang active, Joystick hoạt động trơn tru, không kẹt/lỏng, nút Emergency Stop nguyên vẹn, không kẹt, không có dây điện lộ ra ngoài hoặc bong tróc cách điện)",
+          "note": "",
+          "timestamp": "",
+          "status": null,
+          "inspectorName": null,
+          "actionNote": null,
+          "executorNames": [
+            "Quản trị viên",
+            "Trịnh Minh Tuấn",
+            "Trương Khánh Nguyên"
+          ],
+          "id": "2"
+        },
+        {
+          "id": "3",
+          "inspectorName": null,
+          "actionNote": null,
+          "executorNames": null,
+          "note": "",
+          "status": null,
+          "timestamp": "",
+          "materialRequest": null,
+          "content": "Kiểm tra hệ thống chiếu sáng (đèn Tunnel sáng đầy đủ, đèn Cabin hoạt động bình thường, đèn Floodlight Apron)",
+          "fixStatus": null
+        },
+        {
+          "content": "Kiểm tra Rotunda (Rèm Rotunda không rách, không kẹt, Quan sát khe hở 2 bên ổ bi công rotunda)",
+          "fixStatus": null,
+          "note": "",
+          "materialRequest": null,
+          "status": null,
+          "timestamp": "",
+          "executorNames": null,
+          "actionNote": null,
+          "inspectorName": null,
+          "id": "1772123807266"
+        },
+        {
+          "timestamp": "",
+          "materialRequest": null,
+          "status": null,
+          "note": "",
+          "content": "Kiểm traTunnel (Kính không nứt vỡ, Ramps nối giữa các Tunnel chắc chắn, không lệch… Su ván sàn không bong tróc)",
+          "fixStatus": null,
+          "id": "1772123871591",
+          "inspectorName": null,
+          "actionNote": null,
+          "executorNames": null
+        },
+        {
+          "id": "1772123915088",
+          "actionNote": null,
+          "executorNames": null,
+          "inspectorName": null,
+          "timestamp": "",
+          "materialRequest": null,
+          "status": null,
+          "note": "",
+          "content": "Kiểm tra hệ thống bánh lái và khung di chuyển (Bánh xe không nứt cao su, Không mòn lệch bất thường, Không có vật cản dưới gầm cầu, Kết cấu không nghiêng hẳn, đỗ về 1 phía bất thường)",
+          "fixStatus": null
+        },
+        {
+          "inspectorName": null,
+          "actionNote": null,
+          "executorNames": null,
+          "id": "1772124071844",
+          "content": "Kiêm tra hệ thống nâng hạ (Không rò rỉ dầu thủy lực, Kiểm tra mức dầu trong thùng dầu)",
+          "fixStatus": null,
+          "note": "",
+          "materialRequest": null,
+          "timestamp": "",
+          "status": null
+        }
+      ],
+      "_id": "A2"
+    },
+    {
+      "items": [
+        {
+          "inspectorName": null,
+          "actionNote": null,
+          "executorNames": null,
+          "id": "1",
+          "fixStatus": null,
+          "content": "Kiểm tra tủ điện và nguồn cấp (không có mùi khét, không có dấu hiệu cháy sém dây dẫn, không có nước rò rỉ vào tủ điện, không có đèn báo lỗi màu đỏ trên tủ, cửa tủ điện đóng kín, khóa an toàn)",
+          "note": "",
+          "status": null,
+          "timestamp": "",
+          "materialRequest": null
+        },
+        {
+          "actionNote": null,
+          "executorNames": null,
+          "inspectorName": null,
+          "id": "2",
+          "fixStatus": null,
+          "content": "Kiểm tra PLC – HMI – CABIN (màn hình HMI hiển thị bình thường, không có cảnh báo (Alarm) đang active, Joystick hoạt động trơn tru, không kẹt/lỏng, nút Emergency Stop nguyên vẹn, không kẹt, không có dây điện lộ ra ngoài hoặc bong tróc cách điện)",
+          "note": "",
+          "materialRequest": null,
+          "timestamp": "",
+          "status": null
+        },
+        {
+          "inspectorName": null,
+          "executorNames": null,
+          "actionNote": null,
+          "id": "3",
+          "content": "Kiểm tra hệ thống chiếu sáng (đèn Tunnel sáng đầy đủ, đèn Cabin hoạt động bình thường, đèn Floodlight Apron)",
+          "fixStatus": null,
+          "status": null,
+          "materialRequest": null,
+          "timestamp": "",
+          "note": ""
+        },
+        {
+          "id": "1772123807266",
+          "inspectorName": null,
+          "executorNames": null,
+          "actionNote": null,
+          "status": null,
+          "timestamp": "",
+          "materialRequest": null,
+          "note": "",
+          "content": "Kiểm tra Rotunda (Rèm Rotunda không rách, không kẹt, Quan sát khe hở 2 bên ổ bi công rotunda)",
+          "fixStatus": null
+        },
+        {
+          "id": "1772123871591",
+          "inspectorName": null,
+          "actionNote": null,
+          "executorNames": null,
+          "status": null,
+          "timestamp": "",
+          "materialRequest": null,
+          "note": "",
+          "content": "Kiểm traTunnel (Kính không nứt vỡ, Ramps nối giữa các Tunnel chắc chắn, không lệch… Su ván sàn không bong tróc)",
+          "fixStatus": null
+        },
+        {
+          "inspectorName": null,
+          "executorNames": null,
+          "actionNote": null,
+          "id": "1772123915088",
+          "content": "Kiểm tra hệ thống bánh lái và khung di chuyển (Bánh xe không nứt cao su, Không mòn lệch bất thường, Không có vật cản dưới gầm cầu, Kết cấu không nghiêng hẳn, đỗ về 1 phía bất thường)",
+          "fixStatus": null,
+          "note": "",
+          "status": null,
+          "timestamp": "",
+          "materialRequest": null
+        },
+        {
+          "executorNames": null,
+          "actionNote": null,
+          "inspectorName": null,
+          "id": "1772124071844",
+          "content": "Kiêm tra hệ thống nâng hạ (Không rò rỉ dầu thủy lực, Kiểm tra mức dầu trong thùng dầu)",
+          "fixStatus": null,
+          "timestamp": "",
+          "status": null,
+          "materialRequest": null,
+          "note": ""
+        }
+      ],
+      "_id": "A3"
+    },
+    {
+      "items": [
+        {
+          "timestamp": "",
+          "materialRequest": null,
+          "status": null,
+          "note": "",
+          "content": "Kiểm tra tủ điện và nguồn cấp (không có mùi khét, không có dấu hiệu cháy sém dây dẫn, không có nước rò rỉ vào tủ điện, không có đèn báo lỗi màu đỏ trên tủ, cửa tủ điện đóng kín, khóa an toàn)",
+          "fixStatus": null,
+          "id": "1",
+          "inspectorName": null,
+          "executorNames": null,
+          "actionNote": null
+        },
+        {
+          "actionNote": null,
+          "executorNames": null,
+          "inspectorName": null,
+          "id": "2",
+          "content": "Kiểm tra PLC – HMI – CABIN (màn hình HMI hiển thị bình thường, không có cảnh báo (Alarm) đang active, Joystick hoạt động trơn tru, không kẹt/lỏng, nút Emergency Stop nguyên vẹn, không kẹt, không có dây điện lộ ra ngoài hoặc bong tróc cách điện)",
+          "fixStatus": null,
+          "note": "",
+          "timestamp": "",
+          "materialRequest": null,
+          "status": null
+        },
+        {
+          "id": "3",
+          "actionNote": null,
+          "executorNames": null,
+          "inspectorName": null,
+          "materialRequest": null,
+          "status": null,
+          "timestamp": "",
+          "note": "",
+          "content": "Kiểm tra hệ thống chiếu sáng (đèn Tunnel sáng đầy đủ, đèn Cabin hoạt động bình thường, đèn Floodlight Apron)",
+          "fixStatus": null
+        },
+        {
+          "materialRequest": null,
+          "timestamp": "",
+          "status": null,
+          "note": "",
+          "fixStatus": null,
+          "content": "Kiểm tra Rotunda (Rèm Rotunda không rách, không kẹt, Quan sát khe hở 2 bên ổ bi công rotunda)",
+          "id": "1772123807266",
+          "actionNote": null,
+          "executorNames": null,
+          "inspectorName": null
+        },
+        {
+          "id": "1772123871591",
+          "executorNames": null,
+          "actionNote": null,
+          "inspectorName": null,
+          "note": "",
+          "status": null,
+          "materialRequest": null,
+          "timestamp": "",
+          "fixStatus": null,
+          "content": "Kiểm traTunnel (Kính không nứt vỡ, Ramps nối giữa các Tunnel chắc chắn, không lệch… Su ván sàn không bong tróc)"
+        },
+        {
+          "note": "",
+          "timestamp": "",
+          "materialRequest": null,
+          "status": null,
+          "content": "Kiểm tra hệ thống bánh lái và khung di chuyển (Bánh xe không nứt cao su, Không mòn lệch bất thường, Không có vật cản dưới gầm cầu, Kết cấu không nghiêng hẳn, đỗ về 1 phía bất thường)",
+          "fixStatus": null,
+          "id": "1772123915088",
+          "inspectorName": null,
+          "executorNames": null,
+          "actionNote": null
+        },
+        {
+          "fixStatus": null,
+          "content": "Kiêm tra hệ thống nâng hạ (Không rò rỉ dầu thủy lực, Kiểm tra mức dầu trong thùng dầu)",
+          "note": "",
+          "materialRequest": null,
+          "status": null,
+          "timestamp": "",
+          "actionNote": null,
+          "executorNames": null,
+          "inspectorName": null,
+          "id": "1772124071844"
+        }
+      ],
+      "_id": "A4"
+    },
+    {
+      "items": [
+        {
+          "id": "1",
+          "actionNote": null,
+          "executorNames": null,
+          "inspectorName": null,
+          "note": "",
+          "materialRequest": null,
+          "status": null,
+          "timestamp": "",
+          "fixStatus": null,
+          "content": "Kiểm tra tủ điện và nguồn cấp (không có mùi khét, không có dấu hiệu cháy sém dây dẫn, không có nước rò rỉ vào tủ điện, không có đèn báo lỗi màu đỏ trên tủ, cửa tủ điện đóng kín, khóa an toàn)"
+        },
+        {
+          "actionNote": null,
+          "executorNames": null,
+          "inspectorName": null,
+          "id": "2",
+          "content": "Kiểm tra PLC – HMI – CABIN (màn hình HMI hiển thị bình thường, không có cảnh báo (Alarm) đang active, Joystick hoạt động trơn tru, không kẹt/lỏng, nút Emergency Stop nguyên vẹn, không kẹt, không có dây điện lộ ra ngoài hoặc bong tróc cách điện)",
+          "fixStatus": null,
+          "note": "",
+          "materialRequest": null,
+          "status": null,
+          "timestamp": ""
+        },
+        {
+          "inspectorName": null,
+          "executorNames": null,
+          "actionNote": null,
+          "id": "3",
+          "fixStatus": null,
+          "content": "Kiểm tra hệ thống chiếu sáng (đèn Tunnel sáng đầy đủ, đèn Cabin hoạt động bình thường, đèn Floodlight Apron)",
+          "note": "",
+          "status": null,
+          "timestamp": "",
+          "materialRequest": null
+        },
+        {
+          "id": "1772123807266",
+          "inspectorName": null,
+          "executorNames": null,
+          "actionNote": null,
+          "note": "",
+          "status": null,
+          "timestamp": "",
+          "materialRequest": null,
+          "content": "Kiểm tra Rotunda (Rèm Rotunda không rách, không kẹt, Quan sát khe hở 2 bên ổ bi công rotunda)",
+          "fixStatus": null
+        },
+        {
+          "content": "Kiểm traTunnel (Kính không nứt vỡ, Ramps nối giữa các Tunnel chắc chắn, không lệch… Su ván sàn không bong tróc)",
+          "fixStatus": null,
+          "note": "",
+          "timestamp": "",
+          "materialRequest": null,
+          "status": null,
+          "executorNames": null,
+          "actionNote": null,
+          "inspectorName": null,
+          "id": "1772123871591"
+        },
+        {
+          "note": "",
+          "timestamp": "",
+          "status": null,
+          "materialRequest": null,
+          "fixStatus": null,
+          "content": "Kiểm tra hệ thống bánh lái và khung di chuyển (Bánh xe không nứt cao su, Không mòn lệch bất thường, Không có vật cản dưới gầm cầu, Kết cấu không nghiêng hẳn, đỗ về 1 phía bất thường)",
+          "id": "1772123915088",
+          "inspectorName": null,
+          "executorNames": null,
+          "actionNote": null
+        },
+        {
+          "timestamp": "",
+          "materialRequest": null,
+          "status": null,
+          "note": "",
+          "content": "Kiêm tra hệ thống nâng hạ (Không rò rỉ dầu thủy lực, Kiểm tra mức dầu trong thùng dầu)",
+          "fixStatus": null,
+          "id": "1772124071844",
+          "inspectorName": null,
+          "executorNames": null,
+          "actionNote": null
+        }
+      ],
+      "_id": "A5"
+    },
+    {
+      "items": [
+        {
+          "fixStatus": null,
+          "content": "Kiểm tra tủ điện và nguồn cấp (không có mùi khét, không có dấu hiệu cháy sém dây dẫn, không có nước rò rỉ vào tủ điện, không có đèn báo lỗi màu đỏ trên tủ, cửa tủ điện đóng kín, khóa an toàn)",
+          "note": "",
+          "timestamp": "",
+          "status": null,
+          "materialRequest": null,
+          "inspectorName": null,
+          "executorNames": null,
+          "actionNote": null,
+          "id": "1"
+        },
+        {
+          "inspectorName": null,
+          "actionNote": null,
+          "executorNames": null,
+          "id": "2",
+          "content": "Kiểm tra PLC – HMI – CABIN (màn hình HMI hiển thị bình thường, không có cảnh báo (Alarm) đang active, Joystick hoạt động trơn tru, không kẹt/lỏng, nút Emergency Stop nguyên vẹn, không kẹt, không có dây điện lộ ra ngoài hoặc bong tróc cách điện)",
+          "fixStatus": null,
+          "status": null,
+          "materialRequest": null,
+          "timestamp": "",
+          "note": ""
+        },
+        {
+          "status": null,
+          "timestamp": "",
+          "materialRequest": null,
+          "note": "",
+          "content": "Kiểm tra hệ thống chiếu sáng (đèn Tunnel sáng đầy đủ, đèn Cabin hoạt động bình thường, đèn Floodlight Apron)",
+          "fixStatus": null,
+          "id": "3",
+          "actionNote": null,
+          "executorNames": null,
+          "inspectorName": null
+        },
+        {
+          "id": "1772123807266",
+          "executorNames": null,
+          "actionNote": null,
+          "inspectorName": null,
+          "note": "",
+          "materialRequest": null,
+          "status": null,
+          "timestamp": "",
+          "content": "Kiểm tra Rotunda (Rèm Rotunda không rách, không kẹt, Quan sát khe hở 2 bên ổ bi công rotunda)",
+          "fixStatus": null
+        },
+        {
+          "fixStatus": null,
+          "content": "Kiểm traTunnel (Kính không nứt vỡ, Ramps nối giữa các Tunnel chắc chắn, không lệch… Su ván sàn không bong tróc)",
+          "note": "",
+          "status": null,
+          "timestamp": "",
+          "materialRequest": null,
+          "actionNote": null,
+          "executorNames": null,
+          "inspectorName": null,
+          "id": "1772123871591"
+        },
+        {
+          "fixStatus": null,
+          "content": "Kiểm tra hệ thống bánh lái và khung di chuyển (Bánh xe không nứt cao su, Không mòn lệch bất thường, Không có vật cản dưới gầm cầu, Kết cấu không nghiêng hẳn, đỗ về 1 phía bất thường)",
+          "note": "",
+          "timestamp": "",
+          "materialRequest": null,
+          "status": null,
+          "inspectorName": null,
+          "executorNames": null,
+          "actionNote": null,
+          "id": "1772123915088"
+        }
+      ],
+      "_id": "A6"
+    },
+    {
+      "items": [
+        {
+          "note": "",
+          "status": null,
+          "id": "1",
+          "timestamp": "",
+          "content": "Kiểm tra tình trạng thiết bị: quan sát vỏ máy, giá đỡ hệ thống xem có dấu hiệu hư hỏng vật lý, lỏng ốc vít hoặc bị tác động bởi ngoại lực không",
+          "inspectorName": null
+        },
+        {
+          "inspectorName": null,
+          "content": "Kiểm tra bảng hiển thị: mặt kính hiển thị có bị mờ, bám bụi bẩn, hoặc vật cản làm hạn chế tầm nhìn ",
+          "note": "",
+          "id": "2",
+          "status": null,
+          "timestamp": ""
+        },
+        {
+          "inspectorName": null,
+          "content": "Kiểm tra các cảm biến: các ống kính camera hoặc bộ quét laser (scanner) sạch sẽ, không bị che khuất bởi dị vật (FOD)",
+          "note": "",
+          "status": null,
+          "timestamp": "",
+          "id": "3"
+        },
+        {
+          "note": "",
+          "status": null,
+          "id": "4",
+          "timestamp": "",
+          "inspectorName": null,
+          "content": "Nguồn điện & Kết nối kiểm tra hệ thống đã được cấp điện ổn định và có kết nối giữa OP và DP"
+        },
+        {
+          "executorName": "Nguyễn Lê Kim Thịnh",
+          "content": "Kiểm tra kích hoạt chế độ tự kiểm tra của hệ thống để xác nhận các đèn LED, ký tự hiển thị và các biểu tượng chỉ dẫn hoạt động bình thường, không bị mất nét",
+          "inspectorName": null,
+          "note": "",
+          "status": null,
+          "id": "5",
+          "timestamp": ""
+        }
+      ],
+      "_id": "B1"
+    },
+    {
+      "items": [
+        {
+          "note": "",
+          "timestamp": "",
+          "id": "1",
+          "status": null,
+          "inspectorName": null,
+          "content": "Kiểm tra tình trạng thiết bị: quan sát vỏ máy, giá đỡ hệ thống xem có dấu hiệu hư hỏng vật lý, lỏng ốc vít hoặc bị tác động bởi ngoại lực không"
+        },
+        {
+          "note": "",
+          "timestamp": "",
+          "id": "2",
+          "status": null,
+          "content": "Kiểm tra bảng hiển thị: mặt kính hiển thị có bị mờ, bám bụi bẩn, hoặc vật cản làm hạn chế tầm nhìn ",
+          "inspectorName": null
+        },
+        {
+          "note": "",
+          "timestamp": "",
+          "id": "3",
+          "status": null,
+          "content": "Kiểm tra các cảm biến: các ống kính camera hoặc bộ quét laser (scanner) sạch sẽ, không bị che khuất bởi dị vật (FOD)",
+          "inspectorName": null
+        },
+        {
+          "content": "Nguồn điện & Kết nối kiểm tra hệ thống đã được cấp điện ổn định và có kết nối giữa OP và DP",
+          "inspectorName": null,
+          "id": "4",
+          "status": null,
+          "timestamp": "",
+          "note": ""
+        },
+        {
+          "status": null,
+          "timestamp": "",
+          "id": "5",
+          "note": "",
+          "content": "Kiểm tra kích hoạt chế độ tự kiểm tra của hệ thống để xác nhận các đèn LED, ký tự hiển thị và các biểu tượng chỉ dẫn hoạt động bình thường, không bị mất nét",
+          "inspectorName": null
+        }
+      ],
+      "_id": "B2"
+    },
+    {
+      "items": [
+        {
+          "inspectorName": null,
+          "content": "Kiểm tra tình trạng thiết bị: quan sát vỏ máy, giá đỡ hệ thống xem có dấu hiệu hư hỏng vật lý, lỏng ốc vít hoặc bị tác động bởi ngoại lực không",
+          "timestamp": "",
+          "status": null,
+          "id": "1",
+          "note": ""
+        },
+        {
+          "note": "",
+          "id": "2",
+          "timestamp": "",
+          "status": null,
+          "inspectorName": null,
+          "content": "Kiểm tra bảng hiển thị: mặt kính hiển thị có bị mờ, bám bụi bẩn, hoặc vật cản làm hạn chế tầm nhìn "
+        },
+        {
+          "inspectorName": null,
+          "content": "Kiểm tra các cảm biến: các ống kính camera hoặc bộ quét laser (scanner) sạch sẽ, không bị che khuất bởi dị vật (FOD)",
+          "note": "",
+          "id": "3",
+          "status": null,
+          "timestamp": ""
+        },
+        {
+          "note": "",
+          "id": "4",
+          "status": null,
+          "timestamp": "",
+          "inspectorName": null,
+          "content": "Nguồn điện & Kết nối kiểm tra hệ thống đã được cấp điện ổn định và có kết nối giữa OP và DP"
+        },
+        {
+          "id": "5",
+          "timestamp": "",
+          "status": null,
+          "note": "",
+          "inspectorName": null,
+          "content": "Kiểm tra kích hoạt chế độ tự kiểm tra của hệ thống để xác nhận các đèn LED, ký tự hiển thị và các biểu tượng chỉ dẫn hoạt động bình thường, không bị mất nét"
+        }
+      ],
+      "_id": "B3"
+    },
+    {
+      "items": [
+        {
+          "content": "Kiểm tra tình trạng thiết bị: quan sát vỏ máy, giá đỡ hệ thống xem có dấu hiệu hư hỏng vật lý, lỏng ốc vít hoặc bị tác động bởi ngoại lực không",
+          "inspectorName": null,
+          "timestamp": "",
+          "status": null,
+          "id": "1",
+          "note": ""
+        },
+        {
+          "content": "Kiểm tra bảng hiển thị: mặt kính hiển thị có bị mờ, bám bụi bẩn, hoặc vật cản làm hạn chế tầm nhìn ",
+          "inspectorName": null,
+          "id": "2",
+          "status": null,
+          "timestamp": "",
+          "note": ""
+        },
+        {
+          "content": "Kiểm tra các cảm biến: các ống kính camera hoặc bộ quét laser (scanner) sạch sẽ, không bị che khuất bởi dị vật (FOD)",
+          "inspectorName": null,
+          "note": "",
+          "timestamp": "",
+          "id": "3",
+          "status": null
+        },
+        {
+          "timestamp": "",
+          "status": null,
+          "id": "4",
+          "note": "",
+          "content": "Nguồn điện & Kết nối kiểm tra hệ thống đã được cấp điện ổn định và có kết nối giữa OP và DP",
+          "inspectorName": null
+        },
+        {
+          "note": "",
+          "status": null,
+          "id": "5",
+          "timestamp": "",
+          "content": "Kiểm tra kích hoạt chế độ tự kiểm tra của hệ thống để xác nhận các đèn LED, ký tự hiển thị và các biểu tượng chỉ dẫn hoạt động bình thường, không bị mất nét",
+          "inspectorName": null
+        }
+      ],
+      "_id": "B4"
+    },
+    {
+      "items": [
+        {
+          "inspectorName": null,
+          "content": "Kiểm tra tình trạng thiết bị: quan sát vỏ máy, giá đỡ hệ thống xem có dấu hiệu hư hỏng vật lý, lỏng ốc vít hoặc bị tác động bởi ngoại lực không",
+          "status": null,
+          "id": "1",
+          "timestamp": "",
+          "note": ""
+        },
+        {
+          "inspectorName": null,
+          "content": "Kiểm tra bảng hiển thị: mặt kính hiển thị có bị mờ, bám bụi bẩn, hoặc vật cản làm hạn chế tầm nhìn ",
+          "status": null,
+          "timestamp": "",
+          "id": "2",
+          "note": ""
+        },
+        {
+          "content": "Kiểm tra các cảm biến: các ống kính camera hoặc bộ quét laser (scanner) sạch sẽ, không bị che khuất bởi dị vật (FOD)",
+          "inspectorName": null,
+          "status": null,
+          "timestamp": "",
+          "id": "3",
+          "note": ""
+        },
+        {
+          "content": "Nguồn điện & Kết nối kiểm tra hệ thống đã được cấp điện ổn định và có kết nối giữa OP và DP",
+          "inspectorName": null,
+          "note": "",
+          "timestamp": "",
+          "status": null,
+          "id": "4"
+        },
+        {
+          "inspectorName": null,
+          "content": "Kiểm tra kích hoạt chế độ tự kiểm tra của hệ thống để xác nhận các đèn LED, ký tự hiển thị và các biểu tượng chỉ dẫn hoạt động bình thường, không bị mất nét",
+          "id": "5",
+          "status": null,
+          "timestamp": "",
+          "note": ""
+        }
+      ],
+      "_id": "B5"
+    },
+    {
+      "items": [
+        {
+          "content": "Kiểm tra tình trạng thiết bị: quan sát vỏ máy, giá đỡ hệ thống xem có dấu hiệu hư hỏng vật lý, lỏng ốc vít hoặc bị tác động bởi ngoại lực không",
+          "inspectorName": null,
+          "timestamp": "",
+          "status": null,
+          "id": "1",
+          "note": ""
+        },
+        {
+          "content": "Kiểm tra bảng hiển thị: mặt kính hiển thị có bị mờ, bám bụi bẩn, hoặc vật cản làm hạn chế tầm nhìn ",
+          "inspectorName": null,
+          "status": null,
+          "timestamp": "",
+          "id": "2",
+          "note": ""
+        },
+        {
+          "id": "3",
+          "timestamp": "",
+          "status": null,
+          "note": "",
+          "content": "Kiểm tra các cảm biến: các ống kính camera hoặc bộ quét laser (scanner) sạch sẽ, không bị che khuất bởi dị vật (FOD)",
+          "inspectorName": null
+        },
+        {
+          "content": "Nguồn điện & Kết nối kiểm tra hệ thống đã được cấp điện ổn định và có kết nối giữa OP và DP",
+          "inspectorName": null,
+          "id": "4",
+          "timestamp": "",
+          "status": null,
+          "note": ""
+        },
+        {
+          "content": "Kiểm tra kích hoạt chế độ tự kiểm tra của hệ thống để xác nhận các đèn LED, ký tự hiển thị và các biểu tượng chỉ dẫn hoạt động bình thường, không bị mất nét",
+          "inspectorName": null,
+          "note": "",
+          "id": "5",
+          "status": null,
+          "timestamp": ""
+        }
+      ],
+      "_id": "B6"
+    },
+    {
+      "items": [
+        {
+          "status": null,
+          "timestamp": "",
+          "id": "1",
+          "note": "",
+          "inspectorName": null,
+          "content": "Kiểm tra màn hình máy soi có hiển thị lỗi không",
+          "executorName": "Nguyễn Lê Kim Thịnh"
+        },
+        {
+          "content": "Kiểm tra Ổ cắm điện, đầu cắm nguồn máy soi, UPS",
+          "inspectorName": null,
+          "id": "2",
+          "status": null,
+          "timestamp": "",
+          "note": ""
+        },
+        {
+          "inspectorName": null,
+          "content": "Kiểm tra rèm chì, băng tải không rách, lệch",
+          "id": "3",
+          "timestamp": "",
+          "status": null,
+          "note": ""
+        },
+        {
+          "note": "",
+          "status": null,
+          "id": "4",
+          "timestamp": "",
+          "inspectorName": null,
+          "content": "Kiểm tra khung vỏ, các đèn cảnh báo tia X hoạt động, bụi bẩn xung quanh và trong khoang máy"
+        },
+        {
+          "inspectorName": null,
+          "content": "Kiểm tra các nút Emergency Stop, các cảm biến bên trong máy soi",
+          "timestamp": "",
+          "status": null,
+          "id": "5",
+          "note": ""
+        },
+        {
+          "note": "",
+          "timestamp": "",
+          "status": null,
+          "id": "1773672716049",
+          "content": "Kiểm tra Motor chạy êm, không rung mạnh, con lăn dẫn hướng không kẹt",
+          "inspectorName": null
+        },
+        {
+          "note": "",
+          "id": "1773672746825",
+          "timestamp": "",
+          "status": null,
+          "inspectorName": null,
+          "content": "Kiểm tra Error Log, Detector Line, điện áp đầu phát, Lưu trữ hình ảnh, Calibration nếu máy báo  "
+        }
+      ],
+      "_id": "C1"
+    },
+    {
+      "items": [
+        {
+          "content": "Kiểm tra màn hình máy soi có hiển thị lỗi không",
+          "inspectorName": null,
+          "note": "",
+          "id": "1",
+          "status": null,
+          "timestamp": ""
+        },
+        {
+          "content": "Kiểm tra Ổ cắm điện, đầu cắm nguồn máy soi, UPS",
+          "inspectorName": null,
+          "note": "",
+          "timestamp": "",
+          "status": null,
+          "id": "2"
+        },
+        {
+          "inspectorName": null,
+          "content": "Kiểm tra rèm chì, băng tải không rách, lệch",
+          "timestamp": "",
+          "id": "3",
+          "status": null,
+          "note": ""
+        },
+        {
+          "inspectorName": null,
+          "content": "Kiểm tra khung vỏ, các đèn cảnh báo tia X hoạt động, bụi bẩn xung quanh và trong khoang máy",
+          "timestamp": "",
+          "id": "4",
+          "status": null,
+          "note": ""
+        },
+        {
+          "inspectorName": null,
+          "content": "Kiểm tra các nút Emergency Stop, các cảm biến bên trong máy soi",
+          "status": null,
+          "id": "5",
+          "timestamp": "",
+          "note": ""
+        },
+        {
+          "status": null,
+          "id": "1773672716049",
+          "timestamp": "",
+          "note": "",
+          "content": "Kiểm tra Motor chạy êm, không rung mạnh, con lăn dẫn hướng không kẹt",
+          "inspectorName": null
+        },
+        {
+          "content": "Kiểm tra Error Log, Detector Line, điện áp đầu phát, Lưu trữ hình ảnh, Calibration nếu máy báo  ",
+          "inspectorName": null,
+          "note": "",
+          "id": "1773672746825",
+          "status": null,
+          "timestamp": ""
+        }
+      ],
+      "_id": "C10"
+    },
+    {
+      "items": [
+        {
+          "content": "Kiểm tra màn hình máy soi có hiển thị lỗi không",
+          "inspectorName": null,
+          "note": "",
+          "timestamp": "",
+          "status": null,
+          "id": "1"
+        },
+        {
+          "inspectorName": null,
+          "content": "Kiểm tra Ổ cắm điện, đầu cắm nguồn máy soi, UPS",
+          "note": "",
+          "id": "2",
+          "timestamp": "",
+          "status": null
+        },
+        {
+          "note": "",
+          "id": "3",
+          "timestamp": "",
+          "status": null,
+          "content": "Kiểm tra rèm chì, băng tải không rách, lệch",
+          "inspectorName": null
+        },
+        {
+          "content": "Kiểm tra khung vỏ, các đèn cảnh báo tia X hoạt động, bụi bẩn xung quanh và trong khoang máy",
+          "inspectorName": null,
+          "note": "",
+          "status": null,
+          "id": "4",
+          "timestamp": ""
+        },
+        {
+          "id": "5",
+          "timestamp": "",
+          "status": null,
+          "note": "",
+          "content": "Kiểm tra các nút Emergency Stop, các cảm biến bên trong máy soi",
+          "inspectorName": null
+        },
+        {
+          "content": "Kiểm tra Motor chạy êm, không rung mạnh, con lăn dẫn hướng không kẹt",
+          "inspectorName": null,
+          "note": "",
+          "id": "1773672716049",
+          "timestamp": "",
+          "status": null
+        },
+        {
+          "content": "Kiểm tra Error Log, Detector Line, điện áp đầu phát, Lưu trữ hình ảnh, Calibration nếu máy báo  ",
+          "inspectorName": null,
+          "status": null,
+          "id": "1773672746825",
+          "timestamp": "",
+          "note": ""
+        }
+      ],
+      "_id": "C11"
+    },
+    {
+      "items": [
+        {
+          "inspectorName": null,
+          "content": "Kiểm tra màn hình máy soi có hiển thị lỗi không",
+          "note": "",
+          "status": null,
+          "id": "1",
+          "timestamp": ""
+        },
+        {
+          "note": "",
+          "id": "2",
+          "status": null,
+          "timestamp": "",
+          "inspectorName": null,
+          "content": "Kiểm tra Ổ cắm điện, đầu cắm nguồn máy soi, UPS"
+        },
+        {
+          "inspectorName": null,
+          "content": "Kiểm tra rèm chì, băng tải không rách, lệch",
+          "id": "3",
+          "status": null,
+          "timestamp": "",
+          "note": ""
+        },
+        {
+          "note": "",
+          "timestamp": "",
+          "id": "4",
+          "status": null,
+          "content": "Kiểm tra khung vỏ, các đèn cảnh báo tia X hoạt động, bụi bẩn xung quanh và trong khoang máy",
+          "inspectorName": null
+        },
+        {
+          "inspectorName": null,
+          "content": "Kiểm tra các nút Emergency Stop, các cảm biến bên trong máy soi",
+          "note": "",
+          "id": "5",
+          "status": null,
+          "timestamp": ""
+        },
+        {
+          "inspectorName": null,
+          "content": "Kiểm tra Motor chạy êm, không rung mạnh, con lăn dẫn hướng không kẹt",
+          "note": "",
+          "id": "1773672716049",
+          "status": null,
+          "timestamp": ""
+        },
+        {
+          "note": "",
+          "status": null,
+          "id": "1773672746825",
+          "timestamp": "",
+          "content": "Kiểm tra Error Log, Detector Line, điện áp đầu phát, Lưu trữ hình ảnh, Calibration nếu máy báo  ",
+          "inspectorName": null
+        }
+      ],
+      "_id": "C12"
+    },
+    {
+      "items": [
+        {
+          "id": "1",
+          "timestamp": "",
+          "status": null,
+          "note": "",
+          "content": "Kiểm tra màn hình máy soi có hiển thị lỗi không",
+          "inspectorName": null
+        },
+        {
+          "content": "Kiểm tra Ổ cắm điện, đầu cắm nguồn máy soi, UPS",
+          "inspectorName": null,
+          "status": null,
+          "timestamp": "",
+          "id": "2",
+          "note": ""
+        },
+        {
+          "id": "3",
+          "status": null,
+          "timestamp": "",
+          "note": "",
+          "inspectorName": null,
+          "content": "Kiểm tra rèm chì, băng tải không rách, lệch"
+        },
+        {
+          "content": "Kiểm tra khung vỏ, các đèn cảnh báo tia X hoạt động, bụi bẩn xung quanh và trong khoang máy",
+          "inspectorName": null,
+          "timestamp": "",
+          "status": null,
+          "id": "4",
+          "note": ""
+        },
+        {
+          "inspectorName": null,
+          "content": "Kiểm tra các nút Emergency Stop, các cảm biến bên trong máy soi",
+          "note": "",
+          "status": null,
+          "id": "5",
+          "timestamp": ""
+        },
+        {
+          "note": "",
+          "status": null,
+          "id": "1773672716049",
+          "timestamp": "",
+          "inspectorName": null,
+          "content": "Kiểm tra Motor chạy êm, không rung mạnh, con lăn dẫn hướng không kẹt"
+        },
+        {
+          "inspectorName": null,
+          "content": "Kiểm tra Error Log, Detector Line, điện áp đầu phát, Lưu trữ hình ảnh, Calibration nếu máy báo  ",
+          "status": null,
+          "id": "1773672746825",
+          "timestamp": "",
+          "note": ""
+        }
+      ],
+      "_id": "C13"
+    },
+    {
+      "items": [
+        {
+          "content": "Kiểm tra màn hình máy soi có hiển thị lỗi không",
+          "inspectorName": null,
+          "note": "",
+          "status": null,
+          "timestamp": "",
+          "id": "1"
+        },
+        {
+          "inspectorName": null,
+          "content": "Kiểm tra Ổ cắm điện, đầu cắm nguồn máy soi, UPS",
+          "note": "",
+          "timestamp": "",
+          "id": "2",
+          "status": null
+        },
+        {
+          "note": "",
+          "id": "3",
+          "timestamp": "",
+          "status": null,
+          "inspectorName": null,
+          "content": "Kiểm tra rèm chì, băng tải không rách, lệch"
+        },
+        {
+          "note": "",
+          "timestamp": "",
+          "status": null,
+          "id": "4",
+          "content": "Kiểm tra khung vỏ, các đèn cảnh báo tia X hoạt động, bụi bẩn xung quanh và trong khoang máy",
+          "inspectorName": null
+        },
+        {
+          "content": "Kiểm tra các nút Emergency Stop, các cảm biến bên trong máy soi",
+          "inspectorName": null,
+          "note": "",
+          "timestamp": "",
+          "id": "5",
+          "status": null
+        },
+        {
+          "content": "Kiểm tra Motor chạy êm, không rung mạnh, con lăn dẫn hướng không kẹt",
+          "inspectorName": null,
+          "note": "",
+          "status": null,
+          "id": "1773672716049",
+          "timestamp": ""
+        },
+        {
+          "id": "1773672746825",
+          "timestamp": "",
+          "status": null,
+          "note": "",
+          "content": "Kiểm tra Error Log, Detector Line, điện áp đầu phát, Lưu trữ hình ảnh, Calibration nếu máy báo  ",
+          "inspectorName": null
+        }
+      ],
+      "_id": "C14"
+    },
+    {
+      "items": [
+        {
+          "content": "Kiểm tra màn hình máy soi có hiển thị lỗi không",
+          "inspectorName": null,
+          "note": "",
+          "status": null,
+          "id": "1",
+          "timestamp": ""
+        },
+        {
+          "content": "Kiểm tra Ổ cắm điện, đầu cắm nguồn máy soi, UPS",
+          "inspectorName": null,
+          "status": null,
+          "id": "2",
+          "timestamp": "",
+          "note": ""
+        },
+        {
+          "note": "",
+          "status": null,
+          "id": "3",
+          "timestamp": "",
+          "inspectorName": null,
+          "content": "Kiểm tra rèm chì, băng tải không rách, lệch"
+        },
+        {
+          "content": "Kiểm tra khung vỏ, các đèn cảnh báo tia X hoạt động, bụi bẩn xung quanh và trong khoang máy",
+          "inspectorName": null,
+          "note": "",
+          "id": "4",
+          "timestamp": "",
+          "status": null
+        },
+        {
+          "note": "",
+          "status": null,
+          "id": "5",
+          "timestamp": "",
+          "inspectorName": null,
+          "content": "Kiểm tra các nút Emergency Stop, các cảm biến bên trong máy soi"
+        },
+        {
+          "inspectorName": null,
+          "content": "Kiểm tra Motor chạy êm, không rung mạnh, con lăn dẫn hướng không kẹt",
+          "note": "",
+          "timestamp": "",
+          "id": "1773672716049",
+          "status": null
+        },
+        {
+          "note": "",
+          "timestamp": "",
+          "id": "1773672746825",
+          "status": null,
+          "inspectorName": null,
+          "content": "Kiểm tra Error Log, Detector Line, điện áp đầu phát, Lưu trữ hình ảnh, Calibration nếu máy báo  "
+        }
+      ],
+      "_id": "C15"
+    },
+    {
+      "items": [
+        {
+          "content": "Kiểm tra màn hình máy soi có hiển thị lỗi không",
+          "inspectorName": null,
+          "status": null,
+          "timestamp": "",
+          "id": "1",
+          "note": ""
+        },
+        {
+          "timestamp": "",
+          "status": null,
+          "id": "2",
+          "note": "",
+          "inspectorName": null,
+          "content": "Kiểm tra Ổ cắm điện, đầu cắm nguồn máy soi, UPS"
+        },
+        {
+          "content": "Kiểm tra rèm chì, băng tải không rách, lệch",
+          "inspectorName": null,
+          "timestamp": "",
+          "id": "3",
+          "status": null,
+          "note": ""
+        },
+        {
+          "inspectorName": null,
+          "content": "Kiểm tra khung vỏ, các đèn cảnh báo tia X hoạt động, bụi bẩn xung quanh và trong khoang máy",
+          "id": "4",
+          "status": null,
+          "timestamp": "",
+          "note": ""
+        },
+        {
+          "note": "",
+          "timestamp": "",
+          "status": null,
+          "id": "5",
+          "inspectorName": null,
+          "content": "Kiểm tra các nút Emergency Stop, các cảm biến bên trong máy soi"
+        },
+        {
+          "timestamp": "",
+          "status": null,
+          "id": "1773672716049",
+          "note": "",
+          "content": "Kiểm tra Motor chạy êm, không rung mạnh, con lăn dẫn hướng không kẹt",
+          "inspectorName": null
+        },
+        {
+          "content": "Kiểm tra Error Log, Detector Line, điện áp đầu phát, Lưu trữ hình ảnh, Calibration nếu máy báo  ",
+          "inspectorName": null,
+          "status": null,
+          "id": "1773672746825",
+          "timestamp": "",
+          "note": ""
+        }
+      ],
+      "_id": "C16"
+    },
+    {
+      "items": [
+        {
+          "note": "",
+          "status": null,
+          "id": "1",
+          "timestamp": "",
+          "inspectorName": null,
+          "content": "Kiểm tra màn hình máy soi có hiển thị lỗi không"
+        },
+        {
+          "timestamp": "",
+          "status": null,
+          "id": "2",
+          "note": "",
+          "content": "Kiểm tra Ổ cắm điện, đầu cắm nguồn máy soi, UPS",
+          "inspectorName": null
+        },
+        {
+          "note": "",
+          "id": "3",
+          "timestamp": "",
+          "status": null,
+          "content": "Kiểm tra rèm chì, băng tải không rách, lệch",
+          "inspectorName": null
+        },
+        {
+          "note": "",
+          "timestamp": "",
+          "id": "4",
+          "status": null,
+          "inspectorName": null,
+          "content": "Kiểm tra khung vỏ, các đèn cảnh báo tia X hoạt động, bụi bẩn xung quanh và trong khoang máy"
+        },
+        {
+          "note": "",
+          "id": "5",
+          "status": null,
+          "timestamp": "",
+          "content": "Kiểm tra các nút Emergency Stop, các cảm biến bên trong máy soi",
+          "inspectorName": null
+        },
+        {
+          "note": "",
+          "timestamp": "",
+          "id": "1773672716049",
+          "status": null,
+          "content": "Kiểm tra Motor chạy êm, không rung mạnh, con lăn dẫn hướng không kẹt",
+          "inspectorName": null
+        },
+        {
+          "id": "1773672746825",
+          "timestamp": "",
+          "status": null,
+          "note": "",
+          "content": "Kiểm tra Error Log, Detector Line, điện áp đầu phát, Lưu trữ hình ảnh, Calibration nếu máy báo  ",
+          "inspectorName": null
+        }
+      ],
+      "_id": "C17"
+    },
+    {
+      "items": [
+        {
+          "content": "Kiểm tra màn hình máy soi có hiển thị lỗi không",
+          "inspectorName": null,
+          "note": "",
+          "id": "1",
+          "status": null,
+          "timestamp": ""
+        },
+        {
+          "inspectorName": null,
+          "content": "Kiểm tra Ổ cắm điện, đầu cắm nguồn máy soi, UPS",
+          "note": "",
+          "status": null,
+          "id": "2",
+          "timestamp": ""
+        },
+        {
+          "note": "",
+          "timestamp": "",
+          "status": null,
+          "id": "3",
+          "content": "Kiểm tra rèm chì, băng tải không rách, lệch",
+          "inspectorName": null
+        },
+        {
+          "inspectorName": null,
+          "content": "Kiểm tra khung vỏ, các đèn cảnh báo tia X hoạt động, bụi bẩn xung quanh và trong khoang máy",
+          "status": null,
+          "timestamp": "",
+          "id": "4",
+          "note": ""
+        },
+        {
+          "note": "",
+          "timestamp": "",
+          "status": null,
+          "id": "5",
+          "inspectorName": null,
+          "content": "Kiểm tra các nút Emergency Stop, các cảm biến bên trong máy soi"
+        },
+        {
+          "content": "Kiểm tra Motor chạy êm, không rung mạnh, con lăn dẫn hướng không kẹt",
+          "inspectorName": null,
+          "note": "",
+          "id": "1773672716049",
+          "timestamp": "",
+          "status": null
+        },
+        {
+          "id": "1773672746825",
+          "status": null,
+          "timestamp": "",
+          "note": "",
+          "inspectorName": null,
+          "content": "Kiểm tra Error Log, Detector Line, điện áp đầu phát, Lưu trữ hình ảnh, Calibration nếu máy báo  "
+        }
+      ],
+      "_id": "C18"
+    },
+    {
+      "items": [
+        {
+          "executorName": "Nguyễn Lê Kim Thịnh",
+          "inspectorName": null,
+          "content": "Kiểm tra màn hình máy soi có hiển thị lỗi không",
+          "note": "",
+          "timestamp": "",
+          "id": "1",
+          "status": null
+        },
+        {
+          "note": "",
+          "timestamp": "",
+          "status": null,
+          "id": "2",
+          "content": "Kiểm tra Ổ cắm điện, đầu cắm nguồn máy soi, UPS",
+          "inspectorName": null
+        },
+        {
+          "inspectorName": null,
+          "content": "Kiểm tra rèm chì, băng tải không rách, lệch",
+          "id": "3",
+          "status": null,
+          "timestamp": "",
+          "note": ""
+        },
+        {
+          "note": "",
+          "id": "4",
+          "status": null,
+          "timestamp": "",
+          "inspectorName": null,
+          "content": "Kiểm tra khung vỏ, các đèn cảnh báo tia X hoạt động, bụi bẩn xung quanh và trong khoang máy"
+        },
+        {
+          "content": "Kiểm tra các nút Emergency Stop, các cảm biến bên trong máy soi",
+          "inspectorName": null,
+          "note": "",
+          "timestamp": "",
+          "status": null,
+          "id": "5"
+        },
+        {
+          "content": "Kiểm tra Motor chạy êm, không rung mạnh, con lăn dẫn hướng không kẹt",
+          "inspectorName": null,
+          "status": null,
+          "timestamp": "",
+          "id": "1773672716049",
+          "note": ""
+        },
+        {
+          "note": "",
+          "id": "1773672746825",
+          "status": null,
+          "timestamp": "",
+          "inspectorName": null,
+          "content": "Kiểm tra Error Log, Detector Line, điện áp đầu phát, Lưu trữ hình ảnh, Calibration nếu máy báo  "
+        }
+      ],
+      "_id": "C2"
+    },
+    {
+      "items": [
+        {
+          "content": "Kiểm tra màn hình máy soi có hiển thị lỗi không",
+          "inspectorName": null,
+          "executorName": "Nguyễn Lê Kim Thịnh",
+          "status": null,
+          "timestamp": "",
+          "id": "1",
+          "note": ""
+        },
+        {
+          "status": null,
+          "id": "2",
+          "timestamp": "",
+          "note": "",
+          "content": "Kiểm tra Ổ cắm điện, đầu cắm nguồn máy soi, UPS",
+          "inspectorName": null
+        },
+        {
+          "inspectorName": null,
+          "content": "Kiểm tra rèm chì, băng tải không rách, lệch",
+          "status": null,
+          "id": "3",
+          "timestamp": "",
+          "note": ""
+        },
+        {
+          "content": "Kiểm tra khung vỏ, các đèn cảnh báo tia X hoạt động, bụi bẩn xung quanh và trong khoang máy",
+          "inspectorName": null,
+          "note": "",
+          "status": null,
+          "id": "4",
+          "timestamp": ""
+        },
+        {
+          "content": "Kiểm tra các nút Emergency Stop, các cảm biến bên trong máy soi",
+          "inspectorName": null,
+          "status": null,
+          "id": "5",
+          "timestamp": "",
+          "note": ""
+        },
+        {
+          "content": "Kiểm tra Motor chạy êm, không rung mạnh, con lăn dẫn hướng không kẹt",
+          "inspectorName": null,
+          "timestamp": "",
+          "status": null,
+          "id": "1773672716049",
+          "note": ""
+        },
+        {
+          "inspectorName": null,
+          "content": "Kiểm tra Error Log, Detector Line, điện áp đầu phát, Lưu trữ hình ảnh, Calibration nếu máy báo  ",
+          "timestamp": "",
+          "id": "1773672746825",
+          "status": null,
+          "note": ""
+        }
+      ],
+      "_id": "C3"
+    },
+    {
+      "items": [
+        {
+          "note": "",
+          "timestamp": "",
+          "status": null,
+          "id": "1",
+          "executorName": "Nguyễn Lê Kim Thịnh",
+          "inspectorName": null,
+          "content": "Kiểm tra màn hình máy soi có hiển thị lỗi không"
+        },
+        {
+          "inspectorName": null,
+          "content": "Kiểm tra Ổ cắm điện, đầu cắm nguồn máy soi, UPS",
+          "timestamp": "",
+          "id": "2",
+          "status": null,
+          "note": ""
+        },
+        {
+          "note": "",
+          "status": null,
+          "timestamp": "",
+          "id": "3",
+          "inspectorName": null,
+          "content": "Kiểm tra rèm chì, băng tải không rách, lệch"
+        },
+        {
+          "timestamp": "",
+          "status": null,
+          "id": "4",
+          "note": "",
+          "inspectorName": null,
+          "content": "Kiểm tra khung vỏ, các đèn cảnh báo tia X hoạt động, bụi bẩn xung quanh và trong khoang máy"
+        },
+        {
+          "inspectorName": null,
+          "content": "Kiểm tra các nút Emergency Stop, các cảm biến bên trong máy soi",
+          "id": "5",
+          "status": null,
+          "timestamp": "",
+          "note": ""
+        },
+        {
+          "id": "1773672716049",
+          "timestamp": "",
+          "status": null,
+          "note": "",
+          "content": "Kiểm tra Motor chạy êm, không rung mạnh, con lăn dẫn hướng không kẹt",
+          "inspectorName": null
+        },
+        {
+          "id": "1773672746825",
+          "timestamp": "",
+          "status": null,
+          "note": "",
+          "content": "Kiểm tra Error Log, Detector Line, điện áp đầu phát, Lưu trữ hình ảnh, Calibration nếu máy báo  ",
+          "inspectorName": null
+        }
+      ],
+      "_id": "C4"
+    },
+    {
+      "items": [
+        {
+          "inspectorName": null,
+          "content": "Kiểm tra màn hình máy soi có hiển thị lỗi không",
+          "executorName": "Nguyễn Lê Kim Thịnh",
+          "timestamp": "",
+          "status": null,
+          "id": "1",
+          "note": ""
+        },
+        {
+          "inspectorName": null,
+          "content": "Kiểm tra Ổ cắm điện, đầu cắm nguồn máy soi, UPS",
+          "id": "2",
+          "timestamp": "",
+          "status": null,
+          "note": ""
+        },
+        {
+          "timestamp": "",
+          "status": null,
+          "id": "3",
+          "note": "",
+          "content": "Kiểm tra rèm chì, băng tải không rách, lệch",
+          "inspectorName": null
+        },
+        {
+          "note": "",
+          "status": null,
+          "id": "4",
+          "timestamp": "",
+          "inspectorName": null,
+          "content": "Kiểm tra khung vỏ, các đèn cảnh báo tia X hoạt động, bụi bẩn xung quanh và trong khoang máy"
+        },
+        {
+          "inspectorName": null,
+          "content": "Kiểm tra các nút Emergency Stop, các cảm biến bên trong máy soi",
+          "id": "5",
+          "status": null,
+          "timestamp": "",
+          "note": ""
+        },
+        {
+          "inspectorName": null,
+          "content": "Kiểm tra Motor chạy êm, không rung mạnh, con lăn dẫn hướng không kẹt",
+          "note": "",
+          "status": null,
+          "id": "1773672716049",
+          "timestamp": ""
+        },
+        {
+          "inspectorName": null,
+          "content": "Kiểm tra Error Log, Detector Line, điện áp đầu phát, Lưu trữ hình ảnh, Calibration nếu máy báo  ",
+          "note": "",
+          "timestamp": "",
+          "id": "1773672746825",
+          "status": null
+        }
+      ],
+      "_id": "C5"
+    },
+    {
+      "items": [
+        {
+          "executorName": "Nguyễn Lê Kim Thịnh",
+          "inspectorName": null,
+          "content": "Kiểm tra màn hình máy soi có hiển thị lỗi không",
+          "note": "",
+          "timestamp": "",
+          "id": "1",
+          "status": null
+        },
+        {
+          "status": null,
+          "id": "2",
+          "timestamp": "",
+          "note": "",
+          "content": "Kiểm tra Ổ cắm điện, đầu cắm nguồn máy soi, UPS",
+          "inspectorName": null
+        },
+        {
+          "note": "",
+          "id": "3",
+          "timestamp": "",
+          "status": null,
+          "inspectorName": null,
+          "content": "Kiểm tra rèm chì, băng tải không rách, lệch"
+        },
+        {
+          "id": "4",
+          "timestamp": "",
+          "status": null,
+          "note": "",
+          "content": "Kiểm tra khung vỏ, các đèn cảnh báo tia X hoạt động, bụi bẩn xung quanh và trong khoang máy",
+          "inspectorName": null
+        },
+        {
+          "note": "",
+          "id": "5",
+          "status": null,
+          "timestamp": "",
+          "inspectorName": null,
+          "content": "Kiểm tra các nút Emergency Stop, các cảm biến bên trong máy soi"
+        },
+        {
+          "note": "",
+          "id": "1773672716049",
+          "timestamp": "",
+          "status": null,
+          "inspectorName": null,
+          "content": "Kiểm tra Motor chạy êm, không rung mạnh, con lăn dẫn hướng không kẹt"
+        },
+        {
+          "content": "Kiểm tra Error Log, Detector Line, điện áp đầu phát, Lưu trữ hình ảnh, Calibration nếu máy báo  ",
+          "inspectorName": null,
+          "id": "1773672746825",
+          "status": null,
+          "timestamp": "",
+          "note": ""
+        }
+      ],
+      "_id": "C6"
+    },
+    {
+      "items": [
+        {
+          "id": "1",
+          "timestamp": "",
+          "status": null,
+          "note": "",
+          "inspectorName": null,
+          "content": "Kiểm tra màn hình máy soi có hiển thị lỗi không"
+        },
+        {
+          "inspectorName": null,
+          "content": "Kiểm tra Ổ cắm điện, đầu cắm nguồn máy soi, UPS",
+          "note": "",
+          "status": null,
+          "timestamp": "",
+          "id": "2"
+        },
+        {
+          "inspectorName": null,
+          "content": "Kiểm tra rèm chì, băng tải không rách, lệch",
+          "note": "",
+          "status": null,
+          "id": "3",
+          "timestamp": ""
+        },
+        {
+          "content": "Kiểm tra khung vỏ, các đèn cảnh báo tia X hoạt động, bụi bẩn xung quanh và trong khoang máy",
+          "inspectorName": null,
+          "id": "4",
+          "status": null,
+          "timestamp": "",
+          "note": ""
+        },
+        {
+          "note": "",
+          "status": null,
+          "id": "5",
+          "timestamp": "",
+          "inspectorName": null,
+          "content": "Kiểm tra các nút Emergency Stop, các cảm biến bên trong máy soi"
+        },
+        {
+          "inspectorName": null,
+          "content": "Kiểm tra Motor chạy êm, không rung mạnh, con lăn dẫn hướng không kẹt",
+          "note": "",
+          "id": "1773672716049",
+          "timestamp": "",
+          "status": null
+        },
+        {
+          "content": "Kiểm tra Error Log, Detector Line, điện áp đầu phát, Lưu trữ hình ảnh, Calibration nếu máy báo  ",
+          "inspectorName": null,
+          "note": "",
+          "status": null,
+          "timestamp": "",
+          "id": "1773672746825"
+        }
+      ],
+      "_id": "C7"
+    },
+    {
+      "items": [
+        {
+          "inspectorName": null,
+          "content": "Kiểm tra màn hình máy soi có hiển thị lỗi không",
+          "status": null,
+          "timestamp": "",
+          "id": "1",
+          "note": ""
+        },
+        {
+          "note": "",
+          "id": "2",
+          "timestamp": "",
+          "status": null,
+          "inspectorName": null,
+          "content": "Kiểm tra Ổ cắm điện, đầu cắm nguồn máy soi, UPS"
+        },
+        {
+          "note": "",
+          "timestamp": "",
+          "status": null,
+          "id": "3",
+          "content": "Kiểm tra rèm chì, băng tải không rách, lệch",
+          "inspectorName": null
+        },
+        {
+          "content": "Kiểm tra khung vỏ, các đèn cảnh báo tia X hoạt động, bụi bẩn xung quanh và trong khoang máy",
+          "inspectorName": null,
+          "note": "",
+          "id": "4",
+          "timestamp": "",
+          "status": null
+        },
+        {
+          "inspectorName": null,
+          "content": "Kiểm tra các nút Emergency Stop, các cảm biến bên trong máy soi",
+          "note": "",
+          "id": "5",
+          "timestamp": "",
+          "status": null
+        },
+        {
+          "inspectorName": null,
+          "content": "Kiểm tra Motor chạy êm, không rung mạnh, con lăn dẫn hướng không kẹt",
+          "note": "",
+          "timestamp": "",
+          "id": "1773672716049",
+          "status": null
+        },
+        {
+          "status": null,
+          "id": "1773672746825",
+          "timestamp": "",
+          "note": "",
+          "content": "Kiểm tra Error Log, Detector Line, điện áp đầu phát, Lưu trữ hình ảnh, Calibration nếu máy báo  ",
+          "inspectorName": null
+        }
+      ],
+      "_id": "C8"
+    },
+    {
+      "items": [
+        {
+          "inspectorName": null,
+          "content": "Kiểm tra màn hình máy soi có hiển thị lỗi không",
+          "status": null,
+          "id": "1",
+          "timestamp": "",
+          "note": ""
+        },
+        {
+          "inspectorName": null,
+          "content": "Kiểm tra Ổ cắm điện, đầu cắm nguồn máy soi, UPS",
+          "timestamp": "",
+          "id": "2",
+          "status": null,
+          "note": ""
+        },
+        {
+          "note": "",
+          "id": "3",
+          "timestamp": "",
+          "status": null,
+          "inspectorName": null,
+          "content": "Kiểm tra rèm chì, băng tải không rách, lệch"
+        },
+        {
+          "id": "4",
+          "status": null,
+          "timestamp": "",
+          "note": "",
+          "inspectorName": null,
+          "content": "Kiểm tra khung vỏ, các đèn cảnh báo tia X hoạt động, bụi bẩn xung quanh và trong khoang máy"
+        },
+        {
+          "inspectorName": null,
+          "content": "Kiểm tra các nút Emergency Stop, các cảm biến bên trong máy soi",
+          "timestamp": "",
+          "id": "5",
+          "status": null,
+          "note": ""
+        },
+        {
+          "note": "",
+          "status": null,
+          "timestamp": "",
+          "id": "1773672716049",
+          "content": "Kiểm tra Motor chạy êm, không rung mạnh, con lăn dẫn hướng không kẹt",
+          "inspectorName": null
+        },
+        {
+          "id": "1773672746825",
+          "status": null,
+          "timestamp": "",
+          "note": "",
+          "content": "Kiểm tra Error Log, Detector Line, điện áp đầu phát, Lưu trữ hình ảnh, Calibration nếu máy báo  ",
+          "inspectorName": null
+        }
+      ],
+      "_id": "C9"
+    },
+    {
+      "items": [
+        {
+          "inspectorName": null,
+          "content": "Kiểm tra nguồn điện: Đảm bảo cổng từ đã được cắm điện  và bật công tắc (nguồn ổn định))",
+          "timestamp": "",
+          "status": null,
+          "id": "1",
+          "note": ""
+        },
+        {
+          "content": "Kiểm tra tín hiệu đèn: Đèn LED trên cổng sáng bình thường (thường là màu xanh), không nháy lạ.",
+          "inspectorName": null,
+          "note": "",
+          "id": "2",
+          "timestamp": "",
+          "status": null
+        },
+        {
+          "inspectorName": null,
+          "content": "Kiểm tra âm thanh: Bật/thử tiếng chuông báo để đảm bảo loa hoạt động",
+          "note": "",
+          "status": null,
+          "id": "3",
+          "timestamp": ""
+        },
+        {
+          "id": "4",
+          "timestamp": "",
+          "status": null,
+          "note": "",
+          "inspectorName": null,
+          "content": "Thử vật mẫu: Dùng vật mẫu thử qua cổng để đảm bảo cổng nhận tín hiệu và báo động chính xác"
+        },
+        {
+          "timestamp": "",
+          "status": null,
+          "id": "5",
+          "note": "",
+          "inspectorName": null,
+          "content": "Vệ sinh: Lau bụi bề mặt cổng từ, đảm bảo khu vực xung quanh thoáng, không có đồ kim loại, thiết bị điện tử đặt gần gây nhiễu"
+        }
+      ],
+      "_id": "D1"
+    },
+    {
+      "items": [
+        {
+          "inspectorName": null,
+          "content": "Kiểm tra nguồn điện: Đảm bảo cổng từ đã được cắm điện  và bật công tắc (nguồn ổn định))",
+          "note": "",
+          "id": "1",
+          "timestamp": "",
+          "status": null
+        },
+        {
+          "id": "2",
+          "status": null,
+          "timestamp": "",
+          "note": "",
+          "content": "Kiểm tra tín hiệu đèn: Đèn LED trên cổng sáng bình thường (thường là màu xanh), không nháy lạ.",
+          "inspectorName": null
+        },
+        {
+          "status": null,
+          "timestamp": "",
+          "id": "3",
+          "note": "",
+          "content": "Kiểm tra âm thanh: Bật/thử tiếng chuông báo để đảm bảo loa hoạt động",
+          "inspectorName": null
+        },
+        {
+          "inspectorName": null,
+          "content": "Thử vật mẫu: Dùng vật mẫu thử qua cổng để đảm bảo cổng nhận tín hiệu và báo động chính xác",
+          "note": "",
+          "status": null,
+          "timestamp": "",
+          "id": "4"
+        },
+        {
+          "content": "Vệ sinh: Lau bụi bề mặt cổng từ, đảm bảo khu vực xung quanh thoáng, không có đồ kim loại, thiết bị điện tử đặt gần gây nhiễu",
+          "inspectorName": null,
+          "note": "",
+          "status": null,
+          "id": "5",
+          "timestamp": ""
+        }
+      ],
+      "_id": "D10"
+    },
+    {
+      "items": [
+        {
+          "inspectorName": null,
+          "content": "Kiểm tra nguồn điện: Đảm bảo cổng từ đã được cắm điện  và bật công tắc (nguồn ổn định))",
+          "note": "",
+          "id": "1",
+          "timestamp": "",
+          "status": null
+        },
+        {
+          "note": "",
+          "status": null,
+          "timestamp": "",
+          "id": "2",
+          "inspectorName": null,
+          "content": "Kiểm tra tín hiệu đèn: Đèn LED trên cổng sáng bình thường (thường là màu xanh), không nháy lạ."
+        },
+        {
+          "status": null,
+          "timestamp": "",
+          "id": "3",
+          "note": "",
+          "inspectorName": null,
+          "content": "Kiểm tra âm thanh: Bật/thử tiếng chuông báo để đảm bảo loa hoạt động"
+        },
+        {
+          "id": "4",
+          "timestamp": "",
+          "status": null,
+          "note": "",
+          "content": "Thử vật mẫu: Dùng vật mẫu thử qua cổng để đảm bảo cổng nhận tín hiệu và báo động chính xác",
+          "inspectorName": null
+        },
+        {
+          "inspectorName": null,
+          "content": "Vệ sinh: Lau bụi bề mặt cổng từ, đảm bảo khu vực xung quanh thoáng, không có đồ kim loại, thiết bị điện tử đặt gần gây nhiễu",
+          "note": "",
+          "id": "5",
+          "timestamp": "",
+          "status": null
+        }
+      ],
+      "_id": "D2"
+    },
+    {
+      "items": [
+        {
+          "note": "",
+          "id": "1",
+          "status": null,
+          "timestamp": "",
+          "inspectorName": null,
+          "content": "Kiểm tra nguồn điện: Đảm bảo cổng từ đã được cắm điện  và bật công tắc (nguồn ổn định))"
+        },
+        {
+          "content": "Kiểm tra tín hiệu đèn: Đèn LED trên cổng sáng bình thường (thường là màu xanh), không nháy lạ.",
+          "inspectorName": null,
+          "note": "",
+          "status": null,
+          "id": "2",
+          "timestamp": ""
+        },
+        {
+          "status": null,
+          "timestamp": "",
+          "id": "3",
+          "note": "",
+          "inspectorName": null,
+          "content": "Kiểm tra âm thanh: Bật/thử tiếng chuông báo để đảm bảo loa hoạt động"
+        },
+        {
+          "note": "",
+          "id": "4",
+          "timestamp": "",
+          "status": null,
+          "content": "Thử vật mẫu: Dùng vật mẫu thử qua cổng để đảm bảo cổng nhận tín hiệu và báo động chính xác",
+          "inspectorName": null
+        },
+        {
+          "note": "",
+          "id": "5",
+          "timestamp": "",
+          "status": null,
+          "inspectorName": null,
+          "content": "Vệ sinh: Lau bụi bề mặt cổng từ, đảm bảo khu vực xung quanh thoáng, không có đồ kim loại, thiết bị điện tử đặt gần gây nhiễu"
+        }
+      ],
+      "_id": "D3"
+    },
+    {
+      "items": [
+        {
+          "content": "Kiểm tra nguồn điện: Đảm bảo cổng từ đã được cắm điện  và bật công tắc (nguồn ổn định))",
+          "inspectorName": null,
+          "id": "1",
+          "status": null,
+          "timestamp": "",
+          "note": ""
+        },
+        {
+          "content": "Kiểm tra tín hiệu đèn: Đèn LED trên cổng sáng bình thường (thường là màu xanh), không nháy lạ.",
+          "inspectorName": null,
+          "note": "",
+          "status": null,
+          "id": "2",
+          "timestamp": ""
+        },
+        {
+          "status": null,
+          "timestamp": "",
+          "id": "3",
+          "note": "",
+          "inspectorName": null,
+          "content": "Kiểm tra âm thanh: Bật/thử tiếng chuông báo để đảm bảo loa hoạt động"
+        },
+        {
+          "inspectorName": null,
+          "content": "Thử vật mẫu: Dùng vật mẫu thử qua cổng để đảm bảo cổng nhận tín hiệu và báo động chính xác",
+          "id": "4",
+          "status": null,
+          "timestamp": "",
+          "note": ""
+        },
+        {
+          "note": "",
+          "id": "5",
+          "status": null,
+          "timestamp": "",
+          "content": "Vệ sinh: Lau bụi bề mặt cổng từ, đảm bảo khu vực xung quanh thoáng, không có đồ kim loại, thiết bị điện tử đặt gần gây nhiễu",
+          "inspectorName": null
+        }
+      ],
+      "_id": "D4"
+    },
+    {
+      "items": [
+        {
+          "content": "Kiểm tra nguồn điện: Đảm bảo cổng từ đã được cắm điện  và bật công tắc (nguồn ổn định))",
+          "inspectorName": null,
+          "timestamp": "",
+          "status": null,
+          "id": "1",
+          "note": ""
+        },
+        {
+          "note": "",
+          "timestamp": "",
+          "status": null,
+          "id": "2",
+          "inspectorName": null,
+          "content": "Kiểm tra tín hiệu đèn: Đèn LED trên cổng sáng bình thường (thường là màu xanh), không nháy lạ."
+        },
+        {
+          "note": "",
+          "timestamp": "",
+          "id": "3",
+          "status": null,
+          "content": "Kiểm tra âm thanh: Bật/thử tiếng chuông báo để đảm bảo loa hoạt động",
+          "inspectorName": null
+        },
+        {
+          "note": "",
+          "id": "4",
+          "status": null,
+          "timestamp": "",
+          "content": "Thử vật mẫu: Dùng vật mẫu thử qua cổng để đảm bảo cổng nhận tín hiệu và báo động chính xác",
+          "inspectorName": null
+        },
+        {
+          "note": "",
+          "id": "5",
+          "status": null,
+          "timestamp": "",
+          "content": "Vệ sinh: Lau bụi bề mặt cổng từ, đảm bảo khu vực xung quanh thoáng, không có đồ kim loại, thiết bị điện tử đặt gần gây nhiễu",
+          "inspectorName": null
+        }
+      ],
+      "_id": "D5"
+    },
+    {
+      "items": [
+        {
+          "status": null,
+          "id": "1",
+          "timestamp": "",
+          "note": "",
+          "inspectorName": null,
+          "content": "Kiểm tra nguồn điện: Đảm bảo cổng từ đã được cắm điện  và bật công tắc (nguồn ổn định))"
+        },
+        {
+          "note": "",
+          "id": "2",
+          "status": null,
+          "timestamp": "",
+          "content": "Kiểm tra tín hiệu đèn: Đèn LED trên cổng sáng bình thường (thường là màu xanh), không nháy lạ.",
+          "inspectorName": null
+        },
+        {
+          "inspectorName": null,
+          "content": "Kiểm tra âm thanh: Bật/thử tiếng chuông báo để đảm bảo loa hoạt động",
+          "timestamp": "",
+          "id": "3",
+          "status": null,
+          "note": ""
+        },
+        {
+          "inspectorName": null,
+          "content": "Thử vật mẫu: Dùng vật mẫu thử qua cổng để đảm bảo cổng nhận tín hiệu và báo động chính xác",
+          "timestamp": "",
+          "id": "4",
+          "status": null,
+          "note": ""
+        },
+        {
+          "note": "",
+          "timestamp": "",
+          "id": "5",
+          "status": null,
+          "content": "Vệ sinh: Lau bụi bề mặt cổng từ, đảm bảo khu vực xung quanh thoáng, không có đồ kim loại, thiết bị điện tử đặt gần gây nhiễu",
+          "inspectorName": null
+        }
+      ],
+      "_id": "D6"
+    },
+    {
+      "items": [
+        {
+          "timestamp": "",
+          "status": null,
+          "id": "1",
+          "note": "",
+          "inspectorName": null,
+          "content": "Kiểm tra nguồn điện: Đảm bảo cổng từ đã được cắm điện  và bật công tắc (nguồn ổn định))"
+        },
+        {
+          "content": "Kiểm tra tín hiệu đèn: Đèn LED trên cổng sáng bình thường (thường là màu xanh), không nháy lạ.",
+          "inspectorName": null,
+          "note": "",
+          "status": null,
+          "timestamp": "",
+          "id": "2"
+        },
+        {
+          "content": "Kiểm tra âm thanh: Bật/thử tiếng chuông báo để đảm bảo loa hoạt động",
+          "inspectorName": null,
+          "timestamp": "",
+          "id": "3",
+          "status": null,
+          "note": ""
+        },
+        {
+          "inspectorName": null,
+          "content": "Thử vật mẫu: Dùng vật mẫu thử qua cổng để đảm bảo cổng nhận tín hiệu và báo động chính xác",
+          "id": "4",
+          "timestamp": "",
+          "status": null,
+          "note": ""
+        },
+        {
+          "inspectorName": null,
+          "content": "Vệ sinh: Lau bụi bề mặt cổng từ, đảm bảo khu vực xung quanh thoáng, không có đồ kim loại, thiết bị điện tử đặt gần gây nhiễu",
+          "note": "",
+          "id": "5",
+          "status": null,
+          "timestamp": ""
+        }
+      ],
+      "_id": "D7"
+    },
+    {
+      "items": [
+        {
+          "content": "Kiểm tra nguồn điện: Đảm bảo cổng từ đã được cắm điện  và bật công tắc (nguồn ổn định))",
+          "inspectorName": null,
+          "id": "1",
+          "status": null,
+          "timestamp": "",
+          "note": ""
+        },
+        {
+          "note": "",
+          "timestamp": "",
+          "status": null,
+          "id": "2",
+          "content": "Kiểm tra tín hiệu đèn: Đèn LED trên cổng sáng bình thường (thường là màu xanh), không nháy lạ.",
+          "inspectorName": null
+        },
+        {
+          "note": "",
+          "id": "3",
+          "status": null,
+          "timestamp": "",
+          "content": "Kiểm tra âm thanh: Bật/thử tiếng chuông báo để đảm bảo loa hoạt động",
+          "inspectorName": null
+        },
+        {
+          "status": null,
+          "timestamp": "",
+          "id": "4",
+          "note": "",
+          "content": "Thử vật mẫu: Dùng vật mẫu thử qua cổng để đảm bảo cổng nhận tín hiệu và báo động chính xác",
+          "inspectorName": null
+        },
+        {
+          "content": "Vệ sinh: Lau bụi bề mặt cổng từ, đảm bảo khu vực xung quanh thoáng, không có đồ kim loại, thiết bị điện tử đặt gần gây nhiễu",
+          "inspectorName": null,
+          "note": "",
+          "id": "5",
+          "status": null,
+          "timestamp": ""
+        }
+      ],
+      "_id": "D8"
+    },
+    {
+      "items": [
+        {
+          "content": "Kiểm tra nguồn điện: Đảm bảo cổng từ đã được cắm điện  và bật công tắc (nguồn ổn định))",
+          "inspectorName": null,
+          "timestamp": "",
+          "status": null,
+          "id": "1",
+          "note": ""
+        },
+        {
+          "note": "",
+          "id": "2",
+          "status": null,
+          "timestamp": "",
+          "inspectorName": null,
+          "content": "Kiểm tra tín hiệu đèn: Đèn LED trên cổng sáng bình thường (thường là màu xanh), không nháy lạ."
+        },
+        {
+          "note": "",
+          "id": "3",
+          "status": null,
+          "timestamp": "",
+          "content": "Kiểm tra âm thanh: Bật/thử tiếng chuông báo để đảm bảo loa hoạt động",
+          "inspectorName": null
+        },
+        {
+          "id": "4",
+          "status": null,
+          "timestamp": "",
+          "note": "",
+          "content": "Thử vật mẫu: Dùng vật mẫu thử qua cổng để đảm bảo cổng nhận tín hiệu và báo động chính xác",
+          "inspectorName": null
+        },
+        {
+          "content": "Vệ sinh: Lau bụi bề mặt cổng từ, đảm bảo khu vực xung quanh thoáng, không có đồ kim loại, thiết bị điện tử đặt gần gây nhiễu",
+          "inspectorName": null,
+          "status": null,
+          "timestamp": "",
+          "id": "5",
+          "note": ""
+        }
+      ],
+      "_id": "D9"
+    },
+    {
+      "items": [
+        {
+          "inspectorName": null,
+          "content": "Kiểm tra ngoại quan thiết bị (Vỏ, dây cáp)",
+          "note": "",
+          "status": null,
+          "id": "1",
+          "timestamp": ""
+        },
+        {
+          "content": "Kiểm tra chức năng vận hành (Bật/Tắt)",
+          "inspectorName": null,
+          "note": "",
+          "id": "2",
+          "timestamp": "",
+          "status": null
+        },
+        {
+          "inspectorName": null,
+          "content": "Kiểm tra đèn tín hiệu/Cảnh báo",
+          "id": "3",
+          "timestamp": "",
+          "status": null,
+          "note": ""
+        },
+        {
+          "note": "",
+          "id": "4",
+          "timestamp": "",
+          "status": null,
+          "inspectorName": null,
+          "content": "Kiểm tra kết nối hệ thống/Màn hình điều khiển"
+        },
+        {
+          "note": "",
+          "status": null,
+          "id": "5",
+          "timestamp": "",
+          "inspectorName": null,
+          "content": "Vệ sinh công nghiệp sau kiểm tra"
+        }
+      ],
+      "_id": "E1"
+    },
+    {
+      "items": [
+        {
+          "content": "Đầu đọc (Readers): Kiểm tra đầu đọc thẻ",
+          "inspectorName": null,
+          "note": "",
+          "timestamp": "",
+          "id": "1",
+          "status": null
+        },
+        {
+          "inspectorName": null,
+          "content": "Khóa điện (Locks): Xác nhận các khóa điện từ, khóa chốt cửa hoạt động bình thường, không bị kẹt, đóng chặt sau khi quẹt thẻ.",
+          "id": "2",
+          "timestamp": "",
+          "status": null,
+          "note": ""
+        },
+        {
+          "note": "",
+          "status": null,
+          "timestamp": "",
+          "id": "3",
+          "inspectorName": null,
+          "content": "Nút nhấn khẩn cấp/Nút Exit: Kiểm tra nút nhấn mở cửa bên trong có hoạt động đúng chức năng hay không."
+        },
+        {
+          "note": "",
+          "status": null,
+          "timestamp": "",
+          "id": "4",
+          "content": "Đèn báo/Âm thanh: Kiểm tra đèn báo hiệu và âm thanh cảnh báo (nếu có) trên thiết bị.",
+          "inspectorName": null
+        },
+        {
+          "timestamp": "",
+          "id": "5",
+          "status": null,
+          "note": "",
+          "content": "Đồng bộ dữ liệu: Kiểm tra dữ liệu nhân viên mới/thẻ mới đã được cập nhật đồng bộ xuống các đầu đọc.",
+          "inspectorName": null
+        }
+      ],
+      "_id": "F1"
+    },
+    {
+      "items": [
+        {
+          "note": "",
+          "timestamp": "",
+          "status": null,
+          "id": "1",
+          "content": "Đầu đọc (Readers): Kiểm tra đầu đọc thẻ",
+          "inspectorName": null
+        },
+        {
+          "note": "",
+          "status": null,
+          "timestamp": "",
+          "id": "2",
+          "inspectorName": null,
+          "content": "Khóa điện (Locks): Xác nhận các khóa điện từ, khóa chốt cửa hoạt động bình thường, không bị kẹt, đóng chặt sau khi quẹt thẻ."
+        },
+        {
+          "content": "Nút nhấn khẩn cấp/Nút Exit: Kiểm tra nút nhấn mở cửa bên trong có hoạt động đúng chức năng hay không.",
+          "inspectorName": null,
+          "note": "",
+          "status": null,
+          "id": "3",
+          "timestamp": ""
+        },
+        {
+          "content": "Đèn báo/Âm thanh: Kiểm tra đèn báo hiệu và âm thanh cảnh báo (nếu có) trên thiết bị.",
+          "inspectorName": null,
+          "note": "",
+          "id": "4",
+          "status": null,
+          "timestamp": ""
+        },
+        {
+          "content": "Đồng bộ dữ liệu: Kiểm tra dữ liệu nhân viên mới/thẻ mới đã được cập nhật đồng bộ xuống các đầu đọc.",
+          "inspectorName": null,
+          "note": "",
+          "status": null,
+          "id": "5",
+          "timestamp": ""
+        }
+      ],
+      "_id": "F10"
+    },
+    {
+      "items": [
+        {
+          "inspectorName": null,
+          "content": "Đầu đọc (Readers): Kiểm tra đầu đọc thẻ",
+          "status": null,
+          "timestamp": "",
+          "id": "1",
+          "note": ""
+        },
+        {
+          "content": "Khóa điện (Locks): Xác nhận các khóa điện từ, khóa chốt cửa hoạt động bình thường, không bị kẹt, đóng chặt sau khi quẹt thẻ.",
+          "inspectorName": null,
+          "timestamp": "",
+          "status": null,
+          "id": "2",
+          "note": ""
+        },
+        {
+          "note": "",
+          "timestamp": "",
+          "status": null,
+          "id": "3",
+          "inspectorName": null,
+          "content": "Nút nhấn khẩn cấp/Nút Exit: Kiểm tra nút nhấn mở cửa bên trong có hoạt động đúng chức năng hay không."
+        },
+        {
+          "inspectorName": null,
+          "content": "Đèn báo/Âm thanh: Kiểm tra đèn báo hiệu và âm thanh cảnh báo (nếu có) trên thiết bị.",
+          "status": null,
+          "id": "4",
+          "timestamp": "",
+          "note": ""
+        },
+        {
+          "inspectorName": null,
+          "content": "Đồng bộ dữ liệu: Kiểm tra dữ liệu nhân viên mới/thẻ mới đã được cập nhật đồng bộ xuống các đầu đọc.",
+          "note": "",
+          "id": "5",
+          "timestamp": "",
+          "status": null
+        }
+      ],
+      "_id": "F11"
+    },
+    {
+      "items": [
+        {
+          "content": "Đầu đọc (Readers): Kiểm tra đầu đọc thẻ",
+          "inspectorName": null,
+          "timestamp": "",
+          "status": null,
+          "id": "1",
+          "note": ""
+        },
+        {
+          "content": "Khóa điện (Locks): Xác nhận các khóa điện từ, khóa chốt cửa hoạt động bình thường, không bị kẹt, đóng chặt sau khi quẹt thẻ.",
+          "inspectorName": null,
+          "id": "2",
+          "status": null,
+          "timestamp": "",
+          "note": ""
+        },
+        {
+          "content": "Nút nhấn khẩn cấp/Nút Exit: Kiểm tra nút nhấn mở cửa bên trong có hoạt động đúng chức năng hay không.",
+          "inspectorName": null,
+          "note": "",
+          "status": null,
+          "id": "3",
+          "timestamp": ""
+        },
+        {
+          "note": "",
+          "id": "4",
+          "status": null,
+          "timestamp": "",
+          "inspectorName": null,
+          "content": "Đèn báo/Âm thanh: Kiểm tra đèn báo hiệu và âm thanh cảnh báo (nếu có) trên thiết bị."
+        },
+        {
+          "note": "",
+          "status": null,
+          "timestamp": "",
+          "id": "5",
+          "inspectorName": null,
+          "content": "Đồng bộ dữ liệu: Kiểm tra dữ liệu nhân viên mới/thẻ mới đã được cập nhật đồng bộ xuống các đầu đọc."
+        }
+      ],
+      "_id": "F2"
+    },
+    {
+      "items": [
+        {
+          "note": "",
+          "timestamp": "",
+          "status": null,
+          "id": "1",
+          "inspectorName": null,
+          "content": "Đầu đọc (Readers): Kiểm tra đầu đọc thẻ"
+        },
+        {
+          "status": null,
+          "id": "2",
+          "timestamp": "",
+          "note": "",
+          "inspectorName": null,
+          "content": "Khóa điện (Locks): Xác nhận các khóa điện từ, khóa chốt cửa hoạt động bình thường, không bị kẹt, đóng chặt sau khi quẹt thẻ."
+        },
+        {
+          "note": "",
+          "timestamp": "",
+          "id": "3",
+          "status": null,
+          "inspectorName": null,
+          "content": "Nút nhấn khẩn cấp/Nút Exit: Kiểm tra nút nhấn mở cửa bên trong có hoạt động đúng chức năng hay không."
+        },
+        {
+          "id": "4",
+          "status": null,
+          "timestamp": "",
+          "note": "",
+          "inspectorName": null,
+          "content": "Đèn báo/Âm thanh: Kiểm tra đèn báo hiệu và âm thanh cảnh báo (nếu có) trên thiết bị."
+        },
+        {
+          "note": "",
+          "timestamp": "",
+          "status": null,
+          "id": "5",
+          "inspectorName": null,
+          "content": "Đồng bộ dữ liệu: Kiểm tra dữ liệu nhân viên mới/thẻ mới đã được cập nhật đồng bộ xuống các đầu đọc."
+        }
+      ],
+      "_id": "F3"
+    },
+    {
+      "items": [
+        {
+          "status": null,
+          "timestamp": "",
+          "id": "1",
+          "note": "",
+          "content": "Đầu đọc (Readers): Kiểm tra đầu đọc thẻ",
+          "inspectorName": null
+        },
+        {
+          "id": "2",
+          "timestamp": "",
+          "status": null,
+          "note": "",
+          "content": "Khóa điện (Locks): Xác nhận các khóa điện từ, khóa chốt cửa hoạt động bình thường, không bị kẹt, đóng chặt sau khi quẹt thẻ.",
+          "inspectorName": null
+        },
+        {
+          "inspectorName": null,
+          "content": "Nút nhấn khẩn cấp/Nút Exit: Kiểm tra nút nhấn mở cửa bên trong có hoạt động đúng chức năng hay không.",
+          "note": "",
+          "id": "3",
+          "timestamp": "",
+          "status": null
+        },
+        {
+          "id": "4",
+          "status": null,
+          "timestamp": "",
+          "note": "",
+          "inspectorName": null,
+          "content": "Đèn báo/Âm thanh: Kiểm tra đèn báo hiệu và âm thanh cảnh báo (nếu có) trên thiết bị."
+        },
+        {
+          "status": null,
+          "timestamp": "",
+          "id": "5",
+          "note": "",
+          "content": "Đồng bộ dữ liệu: Kiểm tra dữ liệu nhân viên mới/thẻ mới đã được cập nhật đồng bộ xuống các đầu đọc.",
+          "inspectorName": null
+        }
+      ],
+      "_id": "F4"
+    },
+    {
+      "items": [
+        {
+          "id": "1",
+          "status": null,
+          "timestamp": "",
+          "note": "",
+          "inspectorName": null,
+          "content": "Đầu đọc (Readers): Kiểm tra đầu đọc thẻ"
+        },
+        {
+          "inspectorName": null,
+          "content": "Khóa điện (Locks): Xác nhận các khóa điện từ, khóa chốt cửa hoạt động bình thường, không bị kẹt, đóng chặt sau khi quẹt thẻ.",
+          "timestamp": "",
+          "status": null,
+          "id": "2",
+          "note": ""
+        },
+        {
+          "id": "3",
+          "timestamp": "",
+          "status": null,
+          "note": "",
+          "inspectorName": null,
+          "content": "Nút nhấn khẩn cấp/Nút Exit: Kiểm tra nút nhấn mở cửa bên trong có hoạt động đúng chức năng hay không."
+        },
+        {
+          "content": "Đèn báo/Âm thanh: Kiểm tra đèn báo hiệu và âm thanh cảnh báo (nếu có) trên thiết bị.",
+          "inspectorName": null,
+          "note": "",
+          "status": null,
+          "timestamp": "",
+          "id": "4"
+        },
+        {
+          "content": "Đồng bộ dữ liệu: Kiểm tra dữ liệu nhân viên mới/thẻ mới đã được cập nhật đồng bộ xuống các đầu đọc.",
+          "inspectorName": null,
+          "id": "5",
+          "timestamp": "",
+          "status": null,
+          "note": ""
+        }
+      ],
+      "_id": "F5"
+    },
+    {
+      "items": [
+        {
+          "inspectorName": null,
+          "content": "Đầu đọc (Readers): Kiểm tra đầu đọc thẻ",
+          "note": "",
+          "id": "1",
+          "timestamp": "",
+          "status": null
+        },
+        {
+          "inspectorName": null,
+          "content": "Khóa điện (Locks): Xác nhận các khóa điện từ, khóa chốt cửa hoạt động bình thường, không bị kẹt, đóng chặt sau khi quẹt thẻ.",
+          "status": null,
+          "id": "2",
+          "timestamp": "",
+          "note": ""
+        },
+        {
+          "id": "3",
+          "status": null,
+          "timestamp": "",
+          "note": "",
+          "content": "Nút nhấn khẩn cấp/Nút Exit: Kiểm tra nút nhấn mở cửa bên trong có hoạt động đúng chức năng hay không.",
+          "inspectorName": null
+        },
+        {
+          "id": "4",
+          "timestamp": "",
+          "status": null,
+          "note": "",
+          "content": "Đèn báo/Âm thanh: Kiểm tra đèn báo hiệu và âm thanh cảnh báo (nếu có) trên thiết bị.",
+          "inspectorName": null
+        },
+        {
+          "inspectorName": null,
+          "content": "Đồng bộ dữ liệu: Kiểm tra dữ liệu nhân viên mới/thẻ mới đã được cập nhật đồng bộ xuống các đầu đọc.",
+          "note": "",
+          "timestamp": "",
+          "id": "5",
+          "status": null
+        }
+      ],
+      "_id": "F6"
+    },
+    {
+      "items": [
+        {
+          "inspectorName": null,
+          "content": "Đầu đọc (Readers): Kiểm tra đầu đọc thẻ",
+          "note": "",
+          "id": "1",
+          "status": null,
+          "timestamp": ""
+        },
+        {
+          "note": "",
+          "timestamp": "",
+          "id": "2",
+          "status": null,
+          "content": "Khóa điện (Locks): Xác nhận các khóa điện từ, khóa chốt cửa hoạt động bình thường, không bị kẹt, đóng chặt sau khi quẹt thẻ.",
+          "inspectorName": null
+        },
+        {
+          "note": "",
+          "timestamp": "",
+          "id": "3",
+          "status": null,
+          "content": "Nút nhấn khẩn cấp/Nút Exit: Kiểm tra nút nhấn mở cửa bên trong có hoạt động đúng chức năng hay không.",
+          "inspectorName": null
+        },
+        {
+          "content": "Đèn báo/Âm thanh: Kiểm tra đèn báo hiệu và âm thanh cảnh báo (nếu có) trên thiết bị.",
+          "inspectorName": null,
+          "id": "4",
+          "status": null,
+          "timestamp": "",
+          "note": ""
+        },
+        {
+          "content": "Đồng bộ dữ liệu: Kiểm tra dữ liệu nhân viên mới/thẻ mới đã được cập nhật đồng bộ xuống các đầu đọc.",
+          "inspectorName": null,
+          "note": "",
+          "timestamp": "",
+          "status": null,
+          "id": "5"
+        }
+      ],
+      "_id": "F7"
+    },
+    {
+      "items": [
+        {
+          "note": "",
+          "timestamp": "",
+          "id": "1",
+          "status": null,
+          "content": "Đầu đọc (Readers): Kiểm tra đầu đọc thẻ",
+          "inspectorName": null
+        },
+        {
+          "timestamp": "",
+          "id": "2",
+          "status": null,
+          "note": "",
+          "content": "Khóa điện (Locks): Xác nhận các khóa điện từ, khóa chốt cửa hoạt động bình thường, không bị kẹt, đóng chặt sau khi quẹt thẻ.",
+          "inspectorName": null
+        },
+        {
+          "inspectorName": null,
+          "content": "Nút nhấn khẩn cấp/Nút Exit: Kiểm tra nút nhấn mở cửa bên trong có hoạt động đúng chức năng hay không.",
+          "status": null,
+          "id": "3",
+          "timestamp": "",
+          "note": ""
+        },
+        {
+          "inspectorName": null,
+          "content": "Đèn báo/Âm thanh: Kiểm tra đèn báo hiệu và âm thanh cảnh báo (nếu có) trên thiết bị.",
+          "note": "",
+          "timestamp": "",
+          "id": "4",
+          "status": null
+        },
+        {
+          "content": "Đồng bộ dữ liệu: Kiểm tra dữ liệu nhân viên mới/thẻ mới đã được cập nhật đồng bộ xuống các đầu đọc.",
+          "inspectorName": null,
+          "status": null,
+          "timestamp": "",
+          "id": "5",
+          "note": ""
+        }
+      ],
+      "_id": "F8"
+    },
+    {
+      "items": [
+        {
+          "note": "",
+          "timestamp": "",
+          "status": null,
+          "id": "1",
+          "inspectorName": null,
+          "content": "Đầu đọc (Readers): Kiểm tra đầu đọc thẻ"
+        },
+        {
+          "inspectorName": null,
+          "content": "Khóa điện (Locks): Xác nhận các khóa điện từ, khóa chốt cửa hoạt động bình thường, không bị kẹt, đóng chặt sau khi quẹt thẻ.",
+          "note": "",
+          "status": null,
+          "id": "2",
+          "timestamp": ""
+        },
+        {
+          "note": "",
+          "timestamp": "",
+          "status": null,
+          "id": "3",
+          "inspectorName": null,
+          "content": "Nút nhấn khẩn cấp/Nút Exit: Kiểm tra nút nhấn mở cửa bên trong có hoạt động đúng chức năng hay không."
+        },
+        {
+          "timestamp": "",
+          "status": null,
+          "id": "4",
+          "note": "",
+          "content": "Đèn báo/Âm thanh: Kiểm tra đèn báo hiệu và âm thanh cảnh báo (nếu có) trên thiết bị.",
+          "inspectorName": null
+        },
+        {
+          "note": "",
+          "status": null,
+          "id": "5",
+          "timestamp": "",
+          "inspectorName": null,
+          "content": "Đồng bộ dữ liệu: Kiểm tra dữ liệu nhân viên mới/thẻ mới đã được cập nhật đồng bộ xuống các đầu đọc."
+        }
+      ],
+      "_id": "F9"
+    },
+    {
+      "items": [
+        {
+          "content": "Kiểm tra đèn báo trạng thái trên các thiết bị, đảm bảo không có cảnh báo đỏ/vàng (lỗi hệ thống).",
+          "inspectorName": null,
+          "id": "1",
+          "timestamp": "",
+          "status": null,
+          "note": ""
+        },
+        {
+          "timestamp": "",
+          "id": "2",
+          "status": null,
+          "note": "",
+          "inspectorName": null,
+          "content": "Khởi động lại (nếu cần thiết) và kiểm tra log lỗi, thông báo lỗi trong ngày."
+        },
+        {
+          "note": "",
+          "timestamp": "",
+          "status": null,
+          "id": "3",
+          "inspectorName": null,
+          "content": "Kiểm tra Đường Trung kế (Trunks/Lines): Đảm bảo tất cả các đường line trung kế (analog/SIP) đều kết nối thông suốt, không bị bận hoặc mất tín hiệu."
+        },
+        {
+          "timestamp": "",
+          "status": null,
+          "id": "4",
+          "note": "",
+          "inspectorName": null,
+          "content": "Kiểm tra Máy nhánh (Extensions) và Thiết bị cuối: Kiểm tra các điện thoại bàn xem có tín hiệu, gọi đi và nghe được không."
+        },
+        {
+          "inspectorName": null,
+          "content": "Kiểm tra Tính năng Hệ thống: o\tKiểm tra lời chào tự động (IVR) hoạt động đúng kịch bản.",
+          "note": "",
+          "timestamp": "",
+          "status": null,
+          "id": "5"
+        },
+        {
+          "content": "Kiểm tra chức năng chuyển máy, hộp thư thoại, và chuyển hướng cuộc gọi (Call Forwarding).",
+          "note": "",
+          "id": "1773845210280",
+          "status": null,
+          "timestamp": ""
+        }
+      ],
+      "_id": "G1"
+    },
+    {
+      "items": [
+        {
+          "content": "Kiểm tra Trạng thái Camera: Xác nhận tất cả mắt camera đang lên hình, không bị mất tín hiệu (No Video).",
+          "inspectorName": null,
+          "id": "1",
+          "timestamp": "",
+          "status": null,
+          "note": ""
+        },
+        {
+          "content": "Kiểm tra góc quay: Camera có bị lệch, rung lắc hoặc bị che khuất tầm nhìn không",
+          "inspectorName": null,
+          "note": "",
+          "timestamp": "",
+          "id": "2",
+          "status": null
+        },
+        {
+          "timestamp": "",
+          "id": "3",
+          "status": null,
+          "note": "",
+          "inspectorName": null,
+          "content": "Kiểm tra tính năng hồng ngoại: Đảm bảo camera quan sát tốt vào ban đêm"
+        },
+        {
+          "content": "Kiểm tra Đầu ghi hình (DVR/NVR) và Lưu trữ: Xác nhận đầu ghi hoạt động bình thường, không bị treo hoặc khởi động lại.",
+          "inspectorName": null,
+          "id": "4",
+          "status": null,
+          "timestamp": "",
+          "note": ""
+        },
+        {
+          "id": "5",
+          "status": null,
+          "timestamp": "",
+          "note": "",
+          "content": "Kiểm tra thời gian ghi hình (Time/Date): Đảm bảo thời gian trên hệ thống chính xác với thời gian thực",
+          "inspectorName": null
+        },
+        {
+          "content": "Kiểm tra tình trạng ổ cứng (HDD): Đảm bảo dữ liệu đang được lưu trữ, không báo lỗi ổ cứng hoặc ghi đè sai quy định",
+          "note": "",
+          "status": null,
+          "timestamp": "",
+          "id": "1773844514770"
+        },
+        {
+          "note": "",
+          "timestamp": "",
+          "status": null,
+          "id": "1773844532083",
+          "content": "Kiểm tra Kết nối và Hiển thị: Kiểm tra màn hình giám sát: Hình ảnh hiển thị rõ nét, không bị nhiễu, sọc hoặc mất màu"
+        }
+      ],
+      "_id": "H1"
+    },
+    {
+      "items": [
+        {
+          "note": "",
+          "id": "1",
+          "status": null,
+          "timestamp": "",
+          "inspectorName": null,
+          "content": "Kiểm tra Trạng thái Camera: Xác nhận tất cả mắt camera đang lên hình, không bị mất tín hiệu (No Video)."
+        },
+        {
+          "id": "2",
+          "status": null,
+          "timestamp": "",
+          "note": "",
+          "content": "Kiểm tra góc quay: Camera có bị lệch, rung lắc hoặc bị che khuất tầm nhìn không",
+          "inspectorName": null
+        },
+        {
+          "note": "",
+          "id": "3",
+          "timestamp": "",
+          "status": null,
+          "content": "Kiểm tra tính năng hồng ngoại: Đảm bảo camera quan sát tốt vào ban đêm",
+          "inspectorName": null
+        },
+        {
+          "note": "",
+          "timestamp": "",
+          "id": "4",
+          "status": null,
+          "content": "Kiểm tra Đầu ghi hình (DVR/NVR) và Lưu trữ: Xác nhận đầu ghi hoạt động bình thường, không bị treo hoặc khởi động lại.",
+          "inspectorName": null
+        },
+        {
+          "content": "Kiểm tra thời gian ghi hình (Time/Date): Đảm bảo thời gian trên hệ thống chính xác với thời gian thực",
+          "inspectorName": null,
+          "note": "",
+          "id": "5",
+          "status": null,
+          "timestamp": ""
+        },
+        {
+          "status": null,
+          "id": "1773844514770",
+          "timestamp": "",
+          "note": "",
+          "inspectorName": null,
+          "content": "Kiểm tra tình trạng ổ cứng (HDD): Đảm bảo dữ liệu đang được lưu trữ, không báo lỗi ổ cứng hoặc ghi đè sai quy định"
+        },
+        {
+          "timestamp": "",
+          "id": "1773844532083",
+          "status": null,
+          "note": "",
+          "content": "Kiểm tra Kết nối và Hiển thị: Kiểm tra màn hình giám sát: Hình ảnh hiển thị rõ nét, không bị nhiễu, sọc hoặc mất màu",
+          "inspectorName": null
+        }
+      ],
+      "_id": "H2"
+    },
+    {
+      "items": [
+        {
+          "content": "Kiểm tra Trạng thái Camera: Xác nhận tất cả mắt camera đang lên hình, không bị mất tín hiệu (No Video).",
+          "inspectorName": null,
+          "status": null,
+          "timestamp": "",
+          "id": "1",
+          "note": ""
+        },
+        {
+          "note": "",
+          "id": "2",
+          "timestamp": "",
+          "status": null,
+          "inspectorName": null,
+          "content": "Kiểm tra góc quay: Camera có bị lệch, rung lắc hoặc bị che khuất tầm nhìn không"
+        },
+        {
+          "inspectorName": null,
+          "content": "Kiểm tra tính năng hồng ngoại: Đảm bảo camera quan sát tốt vào ban đêm",
+          "note": "",
+          "id": "3",
+          "timestamp": "",
+          "status": null
+        },
+        {
+          "note": "",
+          "timestamp": "",
+          "id": "4",
+          "status": null,
+          "inspectorName": null,
+          "content": "Kiểm tra Đầu ghi hình (DVR/NVR) và Lưu trữ: Xác nhận đầu ghi hoạt động bình thường, không bị treo hoặc khởi động lại."
+        },
+        {
+          "content": "Kiểm tra thời gian ghi hình (Time/Date): Đảm bảo thời gian trên hệ thống chính xác với thời gian thực",
+          "inspectorName": null,
+          "timestamp": "",
+          "status": null,
+          "id": "5",
+          "note": ""
+        },
+        {
+          "status": null,
+          "timestamp": "",
+          "id": "1773844514770",
+          "note": "",
+          "content": "Kiểm tra tình trạng ổ cứng (HDD): Đảm bảo dữ liệu đang được lưu trữ, không báo lỗi ổ cứng hoặc ghi đè sai quy định",
+          "inspectorName": null
+        },
+        {
+          "inspectorName": null,
+          "content": "Kiểm tra Kết nối và Hiển thị: Kiểm tra màn hình giám sát: Hình ảnh hiển thị rõ nét, không bị nhiễu, sọc hoặc mất màu",
+          "status": null,
+          "timestamp": "",
+          "id": "1773844532083",
+          "note": ""
+        }
+      ],
+      "_id": "H3"
+    },
+    {
+      "items": [
+        {
+          "note": "",
+          "id": "1",
+          "status": null,
+          "timestamp": "",
+          "inspectorName": null,
+          "content": "Kiểm tra Trạng thái Camera: Xác nhận tất cả mắt camera đang lên hình, không bị mất tín hiệu (No Video)."
+        },
+        {
+          "note": "",
+          "timestamp": "",
+          "id": "2",
+          "status": null,
+          "content": "Kiểm tra góc quay: Camera có bị lệch, rung lắc hoặc bị che khuất tầm nhìn không",
+          "inspectorName": null
+        },
+        {
+          "inspectorName": null,
+          "content": "Kiểm tra tính năng hồng ngoại: Đảm bảo camera quan sát tốt vào ban đêm",
+          "note": "",
+          "timestamp": "",
+          "status": null,
+          "id": "3"
+        },
+        {
+          "status": null,
+          "id": "4",
+          "timestamp": "",
+          "note": "",
+          "content": "Kiểm tra Đầu ghi hình (DVR/NVR) và Lưu trữ: Xác nhận đầu ghi hoạt động bình thường, không bị treo hoặc khởi động lại.",
+          "inspectorName": null
+        },
+        {
+          "note": "",
+          "id": "5",
+          "timestamp": "",
+          "status": null,
+          "inspectorName": null,
+          "content": "Kiểm tra thời gian ghi hình (Time/Date): Đảm bảo thời gian trên hệ thống chính xác với thời gian thực"
+        },
+        {
+          "content": "Kiểm tra tình trạng ổ cứng (HDD): Đảm bảo dữ liệu đang được lưu trữ, không báo lỗi ổ cứng hoặc ghi đè sai quy định",
+          "inspectorName": null,
+          "status": null,
+          "id": "1773844514770",
+          "timestamp": "",
+          "note": ""
+        },
+        {
+          "content": "Kiểm tra Kết nối và Hiển thị: Kiểm tra màn hình giám sát: Hình ảnh hiển thị rõ nét, không bị nhiễu, sọc hoặc mất màu",
+          "inspectorName": null,
+          "note": "",
+          "timestamp": "",
+          "id": "1773844532083",
+          "status": null
+        }
+      ],
+      "_id": "H4"
+    },
+    {
+      "items": [
+        {
+          "note": "",
+          "id": "1",
+          "timestamp": "",
+          "status": null,
+          "inspectorName": null,
+          "content": "Kiểm tra Trạng thái Camera: Xác nhận tất cả mắt camera đang lên hình, không bị mất tín hiệu (No Video)."
+        },
+        {
+          "inspectorName": null,
+          "content": "Kiểm tra góc quay: Camera có bị lệch, rung lắc hoặc bị che khuất tầm nhìn không",
+          "note": "",
+          "id": "2",
+          "status": null,
+          "timestamp": ""
+        },
+        {
+          "id": "3",
+          "timestamp": "",
+          "status": null,
+          "note": "",
+          "inspectorName": null,
+          "content": "Kiểm tra tính năng hồng ngoại: Đảm bảo camera quan sát tốt vào ban đêm"
+        },
+        {
+          "id": "4",
+          "status": null,
+          "timestamp": "",
+          "note": "",
+          "content": "Kiểm tra Đầu ghi hình (DVR/NVR) và Lưu trữ: Xác nhận đầu ghi hoạt động bình thường, không bị treo hoặc khởi động lại.",
+          "inspectorName": null
+        },
+        {
+          "note": "",
+          "timestamp": "",
+          "id": "5",
+          "status": null,
+          "inspectorName": null,
+          "content": "Kiểm tra thời gian ghi hình (Time/Date): Đảm bảo thời gian trên hệ thống chính xác với thời gian thực"
+        },
+        {
+          "inspectorName": null,
+          "content": "Kiểm tra tình trạng ổ cứng (HDD): Đảm bảo dữ liệu đang được lưu trữ, không báo lỗi ổ cứng hoặc ghi đè sai quy định",
+          "status": null,
+          "id": "1773844514770",
+          "timestamp": "",
+          "note": ""
+        },
+        {
+          "inspectorName": null,
+          "content": "Kiểm tra Kết nối và Hiển thị: Kiểm tra màn hình giám sát: Hình ảnh hiển thị rõ nét, không bị nhiễu, sọc hoặc mất màu",
+          "id": "1773844532083",
+          "status": null,
+          "timestamp": "",
+          "note": ""
+        }
+      ],
+      "_id": "H5"
+    },
+    {
+      "items": [
+        {
+          "note": "",
+          "id": "1",
+          "status": null,
+          "timestamp": "",
+          "content": "Kiểm tra Trạng thái Camera: Xác nhận tất cả mắt camera đang lên hình, không bị mất tín hiệu (No Video).",
+          "inspectorName": null
+        },
+        {
+          "inspectorName": null,
+          "content": "Kiểm tra góc quay: Camera có bị lệch, rung lắc hoặc bị che khuất tầm nhìn không",
+          "note": "",
+          "id": "2",
+          "status": null,
+          "timestamp": ""
+        },
+        {
+          "content": "Kiểm tra tính năng hồng ngoại: Đảm bảo camera quan sát tốt vào ban đêm",
+          "inspectorName": null,
+          "id": "3",
+          "timestamp": "",
+          "status": null,
+          "note": ""
+        },
+        {
+          "note": "",
+          "id": "5",
+          "timestamp": "",
+          "status": null,
+          "content": "Kiểm tra thời gian ghi hình (Time/Date): Đảm bảo thời gian trên hệ thống chính xác với thời gian thực",
+          "inspectorName": null
+        }
+      ],
+      "_id": "H6"
+    },
+    {
+      "items": [
+        {
+          "note": "",
+          "timestamp": "",
+          "status": null,
+          "id": "1",
+          "content": "RA05-DT PC làn, Camera BS, Camera làn, RFID, Sick, POS, Quang báo, PLC",
+          "inspectorName": null
+        },
+        {
+          "content": "RA06-DT PC làn, Camera BS, Camera làn, RFID, Sick, POS, Quang báo, PLC",
+          "inspectorName": null,
+          "status": null,
+          "timestamp": "",
+          "id": "2",
+          "note": ""
+        },
+        {
+          "inspectorName": null,
+          "content": "RA07-DT PC làn, Camera BS, Camera làn, Sick, POS, Quang báo, PLC",
+          "note": "",
+          "timestamp": "",
+          "id": "3",
+          "status": null
+        }
+      ],
+      "_id": "I1"
+    },
+    {
+      "items": [
+        {
+          "note": "",
+          "status": null,
+          "timestamp": "",
+          "id": "1",
+          "content": "RA01-NVL PC làn, Camera BS, Camera làn, RFID, Sick, POS, Quang báo, PLC ",
+          "inspectorName": null
+        },
+        {
+          "timestamp": "",
+          "status": null,
+          "id": "2",
+          "note": "",
+          "inspectorName": null,
+          "content": "RA02-NVL PC làn, Camera BS, Camera làn, RFID, Sick, POS, Quang báo, PLC "
+        },
+        {
+          "content": "RA03-NVL PC làn, Camera BS, Camera làn, Sick, POS, Quang báo, PLC ",
+          "inspectorName": null,
+          "note": "",
+          "timestamp": "",
+          "status": null,
+          "id": "3"
+        },
+        {
+          "status": null,
+          "timestamp": "",
+          "id": "4",
+          "note": "",
+          "inspectorName": null,
+          "content": "RA04-NVL PC làn, Camera BS, Camera làn, Sick, POS, Quang báo, PLC "
+        }
+      ],
+      "_id": "I3"
+    },
+    {
+      "items": [
+        {
+          "note": "",
+          "id": "1",
+          "status": null,
+          "timestamp": "",
+          "inspectorName": null,
+          "content": "VAO01-NVL RFID-01, RFID-02, Camera BS 01-F, Camera BS 01-B, Camera BS 02-F, Camera BS 02-B"
+        },
+        {
+          "timestamp": "",
+          "status": null,
+          "id": "2",
+          "note": "",
+          "content": "VAO02-NVL RFID-01, RFID-02, Camera BS 01-F, Camera BS 01-B, Camera BS 02-F, Camera BS 02-B",
+          "inspectorName": null
+        }
+      ],
+      "_id": "I4"
+    },
+    {
+      "items": [
+        {
+          "note": "",
+          "id": "1",
+          "timestamp": "",
+          "status": null,
+          "inspectorName": null,
+          "content": "VAO06-NDH/RA08-NDH RFID01, RFID02, Camera BS 01-F, Camera BS 01-B, Camera BS 02-F, Camera BS 02-B, , "
+        },
+        {
+          "timestamp": "",
+          "status": null,
+          "id": "2",
+          "note": "",
+          "content": "VAO07-NDH/RA09-NDH RFID01, RFID02, Camera BS 01-F, Camera BS 01-B, Camera BS 02-F, Camera BS 02-B, , ",
+          "inspectorName": null
+        }
+      ],
+      "_id": "I5"
+    },
+    {
+      "items": [
+        {
+          "content": "RFID-01, RFID-02",
+          "inspectorName": null,
+          "note": "",
+          "timestamp": "",
+          "status": null,
+          "id": "1"
+        },
+        {
+          "content": "Camera BS 01-F, Camera BS 01-B",
+          "inspectorName": null,
+          "note": "",
+          "id": "2",
+          "status": null,
+          "timestamp": ""
+        },
+        {
+          "status": null,
+          "id": "3",
+          "timestamp": "",
+          "note": "",
+          "content": "Camera BS 02-F, Camera BS 02-B",
+          "inspectorName": null
+        },
+        {
+          "content": "Camera BS 03-F, Camera BS 03-B",
+          "inspectorName": null,
+          "timestamp": "",
+          "id": "4",
+          "status": null,
+          "note": ""
+        }
+      ],
+      "_id": "I6"
+    },
+    {
+      "items": [
+        {
+          "note": "",
+          "status": null,
+          "timestamp": "",
+          "id": "1",
+          "content": "Hệ thống thẻ/vé: Kiểm tra đầu đọc thẻ từ, đảm bảo đầu đọc đọc được thẻ.",
+          "inspectorName": null
+        },
+        {
+          "inspectorName": null,
+          "content": "Camera giám sát: Kiểm tra camera nhận diện biển số (làn vào) có bị bẩn, lệch góc, hay mờ không.",
+          "id": "2",
+          "timestamp": "",
+          "status": null,
+          "note": ""
+        },
+        {
+          "inspectorName": null,
+          "content": "Barie tự động: Kiểm tra cần barie, cảm biến an toàn (vòng từ/cảm biến quang) để tránh barie hạ xuống khi xe đang đi qua.",
+          "note": "",
+          "timestamp": "",
+          "id": "3",
+          "status": null
+        },
+        {
+          "content": "Đăng nhập kết nối: Đảm bảo kết nối phần mềm, camera, điều khiển barier không bị lỗi kết nối.",
+          "timestamp": "",
+          "status": null,
+          "id": "1773842986802",
+          "note": ""
+        },
+        {
+          "content": "Kiểm tra nguồn điện: các switch mạng, PLC ổn định",
+          "timestamp": "",
+          "status": null,
+          "id": "1773843090640",
+          "note": ""
+        }
+      ],
+      "_id": "J1"
+    },
+    {
+      "items": [
+        {
+          "note": "",
+          "id": "1",
+          "status": null,
+          "timestamp": "",
+          "content": "Hệ thống thẻ/vé: Kiểm tra đầu đọc thẻ từ, đảm bảo đầu đọc đọc được thẻ.",
+          "inspectorName": null
+        },
+        {
+          "inspectorName": null,
+          "content": "Camera giám sát: Kiểm tra camera nhận diện biển số (làn vào) có bị bẩn, lệch góc, hay mờ không.",
+          "note": "",
+          "status": null,
+          "id": "2",
+          "timestamp": ""
+        },
+        {
+          "content": "Barie tự động: Kiểm tra cần barie, cảm biến an toàn (vòng từ/cảm biến quang) để tránh barie hạ xuống khi xe đang đi qua.",
+          "inspectorName": null,
+          "timestamp": "",
+          "id": "3",
+          "status": null,
+          "note": ""
+        },
+        {
+          "inspectorName": null,
+          "content": "Đăng nhập kết nối: Đảm bảo kết nối phần mềm, camera, điều khiển barier không bị lỗi kết nối.",
+          "status": null,
+          "id": "1773842986802",
+          "timestamp": "",
+          "note": ""
+        },
+        {
+          "note": "",
+          "timestamp": "",
+          "status": null,
+          "id": "1773843090640",
+          "content": "Kiểm tra nguồn điện: các switch mạng, PLC ổn định",
+          "inspectorName": null
+        }
+      ],
+      "_id": "J2"
+    },
+    {
+      "items": [
+        {
+          "timestamp": "",
+          "status": null,
+          "id": "1",
+          "note": "",
+          "content": "Hệ thống thẻ/vé: Kiểm tra đầu đọc thẻ từ, đảm bảo đầu đọc đọc được thẻ.",
+          "inspectorName": null
+        },
+        {
+          "inspectorName": null,
+          "content": "Camera giám sát: Kiểm tra camera nhận diện biển số (làn ra) có bị bẩn, lệch góc, hay mờ không.",
+          "id": "2",
+          "timestamp": "",
+          "status": null,
+          "note": ""
+        },
+        {
+          "note": "",
+          "id": "3",
+          "status": null,
+          "timestamp": "",
+          "inspectorName": null,
+          "content": "Barie tự động: Kiểm tra cần barie, cảm biến an toàn (vòng từ/cảm biến quang) để tránh barie hạ xuống khi xe đang đi qua."
+        },
+        {
+          "inspectorName": null,
+          "content": "Đăng nhập kết nối: Đảm bảo kết nối phần mềm, camera, điều khiển barier không bị lỗi kết nối.",
+          "timestamp": "",
+          "status": null,
+          "id": "1773842986802",
+          "note": ""
+        },
+        {
+          "inspectorName": null,
+          "content": "Kiểm tra nguồn điện: các switch mạng, PLC ổn định",
+          "timestamp": "",
+          "status": null,
+          "id": "1773843090640",
+          "note": ""
+        }
+      ],
+      "_id": "J3"
+    },
+    {
+      "items": [
+        {
+          "note": "",
+          "timestamp": "",
+          "id": "1",
+          "status": null,
+          "inspectorName": null,
+          "content": "Hệ thống thẻ/vé: Kiểm tra đầu đọc thẻ từ, đảm bảo đầu đọc đọc được thẻ."
+        },
+        {
+          "content": "Camera giám sát: Kiểm tra camera nhận diện biển số (làn ra) có bị bẩn, lệch góc, hay mờ không.",
+          "inspectorName": null,
+          "status": null,
+          "id": "2",
+          "timestamp": "",
+          "note": ""
+        },
+        {
+          "inspectorName": null,
+          "content": "Barie tự động: Kiểm tra cần barie, cảm biến an toàn (vòng từ/cảm biến quang) để tránh barie hạ xuống khi xe đang đi qua.",
+          "id": "3",
+          "timestamp": "",
+          "status": null,
+          "note": ""
+        },
+        {
+          "note": "",
+          "id": "1773842986802",
+          "status": null,
+          "timestamp": "",
+          "inspectorName": null,
+          "content": "Đăng nhập kết nối: Đảm bảo kết nối phần mềm, camera, điều khiển barier không bị lỗi kết nối."
+        },
+        {
+          "note": "",
+          "id": "1773843090640",
+          "timestamp": "",
+          "status": null,
+          "content": "Kiểm tra nguồn điện: các switch mạng, PLC ổn định",
+          "inspectorName": null
+        }
+      ],
+      "_id": "J4"
+    },
+    {
+      "items": [
+        {
+          "note": "",
+          "timestamp": "",
+          "id": "1",
+          "status": null,
+          "content": "Kiểm tra cảm biến chuyển động (mắt thần): Đi qua lại để đảm bảo cửa mở đúng lúc và đúng khoảng cách.",
+          "inspectorName": null
+        },
+        {
+          "note": "",
+          "timestamp": "",
+          "status": null,
+          "id": "2",
+          "content": "Kiểm tra cảm biến an toàn (cảm biến ngang): Đặt vật cản vào giữa khi cửa đang đóng để chắc chắn cửa dừng và đảo chiều, tránh kẹp người.",
+          "inspectorName": null
+        },
+        {
+          "inspectorName": null,
+          "content": "Kiểm tra ray trượt và bánh xe: Quan sát xem có rác, bụi bẩn hay vật cản trong đường ray không, đảm bảo cánh cửa không bị rung lắc",
+          "id": "3",
+          "status": null,
+          "timestamp": "",
+          "note": ""
+        },
+        {
+          "content": "Quan sát và lắng nghe hoạt động: Cửa đóng/mở êm ái, không nghe tiếng động lạ, mài mòn từ motor hoặc dây curoa.",
+          "inspectorName": null,
+          "note": "",
+          "status": null,
+          "id": "4",
+          "timestamp": ""
+        },
+        {
+          "inspectorName": null,
+          "content": "Kiểm tra nguồn điện và bộ điều khiển: Đảm bảo đèn báo trên hộp điều khiển sáng (nếu có), không có mùi khét hoặc dấu hiệu ẩm ướt",
+          "note": "",
+          "status": null,
+          "id": "5",
+          "timestamp": ""
+        }
+      ],
+      "_id": "K1"
+    },
+    {
+      "items": [
+        {
+          "inspectorName": null,
+          "content": "Kiểm tra cảm biến chuyển động (mắt thần): Đi qua lại để đảm bảo cửa mở đúng lúc và đúng khoảng cách.",
+          "id": "1",
+          "status": null,
+          "timestamp": "",
+          "note": ""
+        },
+        {
+          "id": "2",
+          "status": null,
+          "timestamp": "",
+          "note": "",
+          "content": "Kiểm tra cảm biến an toàn (cảm biến ngang): Đặt vật cản vào giữa khi cửa đang đóng để chắc chắn cửa dừng và đảo chiều, tránh kẹp người.",
+          "inspectorName": null
+        },
+        {
+          "note": "",
+          "status": null,
+          "id": "3",
+          "timestamp": "",
+          "inspectorName": null,
+          "content": "Kiểm tra ray trượt và bánh xe: Quan sát xem có rác, bụi bẩn hay vật cản trong đường ray không, đảm bảo cánh cửa không bị rung lắc"
+        },
+        {
+          "inspectorName": null,
+          "content": "Quan sát và lắng nghe hoạt động: Cửa đóng/mở êm ái, không nghe tiếng động lạ, mài mòn từ motor hoặc dây curoa.",
+          "note": "",
+          "status": null,
+          "id": "4",
+          "timestamp": ""
+        },
+        {
+          "note": "",
+          "id": "5",
+          "timestamp": "",
+          "status": null,
+          "content": "Kiểm tra nguồn điện và bộ điều khiển: Đảm bảo đèn báo trên hộp điều khiển sáng (nếu có), không có mùi khét hoặc dấu hiệu ẩm ướt",
+          "inspectorName": null
+        }
+      ],
+      "_id": "K2"
+    },
+    {
+      "items": [
+        {
+          "content": "Kiểm tra cảm biến chuyển động (mắt thần): Đi qua lại để đảm bảo cửa mở đúng lúc và đúng khoảng cách.",
+          "inspectorName": null,
+          "note": "",
+          "status": null,
+          "timestamp": "",
+          "id": "1"
+        },
+        {
+          "content": "Kiểm tra cảm biến an toàn (cảm biến ngang): Đặt vật cản vào giữa khi cửa đang đóng để chắc chắn cửa dừng và đảo chiều, tránh kẹp người.",
+          "inspectorName": null,
+          "note": "",
+          "status": null,
+          "id": "2",
+          "timestamp": ""
+        },
+        {
+          "inspectorName": null,
+          "content": "Kiểm tra ray trượt và bánh xe: Quan sát xem có rác, bụi bẩn hay vật cản trong đường ray không, đảm bảo cánh cửa không bị rung lắc",
+          "note": "",
+          "id": "3",
+          "timestamp": "",
+          "status": null
+        },
+        {
+          "status": null,
+          "timestamp": "",
+          "id": "4",
+          "note": "",
+          "inspectorName": null,
+          "content": "Quan sát và lắng nghe hoạt động: Cửa đóng/mở êm ái, không nghe tiếng động lạ, mài mòn từ motor hoặc dây curoa."
+        },
+        {
+          "inspectorName": null,
+          "content": "Kiểm tra nguồn điện và bộ điều khiển: Đảm bảo đèn báo trên hộp điều khiển sáng (nếu có), không có mùi khét hoặc dấu hiệu ẩm ướt",
+          "note": "",
+          "status": null,
+          "timestamp": "",
+          "id": "5"
+        }
+      ],
+      "_id": "K3"
+    },
+    {
+      "items": [
+        {
+          "id": "1",
+          "timestamp": "",
+          "status": null,
+          "note": "",
+          "inspectorName": null,
+          "content": "Kiểm tra cảm biến chuyển động (mắt thần): Đi qua lại để đảm bảo cửa mở đúng lúc và đúng khoảng cách."
+        },
+        {
+          "note": "",
+          "timestamp": "",
+          "id": "2",
+          "status": null,
+          "inspectorName": null,
+          "content": "Kiểm tra cảm biến an toàn (cảm biến ngang): Đặt vật cản vào giữa khi cửa đang đóng để chắc chắn cửa dừng và đảo chiều, tránh kẹp người."
+        },
+        {
+          "timestamp": "",
+          "id": "3",
+          "status": null,
+          "note": "",
+          "inspectorName": null,
+          "content": "Kiểm tra ray trượt và bánh xe: Quan sát xem có rác, bụi bẩn hay vật cản trong đường ray không, đảm bảo cánh cửa không bị rung lắc"
+        },
+        {
+          "timestamp": "",
+          "status": null,
+          "id": "4",
+          "note": "",
+          "inspectorName": null,
+          "content": "Quan sát và lắng nghe hoạt động: Cửa đóng/mở êm ái, không nghe tiếng động lạ, mài mòn từ motor hoặc dây curoa."
+        },
+        {
+          "status": null,
+          "timestamp": "",
+          "id": "5",
+          "note": "",
+          "content": "Kiểm tra nguồn điện và bộ điều khiển: Đảm bảo đèn báo trên hộp điều khiển sáng (nếu có), không có mùi khét hoặc dấu hiệu ẩm ướt",
+          "inspectorName": null
+        }
+      ],
+      "_id": "K4"
+    },
+    {
+      "items": [
+        {
+          "content": "Kiểm tra cảm biến chuyển động (mắt thần): Đi qua lại để đảm bảo cửa mở đúng lúc và đúng khoảng cách.",
+          "inspectorName": null,
+          "note": "",
+          "timestamp": "",
+          "id": "1",
+          "status": null
+        },
+        {
+          "note": "",
+          "id": "2",
+          "timestamp": "",
+          "status": null,
+          "inspectorName": null,
+          "content": "Kiểm tra cảm biến an toàn (cảm biến ngang): Đặt vật cản vào giữa khi cửa đang đóng để chắc chắn cửa dừng và đảo chiều, tránh kẹp người."
+        },
+        {
+          "timestamp": "",
+          "id": "3",
+          "status": null,
+          "note": "",
+          "content": "Kiểm tra ray trượt và bánh xe: Quan sát xem có rác, bụi bẩn hay vật cản trong đường ray không, đảm bảo cánh cửa không bị rung lắc",
+          "inspectorName": null
+        },
+        {
+          "status": null,
+          "id": "4",
+          "timestamp": "",
+          "note": "",
+          "inspectorName": null,
+          "content": "Quan sát và lắng nghe hoạt động: Cửa đóng/mở êm ái, không nghe tiếng động lạ, mài mòn từ motor hoặc dây curoa."
+        },
+        {
+          "inspectorName": null,
+          "content": "Kiểm tra nguồn điện và bộ điều khiển: Đảm bảo đèn báo trên hộp điều khiển sáng (nếu có), không có mùi khét hoặc dấu hiệu ẩm ướt",
+          "timestamp": "",
+          "id": "5",
+          "status": null,
+          "note": ""
+        }
+      ],
+      "_id": "K5"
+    },
+    {
+      "items": [
+        {
+          "content": "Kiểm tra cảm biến chuyển động (mắt thần): Đi qua lại để đảm bảo cửa mở đúng lúc và đúng khoảng cách.",
+          "inspectorName": null,
+          "note": "",
+          "id": "1",
+          "status": null,
+          "timestamp": ""
+        },
+        {
+          "timestamp": "",
+          "id": "2",
+          "status": null,
+          "note": "",
+          "content": "Kiểm tra cảm biến an toàn (cảm biến ngang): Đặt vật cản vào giữa khi cửa đang đóng để chắc chắn cửa dừng và đảo chiều, tránh kẹp người.",
+          "inspectorName": null
+        },
+        {
+          "content": "Kiểm tra ray trượt và bánh xe: Quan sát xem có rác, bụi bẩn hay vật cản trong đường ray không, đảm bảo cánh cửa không bị rung lắc",
+          "inspectorName": null,
+          "note": "",
+          "status": null,
+          "timestamp": "",
+          "id": "3"
+        },
+        {
+          "inspectorName": null,
+          "content": "Quan sát và lắng nghe hoạt động: Cửa đóng/mở êm ái, không nghe tiếng động lạ, mài mòn từ motor hoặc dây curoa.",
+          "note": "",
+          "status": null,
+          "timestamp": "",
+          "id": "4"
+        },
+        {
+          "content": "Kiểm tra nguồn điện và bộ điều khiển: Đảm bảo đèn báo trên hộp điều khiển sáng (nếu có), không có mùi khét hoặc dấu hiệu ẩm ướt",
+          "inspectorName": null,
+          "note": "",
+          "status": null,
+          "timestamp": "",
+          "id": "5"
+        }
+      ],
+      "_id": "K6"
+    },
+    {
+      "items": [
+        {
+          "id": "1",
+          "timestamp": "",
+          "status": null,
+          "note": "",
+          "content": "Kiểm tra cảm biến chuyển động (mắt thần): Đi qua lại để đảm bảo cửa mở đúng lúc và đúng khoảng cách.",
+          "inspectorName": null
+        },
+        {
+          "inspectorName": null,
+          "content": "Kiểm tra cảm biến an toàn (cảm biến ngang): Đặt vật cản vào giữa khi cửa đang đóng để chắc chắn cửa dừng và đảo chiều, tránh kẹp người.",
+          "note": "",
+          "status": null,
+          "timestamp": "",
+          "id": "2"
+        },
+        {
+          "inspectorName": null,
+          "content": "Kiểm tra ray trượt và bánh xe: Quan sát xem có rác, bụi bẩn hay vật cản trong đường ray không, đảm bảo cánh cửa không bị rung lắc",
+          "id": "3",
+          "timestamp": "",
+          "status": null,
+          "note": ""
+        },
+        {
+          "content": "Quan sát và lắng nghe hoạt động: Cửa đóng/mở êm ái, không nghe tiếng động lạ, mài mòn từ motor hoặc dây curoa.",
+          "inspectorName": null,
+          "status": null,
+          "timestamp": "",
+          "id": "4",
+          "note": ""
+        },
+        {
+          "id": "5",
+          "timestamp": "",
+          "status": null,
+          "note": "",
+          "content": "Kiểm tra nguồn điện và bộ điều khiển: Đảm bảo đèn báo trên hộp điều khiển sáng (nếu có), không có mùi khét hoặc dấu hiệu ẩm ướt",
+          "inspectorName": null
+        }
+      ],
+      "_id": "K7"
+    },
+    {
+      "items": [
+        {
+          "content": "Kiểm tra cảm biến chuyển động (mắt thần): Đi qua lại để đảm bảo cửa mở đúng lúc và đúng khoảng cách.",
+          "inspectorName": null,
+          "note": "",
+          "timestamp": "",
+          "status": null,
+          "id": "1"
+        },
+        {
+          "inspectorName": null,
+          "content": "Kiểm tra cảm biến an toàn (cảm biến ngang): Đặt vật cản vào giữa khi cửa đang đóng để chắc chắn cửa dừng và đảo chiều, tránh kẹp người.",
+          "note": "",
+          "timestamp": "",
+          "id": "2",
+          "status": null
+        },
+        {
+          "note": "",
+          "timestamp": "",
+          "id": "3",
+          "status": null,
+          "content": "Kiểm tra ray trượt và bánh xe: Quan sát xem có rác, bụi bẩn hay vật cản trong đường ray không, đảm bảo cánh cửa không bị rung lắc",
+          "inspectorName": null
+        },
+        {
+          "content": "Quan sát và lắng nghe hoạt động: Cửa đóng/mở êm ái, không nghe tiếng động lạ, mài mòn từ motor hoặc dây curoa.",
+          "inspectorName": null,
+          "note": "",
+          "id": "4",
+          "timestamp": "",
+          "status": null
+        },
+        {
+          "inspectorName": null,
+          "content": "Kiểm tra nguồn điện và bộ điều khiển: Đảm bảo đèn báo trên hộp điều khiển sáng (nếu có), không có mùi khét hoặc dấu hiệu ẩm ướt",
+          "id": "5",
+          "status": null,
+          "timestamp": "",
+          "note": ""
+        }
+      ],
+      "_id": "K8"
+    }
+  ],
+  "users": [
+    {
+      "code": "009437",
+      "role": "USER",
+      "name": "Nguyễn Xuân Tiến",
+      "_id": "2duXhpHOYWWPdjT4bx4o"
+    },
+    {
+      "code": "016696",
+      "role": "USER",
+      "name": "Trương Khánh Nguyên",
+      "_id": "DI6rUSp4xXRKXAUjZjv4"
+    },
+    {
+      "code": "009436",
+      "role": "USER",
+      "name": "Mai Ngọc Quỳnh",
+      "_id": "G85VmUmIbP0kl3x3KSzb"
+    },
+    {
+      "password": "$2b$10$UeJPNsx2QaJl.LYt3W6gOOFWDngNC5h4XB8JXp7sy3bogrYneIyE2",
+      "code": "009440",
+      "role": "USER",
+      "name": "Phan Minh Long",
+      "_id": "JxWRoAYlKt7ZQnNtrDwo"
+    },
+    {
+      "code": "009531",
+      "role": "USER",
+      "name": "Nguyễn Thanh Tùng",
+      "_id": "KAV48d5278zbNOw3c3bD"
+    },
+    {
+      "password": "$2b$10$4blGcldUeVDm.MrJQ4JPZ.Q0/oK9jlbsOG2QEwOvOYjpTO79D8HY2",
+      "code": "ADMIN",
+      "name": "Quản trị viên",
+      "role": "ADMIN",
+      "_id": "O7zLXVPB2yGC3ezY44Vx"
+    },
+    {
+      "code": "009368",
+      "role": "USER",
+      "name": "Lê Văn Hưng",
+      "_id": "Yp68hc78mfTWkBnLYD6v"
+    },
+    {
+      "code": "016695",
+      "role": "USER",
+      "name": "Nguyễn Đình Tâm",
+      "_id": "Z9DKZ2kRoKIWCWKRICOR"
+    },
+    {
+      "code": "009388",
+      "role": "USER",
+      "name": "Nguyễn Đức Phúc",
+      "_id": "hJwksFtk9xlxe3gAnBt6"
+    },
+    {
+      "code": "009498",
+      "role": "USER",
+      "name": "Lê Hồng Phong",
+      "_id": "iBSMwQOEPqtIuYYfl8gb"
+    },
+    {
+      "code": "019095",
+      "role": "USER",
+      "name": "Nguyễn Hữu Cường",
+      "_id": "jyugU4VxkGSIpwBWBRBK"
+    },
+    {
+      "code": "011849",
+      "role": "USER",
+      "name": "Trần Kiêm Hải",
+      "_id": "oJcJIPcrBCdO5ZRYrMsQ"
+    },
+    {
+      "code": "012883",
+      "role": "USER",
+      "name": "Nguyễn Lê Kim Thịnh",
+      "password": "$2b$10$wkA.T/LhJcdYsAy57r..hOahI61JAHRj8BOxAB3xsXIrWSGoc1ynu",
+      "_id": "oNr2AWPOiSS5mJfpxUz9"
+    },
+    {
+      "code": "018358",
+      "role": "USER",
+      "name": "Trịnh Minh Tuấn",
+      "_id": "v7DqQ0X0U2xInV7akpYh"
+    }
+  ],
+  "duties": [
+    {
+      "assignments": [
+        {
+          "userName": "Phan Minh Long",
+          "userCode": "009440",
+          "categoryIds": [
+            "CAT5",
+            "CAT6"
+          ],
+          "systemIds": [
+            "C7",
+            "C6",
+            "A2"
+          ]
+        },
+        {
+          "categoryIds": [
+            "CAT9",
+            "CAT10"
+          ],
+          "userCode": "012883",
+          "userName": "Nguyễn Lê Kim Thịnh"
+        }
+      ],
+      "date": "2026-03-16",
+      "_id": "2026-03-16"
+    }
+  ],
+  "logs": [],
+  "history": [],
+  "incidents": [],
+  "maintenance": [],
+  "material_history": []
+}

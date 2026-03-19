@@ -153,101 +153,105 @@ export default function MaterialsPage() {
 
                 <div className="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden min-h-[400px]">
                     {activeTab === 'pending' ? (
-                        <table className="w-full text-left border-collapse">
-                            <thead className="bg-amber-50 text-amber-900 uppercase text-xs font-bold border-b border-amber-100">
-                                <tr>
-                                    <th className="p-4 w-16 text-center">STT</th>
-                                    <th className="p-4">Vật tư yêu cầu</th>
-                                    <th className="p-4">Hệ thống / Lỗi</th>
-                                    <th className="p-4">Người yêu cầu</th>
-                                    <th className="p-4 text-center">Thời gian</th>
-                                    <th className="p-4 text-center">Hành động</th>
-                                </tr>
-                            </thead>
-                            <tbody className="divide-y divide-slate-100">
-                                {requests.map((req, idx) => (
-                                    <tr key={`${req.systemId}_${req.itemId}`} className="hover:bg-amber-50/30 transition">
-                                        <td className="p-4 text-center font-bold text-slate-500">{idx + 1}</td>
-                                        <td className="p-4 font-bold text-amber-700 text-lg">
-                                            {req.materialName}
-                                        </td>
-                                        <td className="p-4">
-                                            <div className="font-semibold text-slate-800">{req.systemName}</div>
-                                            <div className="text-sm text-slate-500">{req.itemContent}</div>
-                                        </td>
-                                        <td className="p-4 font-medium text-blue-600">
-                                            {req.requester}
-                                        </td>
-                                        <td className="p-4 text-center font-mono text-xs text-slate-500">
-                                            {req.timestamp}
-                                        </td>
-                                        <td className="p-4 text-center">
-                                            <button
-                                                onClick={() => handleApprove(req)}
-                                                className="px-3 py-2 bg-green-600 text-white rounded shadow hover:bg-green-700 flex items-center gap-2 text-sm font-bold mx-auto transition transform hover:scale-105"
-                                            >
-                                                <CheckCircle size={16} /> Cấp phát
-                                            </button>
-                                        </td>
-                                    </tr>
-                                ))}
-                                {requests.length === 0 && (
+                        <div className="overflow-x-auto">
+                            <table className="w-full text-left border-collapse min-w-[800px]">
+                                <thead className="bg-amber-50 text-amber-900 uppercase text-xs font-bold border-b border-amber-100">
                                     <tr>
-                                        <td colSpan={6} className="p-12 text-center text-slate-500 italic flex flex-col items-center gap-2">
-                                            <Package size={48} className="text-slate-200" />
-                                            <span>Hiện không có yêu cầu vật tư nào cần xử lý.</span>
-                                        </td>
+                                        <th className="p-4 w-16 text-center">STT</th>
+                                        <th className="p-4">Vật tư yêu cầu</th>
+                                        <th className="p-4">Hệ thống / Lỗi</th>
+                                        <th className="p-4">Người yêu cầu</th>
+                                        <th className="p-4 text-center">Thời gian</th>
+                                        <th className="p-4 text-center">Hành động</th>
                                     </tr>
-                                )}
-                            </tbody>
-                        </table>
+                                </thead>
+                                <tbody className="divide-y divide-slate-100">
+                                    {requests.map((req, idx) => (
+                                        <tr key={`${req.systemId}_${req.itemId}`} className="hover:bg-amber-50/30 transition">
+                                            <td className="p-4 text-center font-bold text-slate-500">{idx + 1}</td>
+                                            <td className="p-4 font-bold text-amber-700 text-lg">
+                                                {req.materialName}
+                                            </td>
+                                            <td className="p-4">
+                                                <div className="font-semibold text-slate-800">{req.systemName}</div>
+                                                <div className="text-sm text-slate-500">{req.itemContent}</div>
+                                            </td>
+                                            <td className="p-4 font-medium text-blue-600">
+                                                {req.requester}
+                                            </td>
+                                            <td className="p-4 text-center font-mono text-xs text-slate-500">
+                                                {req.timestamp}
+                                            </td>
+                                            <td className="p-4 text-center">
+                                                <button
+                                                    onClick={() => handleApprove(req)}
+                                                    className="px-3 py-2 bg-green-600 text-white rounded shadow hover:bg-green-700 flex items-center gap-2 text-sm font-bold mx-auto transition transform hover:scale-105"
+                                                >
+                                                    <CheckCircle size={16} /> Cấp phát
+                                                </button>
+                                            </td>
+                                        </tr>
+                                    ))}
+                                    {requests.length === 0 && (
+                                        <tr>
+                                            <td colSpan={6} className="p-12 text-center text-slate-500 italic flex flex-col items-center gap-2">
+                                                <Package size={48} className="text-slate-200" />
+                                                <span>Hiện không có yêu cầu vật tư nào cần xử lý.</span>
+                                            </td>
+                                        </tr>
+                                    )}
+                                </tbody>
+                            </table>
+                        </div>
                     ) : (
-                        <table className="w-full text-left border-collapse">
-                            <thead className="bg-blue-50 text-blue-900 uppercase text-xs font-bold border-b border-blue-100">
-                                <tr>
-                                    <th className="p-4 w-16 text-center">STT</th>
-                                    <th className="p-4">Vật tư đã cấp</th>
-                                    <th className="p-4">Hệ thống áp dụng</th>
-                                    <th className="p-4">Người yêu cầu</th>
-                                    <th className="p-4 text-center">Ngày cấp phát</th>
-                                    <th className="p-4 text-center">Người cấp</th>
-                                </tr>
-                            </thead>
-                            <tbody className="divide-y divide-slate-100">
-                                {history.map((item, idx) => (
-                                    <tr key={idx} className="hover:bg-slate-50">
-                                        <td className="p-4 text-center font-bold text-slate-500">{idx + 1}</td>
-                                        <td className="p-4 font-bold text-slate-700">
-                                            {item.materialName}
-                                        </td>
-                                        <td className="p-4">
-                                            <div className="font-semibold text-slate-800">{item.systemName}</div>
-                                            <div className="text-xs text-slate-500">{item.itemContent}</div>
-                                        </td>
-                                        <td className="p-4 text-slate-600">
-                                            {item.requester}
-                                        </td>
-                                        <td className="p-4 text-center font-mono text-sm text-slate-600">
-                                            <div className="flex items-center justify-center gap-1">
-                                                <Clock size={14} className="text-green-600" />
-                                                {item.approvedAt}
-                                            </div>
-                                        </td>
-                                        <td className="p-4 text-center font-bold text-blue-800 text-sm bg-blue-50/50">
-                                            {item.approver}
-                                        </td>
-                                    </tr>
-                                ))}
-                                {history.length === 0 && (
+                        <div className="overflow-x-auto">
+                            <table className="w-full text-left border-collapse min-w-[800px]">
+                                <thead className="bg-blue-50 text-blue-900 uppercase text-xs font-bold border-b border-blue-100">
                                     <tr>
-                                        <td colSpan={6} className="p-12 text-center text-slate-500 italic flex flex-col items-center gap-2">
-                                            <HistoryIcon size={48} className="text-slate-200" />
-                                            <span>Chưa có lịch sử cấp phát nào.</span>
-                                        </td>
+                                        <th className="p-4 w-16 text-center">STT</th>
+                                        <th className="p-4">Vật tư đã cấp</th>
+                                        <th className="p-4">Hệ thống áp dụng</th>
+                                        <th className="p-4">Người yêu cầu</th>
+                                        <th className="p-4 text-center">Ngày cấp phát</th>
+                                        <th className="p-4 text-center">Người cấp</th>
                                     </tr>
-                                )}
-                            </tbody>
-                        </table>
+                                </thead>
+                                <tbody className="divide-y divide-slate-100">
+                                    {history.map((item, idx) => (
+                                        <tr key={idx} className="hover:bg-slate-50">
+                                            <td className="p-4 text-center font-bold text-slate-500">{idx + 1}</td>
+                                            <td className="p-4 font-bold text-slate-700">
+                                                {item.materialName}
+                                            </td>
+                                            <td className="p-4">
+                                                <div className="font-semibold text-slate-800">{item.systemName}</div>
+                                                <div className="text-xs text-slate-500">{item.itemContent}</div>
+                                            </td>
+                                            <td className="p-4 text-slate-600">
+                                                {item.requester}
+                                            </td>
+                                            <td className="p-4 text-center font-mono text-sm text-slate-600">
+                                                <div className="flex items-center justify-center gap-1">
+                                                    <Clock size={14} className="text-green-600" />
+                                                    {item.approvedAt}
+                                                </div>
+                                            </td>
+                                            <td className="p-4 text-center font-bold text-blue-800 text-sm bg-blue-50/50">
+                                                {item.approver}
+                                            </td>
+                                        </tr>
+                                    ))}
+                                    {history.length === 0 && (
+                                        <tr>
+                                            <td colSpan={6} className="p-12 text-center text-slate-500 italic flex flex-col items-center gap-2">
+                                                <HistoryIcon size={48} className="text-slate-200" />
+                                                <span>Chưa có lịch sử cấp phát nào.</span>
+                                            </td>
+                                        </tr>
+                                    )}
+                                </tbody>
+                            </table>
+                        </div>
                     )}
                 </div>
             </div>

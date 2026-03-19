@@ -63,6 +63,7 @@ export interface Incident {
 export interface MaintenanceTask {
   id: string;
   title: string; // e.g. "Bảo dưỡng Cầu A1 tháng 10"
+  type?: 'MAINTENANCE' | 'PROJECT'; // Maintenance (Bảo dưỡng) or Project (Thi công)
   description: string;
   deadline: string; // YYYY-MM-DD
   assignees: string[]; // Array of User Codes

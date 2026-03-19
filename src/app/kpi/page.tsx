@@ -27,6 +27,7 @@ const SCORING_RULES = {
     FAULT_FOUND: 3, // Increased from 2
     FIX: 4,         // Increased from 2
     INCIDENT: 5,
+    MAINTENANCE: 8, // New
     PROJECT_EXEC: 10,
     PROJECT_SUP: 6,   // Increased from 5
     NEGLIGENCE: -10    // Decreased from -5 (stricter penalty)
@@ -37,7 +38,9 @@ export default function KPIPage() {
     const { user: currentUser } = useUser();
     const [stats, setStats] = useState<KPIRow[]>([]);
     const [totalInspectionsCount, setTotalInspectionsCount] = useState(0);
-    const [monthFilter, setMonthFilter] = useState(new Date().toISOString().slice(0, 7)); // YYYY-MM
+    const nowD = new Date();
+    const currentYearMonth = `${nowD.getFullYear()}-${String(nowD.getMonth() + 1).padStart(2, '0')}`;
+    const [monthFilter, setMonthFilter] = useState(currentYearMonth); // YYYY-MM
 
     useEffect(() => {
         // Protect Route
@@ -100,10 +103,11 @@ export default function KPIPage() {
                     if (!datePart) return false;
 
                     let d, m, y;
-                    if (datePart.includes('/')) {
-                        [d, m, y] = datePart.split('/');
+                    const cleanDatePart = datePart.replace(/[^\d\/\-]/g, '');
+                    if (cleanDatePart.includes('/')) {
+                        [d, m, y] = cleanDatePart.split('/');
                     } else {
-                        [y, m, d] = datePart.split('-');
+                        [y, m, d] = cleanDatePart.split('-');
                     }
                     return Number(m) === Number(month) && Number(y) === Number(year);
                 });
@@ -115,10 +119,27 @@ export default function KPIPage() {
                     if (!datePart) return false;
 
                     let d, m, y;
-                    if (datePart.includes('/')) {
-                        [d, m, y] = datePart.split('/');
+                    const cleanDatePart = datePart.replace(/[^\d\/\-]/g, '');
+                    if (cleanDatePart.includes('/')) {
+                        [d, m, y] = cleanDatePart.split('/');
                     } else {
-                        [y, m, d] = datePart.split('-');
+                        [y, m, d] = cleanDatePart.split('-');
+                    }
+                    return Number(m) === Number(month) && Number(y) === Number(year);
+                });
+
+                const filteredHistoryCreated = history.filter((h: any) => {
+                    if (!h.timestamp) return false;
+                    const parts = h.timestamp.split(' ');
+                    const datePart = parts.find((p: string) => p.includes('/') || p.includes('-'));
+                    if (!datePart) return false;
+
+                    let d, m, y;
+                    const cleanDatePart = datePart.replace(/[^\d\/\-]/g, '');
+                    if (cleanDatePart.includes('/')) {
+                        [d, m, y] = cleanDatePart.split('/');
+                    } else {
+                        [y, m, d] = cleanDatePart.split('-');
                     }
                     return Number(m) === Number(month) && Number(y) === Number(year);
                 });
@@ -130,10 +151,11 @@ export default function KPIPage() {
                     if (!datePart) return false;
 
                     let d, m, y;
-                    if (datePart.includes('/')) {
-                        [d, m, y] = datePart.split('/');
+                    const cleanDatePart = datePart.replace(/[^\d\/\-]/g, '');
+                    if (cleanDatePart.includes('/')) {
+                        [d, m, y] = cleanDatePart.split('/');
                     } else {
-                        [y, m, d] = datePart.split('-');
+                        [y, m, d] = cleanDatePart.split('-');
                     }
                     return Number(m) === Number(month) && Number(y) === Number(year);
                 });
@@ -145,10 +167,11 @@ export default function KPIPage() {
                     if (!datePart) return false;
 
                     let d, m, y;
-                    if (datePart.includes('/')) {
-                        [d, m, y] = datePart.split('/');
+                    const cleanDatePart = datePart.replace(/[^\d\/\-]/g, '');
+                    if (cleanDatePart.includes('/')) {
+                        [d, m, y] = cleanDatePart.split('/');
                     } else {
-                        [y, m, d] = datePart.split('-');
+                        [y, m, d] = cleanDatePart.split('-');
                     }
                     return Number(m) === Number(month) && Number(y) === Number(year);
                 });
@@ -156,8 +179,9 @@ export default function KPIPage() {
                 // Calculate Stats per User
                 const calculatedStats = allUsers.map(u => {
                     // 1. Inspections (TEAM-BASED LOGIC)
-                    // Rule: For each day the user is on duty, they get 1 point per unique category inspected by the TEAM.
-                    // Max points per day = 11 (A through K).
+                    // Rule: For each day the user is on duty, they get 1 point per unique category inspected by ANY member of the duty team.
+                    // Max points per day = 11 (Categories A through K).
+                    // Non-duty staff can still inspect but get 0 inspection points.
 
                     // First, group logs by date
                     const logsByDate: { [date: string]: any[] } = {};
@@ -166,82 +190,96 @@ export default function KPIPage() {
                         if (!datePart) return;
 
                         let isoDate = "";
-                        if (datePart.includes('/')) {
-                            const [d, m, y] = datePart.split('/');
+                        const cleanDatePart = datePart.replace(/[^\d\/\-]/g, '');
+                        if (cleanDatePart.includes('/')) {
+                            const [d, m, y] = cleanDatePart.split('/');
                             isoDate = `${y}-${m.padStart(2, '0')}-${d.padStart(2, '0')}`;
                         } else {
-                            isoDate = datePart;
+                            isoDate = cleanDatePart;
                         }
 
                         if (!logsByDate[isoDate]) logsByDate[isoDate] = [];
                         logsByDate[isoDate].push(l);
                     });
 
-                    let totalTeamPoints = 0;
+                    let userInspections = 0;
+                    let fastChecksCount = 0;
 
                     Object.keys(logsByDate).forEach(dateStr => {
                         const dayDuty = duties.find(d => d.date === dateStr);
                         if (!dayDuty) return;
 
-                        // Is the current user 'u' part of the assigned team for this date?
+                        // Identify the assigned duty team for this date
                         const teamMembers = dayDuty.assignments?.map((a: any) => a.userCode) || [];
                         const isUserOnDutyToday = teamMembers.includes(u.code);
+
+                        // If NOT on duty, skip inspection points for this day for this user
+                        // and also skip fastCheck penalties (only score duty staff for these)
                         if (!isUserOnDutyToday) return;
 
-                        // Identify unique categories inspected by ANY member of the team today
+                        // Count fast checks for this USER on days they are on duty
+                        const userLogsOnDuty = logsByDate[dateStr].filter((l: any) =>
+                            ((l.inspectorCode === u.code) || (l.inspectorName === u.name))
+                        );
+
+                        // Points are awarded: if the duty team created any logs today, both duty members get exactly 11 points.
                         const teamLogs = logsByDate[dateStr].filter((l: any) =>
                             teamMembers.includes(l.inspectorCode)
                         );
 
-                        const uniqueCategoriesFound = new Set<string>();
-                        const categoryMap: any = {
-                            'A': 'CAT1', 'B': 'CAT2', 'C': 'CAT3', 'D': 'CAT4', 'E': 'CAT5',
-                            'F': 'CAT6', 'G': 'CAT7', 'H': 'CAT8', 'I': 'CAT9', 'J': 'CAT10', 'K': 'CAT11'
-                        };
-
-                        teamLogs.forEach((l: any) => {
-                            const systemPrefix = l.systemId?.charAt(0).toUpperCase();
-                            const catId = categoryMap[systemPrefix];
-                            if (catId) uniqueCategoriesFound.add(catId);
-                        });
-
-                        // Award 1 point per category found
-                        totalTeamPoints += uniqueCategoriesFound.size;
+                        if (teamLogs.length > 0) {
+                            userInspections += 11;
+                        }
                     });
 
-                    const userInspections = totalTeamPoints;
-
                     // 2. Faults Found
-                    const userFaultsFound = filteredHistory.filter((h: any) =>
-                        (h.inspectorName === u.name)
-                    ).length;
+                    const userFaultsFound = filteredHistoryCreated.filter((h: any) => {
+                        const codes = h.inspectorCode ? (Array.isArray(h.inspectorCode) ? h.inspectorCode : h.inspectorCode.split(',').map((s: string) => s.trim())) : [];
+                        const names = h.inspectorName ? (Array.isArray(h.inspectorName) ? h.inspectorName : h.inspectorName.split(',').map((s: string) => s.trim())) : [];
+                        return codes.includes(u.code) || names.includes(u.name) || h.inspectorCode === u.code || h.inspectorName === u.name;
+                    }).length;
 
                     // 3. Fixes
-                    const userFixes = filteredHistory.filter((h: any) =>
-                        (h.resolverName === u.name)
-                    ).length;
+                    const userFixes = filteredHistory.filter((h: any) => {
+                        const codes = h.resolverCode ? (Array.isArray(h.resolverCode) ? h.resolverCode : h.resolverCode.split(',').map((s: string) => s.trim())) : [];
+                        const names = h.resolverName ? (Array.isArray(h.resolverName) ? h.resolverName : h.resolverName.split(',').map((s: string) => s.trim())) : [];
+                        return codes.includes(u.code) || names.includes(u.name) || h.resolverCode === u.code || h.resolverName === u.name;
+                    }).length;
 
                     // 4. Incidents
-                    const userIncidents = filteredIncidents.filter((i: any) =>
-                        (i.resolvedBy === u.name) || (i.participants && i.participants.includes(u.name))
-                    ).length;
+                    const userIncidents = filteredIncidents.filter((i: any) => {
+                        const codes = i.resolvedByCode ? (Array.isArray(i.resolvedByCode) ? i.resolvedByCode : i.resolvedByCode.split(',').map((s: string) => s.trim())) : [];
+                        const names = i.resolvedBy ? (Array.isArray(i.resolvedBy) ? i.resolvedBy : i.resolvedBy.split(',').map((s: string) => s.trim())) : [];
+                        const part = i.participants || [];
+                        const partArray = Array.isArray(part) ? part : part.split(',').map((s: string) => s.trim());
+                        return codes.includes(u.code) || names.includes(u.name) || partArray.includes(u.name) || partArray.includes(u.code) || i.resolvedByCode === u.code || i.resolvedBy === u.name;
+                    }).length;
 
-                    // 5. Project Execution
-                    const userProjectExec = filteredTasks.filter((t: any) =>
-                        (t.assignees && t.assignees.includes(u.code)) ||
-                        (t.assignedTo === u.code)
-                    ).length;
+                    // 5a. Maintenance (Bảo dưỡng)
+                    const userMaintenance = filteredTasks.filter((t: any) => {
+                        if (t.type === 'PROJECT') return false; // Default undefined is Maintenance
+                        const assignees = t.assignees || [];
+                        const arr = Array.isArray(assignees) ? assignees : assignees.split(',').map((s: string) => s.trim());
+                        return arr.includes(u.code) || arr.includes(u.name);
+                    }).length;
+
+                    // 5b. Project Execution (Thi công/Dự án)
+                    const userProjectExec = filteredTasks.filter((t: any) => {
+                        if (t.type !== 'PROJECT') return false;
+                        const assignees = t.assignees || [];
+                        const arr = Array.isArray(assignees) ? assignees : assignees.split(',').map((s: string) => s.trim());
+                        return arr.includes(u.code) || arr.includes(u.name);
+                    }).length;
 
                     // 6. Project Supervision
-                    const userProjectSup = filteredTasks.filter((t: any) =>
-                        (t.supervisors && t.supervisors.includes(u.code))
-                    ).length;
+                    const userProjectSup = filteredTasks.filter((t: any) => {
+                        const supervisors = t.supervisors || [];
+                        const arr = Array.isArray(supervisors) ? supervisors : supervisors.split(',').map((s: string) => s.trim());
+                        return arr.includes(u.code) || arr.includes(u.name);
+                    }).length;
 
-                    // 7. Negligence (Fast Checks)
-                    const fastChecks = filteredLogs.filter((l: any) =>
-                        ((l.inspectorCode === u.code) || (l.inspectorName === u.name)) &&
-                        l.duration !== undefined && l.duration < 30
-                    ).length;
+                    // 7. Negligence (Fast Checks) - Already counted above during duty checks
+                    const fastChecks = fastChecksCount;
 
                     return {
                         userId: u.id,
@@ -250,7 +288,7 @@ export default function KPIPage() {
                         inspectionCount: userInspections,
                         fixCount: userFixes,
                         incidentCount: userIncidents,
-                        maintenanceCount: userProjectExec,
+                        maintenanceCount: userMaintenance,
                         faultFoundCount: userFaultsFound,
                         projectExecCount: userProjectExec,
                         projectSupCount: userProjectSup,
@@ -259,6 +297,7 @@ export default function KPIPage() {
                             (userFaultsFound * SCORING_RULES.FAULT_FOUND) +
                             (userFixes * SCORING_RULES.FIX) +
                             (userIncidents * SCORING_RULES.INCIDENT) +
+                            (userMaintenance * SCORING_RULES.MAINTENANCE) +
                             (userProjectExec * SCORING_RULES.PROJECT_EXEC) +
                             (userProjectSup * SCORING_RULES.PROJECT_SUP) +
                             (fastChecks * SCORING_RULES.NEGLIGENCE)
@@ -274,9 +313,12 @@ export default function KPIPage() {
                 filteredLogs.forEach((l: any) => {
                     const datePart = l.timestamp.split(' ').find((p: string) => p.includes('/') || p.includes('-'));
                     if (!datePart) return;
-                    let isoDate = datePart.includes('/') ?
-                        `${datePart.split('/')[2]}-${datePart.split('/')[1].padStart(2, '0')}-${datePart.split('/')[0].padStart(2, '0')}` :
-                        datePart;
+
+                    const cleanDatePart = datePart.replace(/[^\d\/\-]/g, '');
+                    let isoDate = cleanDatePart.includes('/') ?
+                        `${cleanDatePart.split('/')[2]}-${cleanDatePart.split('/')[1].padStart(2, '0')}-${cleanDatePart.split('/')[0].padStart(2, '0')}` :
+                        cleanDatePart;
+
                     if (!logsByDate[isoDate]) logsByDate[isoDate] = [];
                     logsByDate[isoDate].push(l);
                 });
@@ -294,13 +336,9 @@ export default function KPIPage() {
                     const teamMembers = dayDuty.assignments?.map((a: any) => a.userCode) || [];
                     const teamLogs = logsByDate[dateStr].filter((l: any) => teamMembers.includes(l.inspectorCode));
 
-                    const dayUniqueCats = new Set<string>();
-                    teamLogs.forEach(l => {
-                        const prefix = l.systemId?.charAt(0).toUpperCase();
-                        const catId = categoryMap[prefix];
-                        if (catId) dayUniqueCats.add(catId);
-                    });
-                    globalInspections += dayUniqueCats.size;
+                    if (teamLogs.length > 0) {
+                        globalInspections += 11;
+                    }
                 });
                 setTotalInspectionsCount(globalInspections);
 
@@ -311,7 +349,7 @@ export default function KPIPage() {
 
         calculateStats();
 
-    }, [monthFilter, allUsers, logs, history, incidents, tasks]);
+    }, [monthFilter, allUsers, logs, history, incidents, tasks, duties]);
 
     if (currentUser?.role !== 'ADMIN') {
         return (
@@ -421,7 +459,7 @@ export default function KPIPage() {
                         Cơ cấu tính điểm KPI
                     </div>
                     <div className="overflow-x-auto">
-                        <div className="grid grid-cols-4 md:grid-cols-4 lg:grid-cols-7 min-w-[600px] gap-px bg-slate-200">
+                        <div className="grid grid-cols-4 md:grid-cols-4 lg:grid-cols-8 min-w-[700px] gap-px bg-slate-200">
                             <div className="bg-white p-3 text-center">
                                 <div className="text-[10px] text-slate-400 uppercase font-black">Kiểm tra</div>
                                 <div className="text-blue-600 font-black text-lg">+{SCORING_RULES.INSPECTION}</div>
@@ -437,6 +475,10 @@ export default function KPIPage() {
                             <div className="bg-white p-3 text-center">
                                 <div className="text-[10px] text-slate-400 uppercase font-black">Sự cố</div>
                                 <div className="text-purple-600 font-black text-lg">+{SCORING_RULES.INCIDENT}</div>
+                            </div>
+                            <div className="bg-white p-3 text-center">
+                                <div className="text-[10px] text-slate-400 uppercase font-black">Bảo dưỡng</div>
+                                <div className="text-cyan-600 font-black text-lg">+{SCORING_RULES.MAINTENANCE}</div>
                             </div>
                             <div className="bg-white p-3 text-center">
                                 <div className="text-[10px] text-slate-400 uppercase font-black">Thi công</div>
@@ -518,6 +560,14 @@ export default function KPIPage() {
                                         <span className="font-bold text-purple-600">{row.incidentCount || 0}</span>
                                     </div>
                                     <div className="flex justify-between border-b border-slate-50">
+                                        <span className="text-slate-400">Bảo dưỡng:</span>
+                                        <span className="font-bold text-cyan-600">{row.maintenanceCount || 0}</span>
+                                    </div>
+                                    <div className="flex justify-between border-b border-slate-50">
+                                        <span className="text-slate-400">Thi công:</span>
+                                        <span className="font-bold text-amber-600">{row.projectExecCount || 0}</span>
+                                    </div>
+                                    <div className="flex justify-between border-b border-slate-50">
                                         <span className="text-slate-400">Làm ẩu:</span>
                                         <span className="font-bold text-red-500">-{row.fastCheckCount || 0}</span>
                                     </div>
@@ -540,6 +590,8 @@ export default function KPIPage() {
                                     <th className="p-4 text-center text-indigo-600">Phát hiện lỗi</th>
                                     <th className="p-4 text-center text-green-600">Sửa lỗi</th>
                                     <th className="p-4 text-center text-purple-600">Sự cố</th>
+                                    <th className="p-4 text-center text-cyan-600">Bảo dưỡng</th>
+                                    <th className="p-4 text-center text-amber-600">Thi công</th>
                                     <th className="p-4 text-center text-red-600">Làm ẩu</th>
                                     <th className="p-4 text-center">Tổng điểm</th>
                                 </tr>
@@ -565,13 +617,15 @@ export default function KPIPage() {
                                         <td className="p-4 text-center font-medium text-indigo-600">{row.faultFoundCount || '-'}</td>
                                         <td className="p-4 text-center font-medium text-green-600">{row.fixCount}</td>
                                         <td className="p-4 text-center font-bold text-purple-600">{row.incidentCount || '-'}</td>
+                                        <td className="p-4 text-center font-bold text-cyan-600">{row.maintenanceCount || '-'}</td>
+                                        <td className="p-4 text-center font-bold text-amber-600">{row.projectExecCount || '-'}</td>
                                         <td className="p-4 text-center font-bold text-red-500">{row.fastCheckCount || '-'}</td>
                                         <td className="p-4 text-center font-bold text-slate-900 text-lg">{row.score}</td>
                                     </tr>
                                 ))}
                                 {stats.length === 0 && (
                                     <tr>
-                                        <td colSpan={8} className="p-8 text-center text-slate-500 italic">Chưa có dữ liệu cho tháng này.</td>
+                                        <td colSpan={10} className="p-8 text-center text-slate-500 italic">Chưa có dữ liệu cho tháng này.</td>
                                     </tr>
                                 )}
                             </tbody>
