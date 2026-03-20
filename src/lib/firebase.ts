@@ -299,7 +299,7 @@ export const resetKPIData = async () => {
 
     systemsSnapshot.docs.forEach((doc) => {
         systemBatch.update(doc.ref, {
-            status: "OK",
+            status: "NA",
             note: "",
             inspectorName: null,
             timestamp: null
@@ -318,7 +318,7 @@ export const resetKPIData = async () => {
         if (data.items && Array.isArray(data.items)) {
             const resetItems = data.items.map((i: any) => ({
                 ...i,
-                status: null,
+                status: "NA",
                 note: "",
                 timestamp: "",
                 inspectorName: null

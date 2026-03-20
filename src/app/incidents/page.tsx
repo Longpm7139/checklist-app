@@ -192,7 +192,7 @@ export default function IncidentsPage() {
                             <p className="text-slate-500 text-sm">Xử lý các sự cố khẩn cấp ngoài checklist</p>
                         </div>
                     </div>
-                    {currentUser?.role === 'ADMIN' && viewMode === 'LIST' && (
+                    {viewMode === 'LIST' && (
                         <div className="flex gap-2">
                             <button
                                 onClick={handleExport}

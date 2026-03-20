@@ -52,7 +52,7 @@ export default function ExportReportPage() {
 
     // Summary logic
     const totalSystems = systems.length;
-    const okSystems = systems.filter(s => s.status === 'OK' || !s.status).length; // Assume null is OK if not marked
+    const okSystems = systems.filter(s => s.status === 'OK').length;
     const nokSystems = systems.filter(s => s.status === 'NOK').length;
     const naSystems = systems.filter(s => s.status === 'NA').length;
     const nokItemsList = systems.filter(s => s.status === 'NOK');

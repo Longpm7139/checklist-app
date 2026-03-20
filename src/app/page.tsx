@@ -3,7 +3,11 @@
 import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { SystemCheck, Status, SystemCategory, MaintenanceTask } from '@/lib/types';
-import { Save, AlertCircle, Edit2, Trash2, Plus, Check, X, RotateCcw, History as HistoryIcon, CheckCheck, Search, LogOut, Users, Lock, ClipboardList, BarChart2, Package, Wrench, QrCode, Key, UserCheck, FileText } from 'lucide-react';
+import {
+  Save, AlertCircle, Edit2, Trash2, Plus, Check, X, RotateCcw, History as HistoryIcon,
+  CheckCheck, Search, LogOut, Users, Lock, ClipboardList, BarChart2, Package,
+  Wrench, QrCode, Key, UserCheck, FileText, ArrowRight, CheckCircle, Filter
+} from 'lucide-react';
 import clsx from 'clsx';
 import { useUser } from '@/providers/UserProvider';
 import ChangePasswordModal from '@/components/ChangePasswordModal';
@@ -23,41 +27,41 @@ const DEFAULT_CATEGORIES: SystemCategory[] = [
 ];
 
 const DEFAULT_SYSTEMS: SystemCheck[] = [
-  { id: 'A1', categoryId: 'CAT1', name: 'Cầu số 1', status: null, note: '' },
-  { id: 'A2', categoryId: 'CAT1', name: 'Cầu số 2', status: null, note: '' },
-  { id: 'A3', categoryId: 'CAT1', name: 'Cầu số 3', status: null, note: '' },
-  { id: 'A4', categoryId: 'CAT1', name: 'Cầu số 4', status: null, note: '' },
-  { id: 'A5', categoryId: 'CAT1', name: 'Cầu số 5', status: null, note: '' },
+  { id: 'A1', categoryId: 'CAT1', name: 'Cầu số 1', status: 'NA', note: '' },
+  { id: 'A2', categoryId: 'CAT1', name: 'Cầu số 2', status: 'NA', note: '' },
+  { id: 'A3', categoryId: 'CAT1', name: 'Cầu số 3', status: 'NA', note: '' },
+  { id: 'A4', categoryId: 'CAT1', name: 'Cầu số 4', status: 'NA', note: '' },
+  { id: 'A5', categoryId: 'CAT1', name: 'Cầu số 5', status: 'NA', note: '' },
 
-  { id: 'B1', categoryId: 'CAT2', name: 'Dẫn đỗ D1', status: null, note: '' },
-  { id: 'B2', categoryId: 'CAT2', name: 'Dẫn đỗ D2', status: null, note: '' },
+  { id: 'B1', categoryId: 'CAT2', name: 'Dẫn đỗ D1', status: 'NA', note: '' },
+  { id: 'B2', categoryId: 'CAT2', name: 'Dẫn đỗ D2', status: 'NA', note: '' },
 
-  { id: 'C1', categoryId: 'CAT3', name: 'Máy soi 1', status: null, note: '' },
-  { id: 'C2', categoryId: 'CAT3', name: 'Máy soi 2', status: null, note: '' },
+  { id: 'C1', categoryId: 'CAT3', name: 'Máy soi 1', status: 'NA', note: '' },
+  { id: 'C2', categoryId: 'CAT3', name: 'Máy soi 2', status: 'NA', note: '' },
 
-  { id: 'D1', categoryId: 'CAT4', name: 'Cổng từ 1', status: null, note: '' },
-  { id: 'D2', categoryId: 'CAT4', name: 'Cổng từ 2', status: null, note: '' },
+  { id: 'D1', categoryId: 'CAT4', name: 'Cổng từ 1', status: 'NA', note: '' },
+  { id: 'D2', categoryId: 'CAT4', name: 'Cổng từ 2', status: 'NA', note: '' },
 
-  { id: 'E1', categoryId: 'CAT5', name: 'TDS 1', status: null, note: '' },
-  { id: 'E2', categoryId: 'CAT5', name: 'TDS 2', status: null, note: '' },
+  { id: 'E1', categoryId: 'CAT5', name: 'TDS 1', status: 'NA', note: '' },
+  { id: 'E2', categoryId: 'CAT5', name: 'TDS 2', status: 'NA', note: '' },
 
-  { id: 'F1', categoryId: 'CAT6', name: 'ACS 1', status: null, note: '' },
-  { id: 'F2', categoryId: 'CAT6', name: 'ACS 2', status: null, note: '' },
+  { id: 'F1', categoryId: 'CAT6', name: 'ACS 1', status: 'NA', note: '' },
+  { id: 'F2', categoryId: 'CAT6', name: 'ACS 2', status: 'NA', note: '' },
 
-  { id: 'G1', categoryId: 'CAT7', name: 'TEL 1', status: null, note: '' },
-  { id: 'G2', categoryId: 'CAT7', name: 'TEL 2', status: null, note: '' },
+  { id: 'G1', categoryId: 'CAT7', name: 'TEL 1', status: 'NA', note: '' },
+  { id: 'G2', categoryId: 'CAT7', name: 'TEL 2', status: 'NA', note: '' },
 
-  { id: 'H1', categoryId: 'CAT8', name: 'CCTV 1', status: null, note: '' },
-  { id: 'H2', categoryId: 'CAT8', name: 'CCTV 2', status: null, note: '' },
+  { id: 'H1', categoryId: 'CAT8', name: 'CCTV 1', status: 'NA', note: '' },
+  { id: 'H2', categoryId: 'CAT8', name: 'CCTV 2', status: 'NA', note: '' },
 
-  { id: 'I1', categoryId: 'CAT9', name: 'ETC 1', status: null, note: '' },
-  { id: 'I2', categoryId: 'CAT9', name: 'ETC 2', status: null, note: '' },
+  { id: 'I1', categoryId: 'CAT9', name: 'ETC 1', status: 'NA', note: '' },
+  { id: 'I2', categoryId: 'CAT9', name: 'ETC 2', status: 'NA', note: '' },
 
-  { id: 'J1', categoryId: 'CAT10', name: 'Thu phí XM 1', status: null, note: '' },
-  { id: 'J2', categoryId: 'CAT10', name: 'Thu phí XM 2', status: null, note: '' },
+  { id: 'J1', categoryId: 'CAT10', name: 'Thu phí XM 1', status: 'NA', note: '' },
+  { id: 'J2', categoryId: 'CAT10', name: 'Thu phí XM 2', status: 'NA', note: '' },
 
-  { id: 'K1', categoryId: 'CAT11', name: 'Cửa trượt 1', status: null, note: '' },
-  { id: 'K2', categoryId: 'CAT11', name: 'Cửa trượt 2', status: null, note: '' },
+  { id: 'K1', categoryId: 'CAT11', name: 'Cửa trượt 1', status: 'NA', note: '' },
+  { id: 'K2', categoryId: 'CAT11', name: 'Cửa trượt 2', status: 'NA', note: '' },
 ];
 
 import { subscribeToSystems, saveSystem, deleteSystem, subscribeToIncidents, backupAllData, subscribeToDuties, addLog, subscribeToMaintenance } from '@/lib/firebase';
@@ -132,7 +136,7 @@ export default function Home() {
     const now = new Date().toLocaleString('vi-VN', { hour: '2-digit', minute: '2-digit', day: '2-digit', month: '2-digit', year: 'numeric' });
     const target = systems.find(s => s.id === id);
     if (target) {
-      const updated = { ...target, status, timestamp: now, inspectorName: user?.name };
+      const updated = { ...target, status, timestamp: now, inspectorName: user?.name, inspectorCode: user?.code };
       await saveSystem(id, updated);
 
       // Clear error
@@ -150,7 +154,7 @@ export default function Home() {
     const now = new Date().toLocaleString('vi-VN', { hour: '2-digit', minute: '2-digit', day: '2-digit', month: '2-digit', year: 'numeric' });
     const target = systems.find(s => s.id === id);
     if (target) {
-      const updated = { ...target, note, timestamp: now, inspectorName: user?.name };
+      const updated = { ...target, note, timestamp: now, inspectorName: user?.name, inspectorCode: user?.code };
       await saveSystem(id, updated);
       if (note.trim()) {
         setErrors(prev => {
@@ -180,7 +184,7 @@ export default function Home() {
       id: cleanId,
       categoryId: categoryId,
       name: nameInput.trim(),
-      status: null,
+      status: 'NA',
       note: ''
     };
     await saveSystem(cleanId, newSystem);
@@ -240,8 +244,14 @@ export default function Home() {
 
     // Iterate and save individually. Firestore batch is better but this is simpler for now.
     systems.forEach(async (s) => {
-      if (!s.status) {
-        await saveSystem(s.id, { ...s, status: 'OK', timestamp: now, inspectorName: user?.name });
+      if (s.status === 'NA' || !s.status) {
+        await saveSystem(s.id, {
+          ...s,
+          status: 'OK',
+          timestamp: now,
+          inspectorName: user?.name,
+          inspectorCode: user?.code
+        });
 
         // ADD LOG to ensure KPI points are counted!
         await addLog({
@@ -263,17 +273,37 @@ export default function Home() {
     setErrors(prev => {
       const next = new Set(prev);
       systems.forEach(s => {
-        if (!s.status) next.delete(s.id); // If we set it to OK, remove error
+        if (s.status === 'NA') next.delete(s.id); // If we set it to OK, remove error
       });
       return next;
     });
   };
 
+  const handleStartNewShift = async () => {
+    if (confirm('Bắt đầu ca trực mới? Thao tác này sẽ reset các trạng thái OK về NA, nhưng GIỮ NGUYÊN các lỗi chưa sửa và MỞ KHÓA để ca sau có thể tiếp tục làm việc.')) {
+      const promises = systems.map(s => {
+        const isNOK = s.status === 'NOK';
+        return saveSystem(s.id, {
+          ...s,
+          status: isNOK ? 'NOK' : 'NA',
+          // Only clear note if it was OK or NA. Keep notes for NOK.
+          note: isNOK ? s.note : '',
+          timestamp: isNOK ? s.timestamp : '',
+          // CLEAR inspector info to UNLOCK for the next shift
+          inspectorName: null,
+          inspectorCode: null
+        });
+      });
+      await Promise.all(promises);
+      alert('Đã giao ca thành công! Các lỗi chưa sửa đã được giữ lại và mở khóa cho ca mới.');
+    }
+  };
+
   const handleSaveChecklist = () => {
     // 1. Validate NOK and NA notes
     const newErrors = new Set<string>();
-    // Filter for both NOK and NA
-    const itemsRequiringNote = systems.filter(s => s.status === 'NOK' || s.status === 'NA');
+    // Filter for NOK only (NA is default)
+    const itemsRequiringNote = systems.filter(s => s.status === 'NOK');
 
     itemsRequiringNote.forEach(s => {
       if (!s.note.trim()) {
@@ -283,37 +313,54 @@ export default function Home() {
 
     if (newErrors.size > 0) {
       setErrors(newErrors);
-      alert('Vui lòng nhập ghi chú cho các mục NOK hoặc NA!');
+      alert('Vui lòng nhập ghi chú cho các mục NOK!');
       return;
     }
 
-    // 1.5 Validate that ALL systems have a status selected (Mandatory Check)
-    const uncheckedSystems = systems.filter(s => !s.status);
-    if (uncheckedSystems.length > 0) {
-      const missingNames = uncheckedSystems.map(s => s.name).join(', ');
-      alert(`Bạn chưa kiểm tra các mục sau:\n${missingNames}\n\nVui lòng hoàn thành trạng thái cho tất cả hệ thống!`);
+    // 1.5 Validate that ALL systems in a CATEGORY are checked if the category was started
+    const uncheckedCategories: string[] = [];
+    const checkedCountTotal = systems.filter(s => s.status && s.status !== 'NA').length;
+
+    if (checkedCountTotal === 0) {
+      alert('Vui lòng thực hiện kiểm tra ít nhất một hệ thống trước khi Lưu!');
+      return;
+    }
+
+    categories.forEach(cat => {
+      const catSystems = systems.filter(s => s.categoryId === cat.id);
+      const isAnyChecked = catSystems.some(s => s.status && s.status !== 'NA');
+      const allChecked = catSystems.every(s => s.status && s.status !== 'NA');
+
+      if (isAnyChecked && !allChecked) {
+        uncheckedCategories.push(cat.name);
+      }
+    });
+
+    if (uncheckedCategories.length > 0) {
+      alert(`Bạn đang kiểm tra dở dang các nhóm sau:\n${uncheckedCategories.map(name => `• ${name}`).join('\n')}\n\nVui lòng hoàn thành tất cả hệ thống trong nhóm đã chọn để Lưu!`);
       return;
     }
 
     // 2. Save is already handled by individual updates.
 
-    // 3. Redirect logic: Link to first NOK
-    const nokItems = systems.filter(s => s.status === 'NOK');
-    if (nokItems.length > 0) {
-      // Go to the first NOK system found
-      router.push(`/check/${nokItems[0].id}`);
+    // 3. Redirect logic: Link to first NOK reported by CURRENT USER
+    const myNokItems = systems.filter(s => s.status === 'NOK' && s.inspectorCode === user?.code);
+
+    if (myNokItems.length > 0) {
+      // Go to the first NOK system reported by this user
+      router.push(`/check/${myNokItems[0].id}`);
     } else {
-      // All OK -> Summary
+      // All of my systems are OK or I checked nothing -> Summary
       router.push('/summary');
     }
   };
 
-  const hasErrors = systems.some(s => s.status === 'NOK' || s.status === 'NA');
+  const hasErrors = systems.some(s => s.status === 'NOK');
 
   // Compute failed category names for the button
   const failedCategoryIds = Array.from(new Set(
     systems
-      .filter(s => s.status === 'NOK' || s.status === 'NA')
+      .filter(s => s.status === 'NOK')
       .map(s => s.categoryId)
   ));
 
@@ -321,7 +368,7 @@ export default function Home() {
     return categories.find(c => c.id === id)?.name || id;
   }).join(', ');
 
-  const buttonText = hasErrors ? `${failedCategoryNames}` : "Tất cả OK";
+  const buttonText = hasErrors ? `${failedCategoryNames}` : "Tất cả hệ thống";
 
 
 
@@ -517,10 +564,27 @@ export default function Home() {
                     </div>
                   </div>
                 </div>
-                <div className="text-right w-full md:w-auto">
+                <div className="text-right w-full md:w-auto flex flex-col items-end gap-2">
                   <span className="text-xs font-medium opacity-70 italic">* Bạn và đồng đội hỗ trợ nhau kiểm tra các nhóm trên.</span>
+                  <button
+                    onClick={handleStartNewShift}
+                    className="bg-white/20 hover:bg-white/30 text-white px-3 py-1.5 rounded-lg border border-white/40 text-sm font-bold flex items-center gap-2 transition active:scale-95 shadow-sm"
+                  >
+                    <RotateCcw size={16} /> Bắt đầu ca trực mới
+                  </button>
                 </div>
               </div>
+            </div>
+          )}
+
+          {!isUserOnDuty && (
+            <div className="mb-4 flex justify-end">
+              <button
+                onClick={handleStartNewShift}
+                className="bg-slate-200 hover:bg-slate-300 text-slate-700 px-4 py-2 rounded-xl text-sm font-bold flex items-center gap-2 transition active:scale-95 shadow-sm border border-slate-300"
+              >
+                <RotateCcw size={18} /> Bắt đầu ca trực mới
+              </button>
             </div>
           )}
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
@@ -530,38 +594,41 @@ export default function Home() {
                 <div>
                   <h3 className="text-slate-500 text-xs font-bold uppercase tracking-wider">Tiến độ kiểm tra</h3>
                   <div className="text-2xl font-bold text-slate-800 flex items-baseline gap-1">
-                    {Math.round((systems.filter(s => s.status).length / systems.length) * 100) || 0}%
+                    {Math.round((systems.filter(s => s.status && s.status !== 'NA').length / systems.length) * 100) || 0}%
                     <span className="text-sm font-normal text-slate-500">
-                      ({systems.filter(s => s.status).length}/{systems.length})
+                      ({systems.filter(s => s.status && s.status !== 'NA').length}/{systems.length})
                     </span>
                   </div>
                 </div>
                 <div className={clsx(
                   "p-2 rounded-lg transition-colors",
-                  systems.every(s => s.status) ? "bg-green-100 text-green-600" : "bg-blue-100 text-blue-600"
+                  systems.every(s => s.status !== 'NA') ? "bg-green-100 text-green-600" : "bg-blue-100 text-blue-600"
                 )}>
-                  {systems.every(s => s.status) ? <CheckCheck size={20} /> : <ClipboardList size={20} />}
+                  {systems.every(s => s.status !== 'NA') ? <CheckCheck size={20} /> : <ClipboardList size={20} />}
                 </div>
               </div>
               <div className="w-full bg-slate-100 rounded-full h-2.5 mb-2">
                 <div
                   className={clsx("h-2.5 rounded-full transition-all duration-500",
-                    systems.every(s => s.status) ? "bg-green-500" : "bg-blue-600"
+                    systems.every(s => s.status !== 'NA') ? "bg-green-500" : "bg-blue-600"
                   )}
-                  style={{ width: `${(systems.filter(s => s.status).length / systems.length) * 100}%` }}
+                  style={{ width: `${(systems.filter(s => s.status !== 'NA').length / systems.length) * 100}%` }}
                 ></div>
               </div>
               <div className="flex justify-between text-xs font-medium">
-                <span className="text-blue-600">Đã kiểm: {systems.filter(s => s.status).length}</span>
-                <span className="text-slate-400">Chưa kiểm: {systems.filter(s => !s.status).length}</span>
+                <span className="text-blue-600">Đã kiểm: {systems.filter(s => s.status !== 'NA').length}</span>
+                <span className="text-slate-400">Chưa kiểm: {systems.filter(s => s.status === 'NA').length}</span>
               </div>
             </div>
 
             {/* Incidents Card */}
-            <div className="bg-white p-4 rounded-lg shadow-sm border border-slate-200">
+            <div
+              onClick={() => router.push('/incidents')}
+              className="bg-white p-4 rounded-lg shadow-sm border border-slate-200 cursor-pointer hover:shadow-md hover:border-red-300 transition-all active:scale-95 group"
+            >
               <div className="flex justify-between items-start">
                 <div>
-                  <h3 className="text-slate-500 text-xs font-bold uppercase tracking-wider">Sự cố chờ xử lý</h3>
+                  <h3 className="text-slate-500 text-xs font-bold uppercase tracking-wider group-hover:text-red-600 transition-colors">Sự cố chờ xử lý</h3>
                   <div className="text-2xl font-bold text-slate-800">
                     {incidents.filter((i: any) => i.status === 'OPEN').length}
                   </div>
@@ -570,8 +637,8 @@ export default function Home() {
                   <AlertCircle size={20} />
                 </div>
               </div>
-              <div className="mt-4 text-xs text-red-600 font-medium">
-                Cần khắc phục ngay!
+              <div className="mt-4 text-xs text-red-600 font-medium flex items-center gap-1">
+                Cần khắc phục ngay! <ArrowRight size={12} className="opacity-0 group-hover:opacity-100 transition-all transform translate-x-0 group-hover:translate-x-1" />
               </div>
             </div>
 
@@ -594,20 +661,24 @@ export default function Home() {
             </div>
 
             {/* Issues Card */}
-            <div className="bg-white p-4 rounded-lg shadow-sm border border-slate-200">
+            <div
+              onClick={() => router.push('/fixed')}
+              className="bg-white p-4 rounded-lg shadow-sm border border-slate-200 cursor-pointer hover:shadow-md hover:border-amber-300 transition-all active:scale-95 group"
+            >
               <div className="flex justify-between items-start">
                 <div>
-                  <h3 className="text-slate-500 text-xs font-bold uppercase tracking-wider">Lỗi phát hiện hôm nay</h3>
+                  <h3 className="text-slate-500 text-xs font-bold uppercase tracking-wider group-hover:text-amber-600 transition-colors">Lỗi phát hiện hôm nay</h3>
                   <div className="text-2xl font-bold text-slate-800">
                     {systems.filter(s => s.status === 'NOK').length}
                   </div>
                 </div>
-                <div className={clsx("p-2 rounded-lg", systems.some(s => s.status === 'NOK') ? "bg-amber-100 text-amber-600" : "bg-green-100 text-green-600")}>
+                <div className={clsx("p-2 rounded-lg transition-colors", systems.some(s => s.status === 'NOK') ? "bg-amber-100 text-amber-600" : "bg-green-100 text-green-600")}>
                   {systems.some(s => s.status === 'NOK') ? <AlertCircle size={20} /> : <CheckCheck size={20} />}
                 </div>
               </div>
-              <div className="mt-4 text-xs text-slate-400">
-                {systems.some(s => s.status === 'NOK') ? "Vui lòng ghi chú chi tiết lỗi." : "Hệ thống hoạt động ổn định."}
+              <div className="mt-4 text-xs text-slate-400 flex items-center justify-between">
+                <span>{systems.filter(s => s.status === 'NOK').length > 0 ? "Bấm để xem danh sách lỗi" : "Hệ thống ổn định"}</span>
+                {systems.some(s => s.status === 'NOK') && <ArrowRight size={12} className="text-amber-500 opacity-50 group-hover:opacity-100 transition-all transform translate-x-0 group-hover:translate-x-1" />}
               </div>
             </div>
           </div>
@@ -679,8 +750,20 @@ export default function Home() {
                                 className="border border-slate-300 rounded px-2 py-1 w-full text-sm font-bold focus:border-blue-500 outline-none"
                               />
                             ) : (
-                              <div className="font-bold text-slate-800 flex items-center gap-2">
-                                {sys.name} <span className="text-[10px] bg-slate-100 px-1.5 py-0.5 rounded text-slate-500 uppercase font-mono">{sys.id}</span>
+                              <div className="font-bold text-slate-800 flex items-center justify-between gap-2 w-full">
+                                <div className="flex items-center gap-2">
+                                  {sys.name} <span className="text-[10px] bg-slate-100 px-1.5 py-0.5 rounded text-slate-500 uppercase font-mono">{sys.id}</span>
+                                </div>
+                                {sys.status !== 'NA' && sys.inspectorCode && sys.inspectorCode !== user?.code && (
+                                  <span className="text-[10px] bg-amber-100 text-amber-700 font-bold px-2 py-0.5 rounded-full border border-amber-200 animate-pulse">
+                                    Locked: {sys.inspectorName}
+                                  </span>
+                                )}
+                                {sys.status === 'NA' && systems.some(s => s.categoryId === sys.categoryId && s.status !== 'NA' && s.inspectorCode && s.inspectorCode !== user?.code) && (
+                                  <span className="text-[10px] bg-amber-100 text-amber-700 font-bold px-2 py-0.5 rounded-full border border-amber-200">
+                                    Locked by {systems.find(s => s.categoryId === sys.categoryId && s.status !== 'NA' && s.inspectorCode && s.inspectorCode !== user?.code)?.inspectorName}
+                                  </span>
+                                )}
                               </div>
                             )}
                           </div>
@@ -694,14 +777,20 @@ export default function Home() {
                         </div>
 
                         {/* Status Selection (Mobile optimized) */}
-                        <div className={clsx("grid grid-cols-3 gap-2 mb-3", isEditMode && "opacity-50 pointer-events-none")}>
+                        <div className={clsx(
+                          "grid grid-cols-3 gap-2 mb-3",
+                          (isEditMode ||
+                            (sys.status !== 'NA' && sys.inspectorCode && sys.inspectorCode !== user?.code) ||
+                            (sys.status === 'NA' && systems.some(s => s.categoryId === sys.categoryId && s.status !== 'NA' && s.inspectorCode && s.inspectorCode !== user?.code))
+                          ) && "opacity-50 pointer-events-none"
+                        )}>
                           {(['OK', 'NOK', 'NA'] as Status[]).map(st => (
                             <button
                               key={st}
                               onClick={() => handleStatusChange(sys.id, st)}
                               className={clsx(
                                 "py-3 rounded-lg font-bold text-sm border shadow-sm transition active:scale-95 flex items-center justify-center",
-                                sys.status === st
+                                sys.status === st || (st === 'NA' && !sys.status)
                                   ? (st === 'OK' ? "bg-green-600 text-white border-green-700" :
                                     st === 'NOK' ? "bg-red-600 text-white border-red-700" :
                                       "bg-slate-600 text-white border-slate-700")
@@ -715,17 +804,25 @@ export default function Home() {
 
                         {/* Note Input */}
                         <div className="relative">
-                          <input
-                            disabled={isEditMode || sys.status === 'OK'}
-                            className={clsx(
-                              "w-full p-3 border rounded-lg text-sm outline-none transition-all",
-                              errors.has(sys.id) ? "border-red-500 bg-red-50 ring-2 ring-red-200" : "border-slate-200 focus:border-blue-500 bg-slate-50/50",
-                              (isEditMode || sys.status === 'OK') && "bg-slate-100 text-slate-400 cursor-not-allowed opacity-60"
-                            )}
-                            placeholder={errors.has(sys.id) ? "⚠️ Bắt buộc nhập ghi chú!" : (sys.status === 'OK' ? "✅ OK - Không ghi chú" : "📝 Ghi chú...")}
-                            value={sys.note}
-                            onChange={(e) => handleNoteChange(sys.id, e.target.value)}
-                          />
+                          {(() => {
+                            const isLocked = !!(isEditMode ||
+                              sys.status === 'OK' ||
+                              (sys.status !== 'NA' && sys.inspectorCode && sys.inspectorCode !== user?.code) ||
+                              (sys.status === 'NA' && systems.some(s => s.categoryId === sys.categoryId && s.status !== 'NA' && s.inspectorCode && s.inspectorCode !== user?.code)));
+                            return (
+                              <input
+                                disabled={isLocked}
+                                className={clsx(
+                                  "w-full p-3 border rounded-lg text-sm outline-none transition-all",
+                                  errors.has(sys.id) ? "border-red-500 bg-red-50 ring-2 ring-red-200" : "border-slate-200 focus:border-blue-500 bg-slate-50/50",
+                                  isLocked && "bg-slate-100 text-slate-400 cursor-not-allowed opacity-60"
+                                )}
+                                placeholder={errors.has(sys.id) ? "⚠️ Bắt buộc nhập ghi chú!" : (sys.status === 'OK' ? "✅ OK - Không ghi chú" : "📝 Ghi chú...")}
+                                value={sys.note}
+                                onChange={(e) => handleNoteChange(sys.id, e.target.value)}
+                              />
+                            );
+                          })()}
                         </div>
                       </div>
                     ))}
@@ -795,37 +892,60 @@ export default function Home() {
                             )}
                           </td>
                           <td className="p-3 border border-slate-300 text-center">
-                            <div className={clsx("flex gap-1 justify-center", isEditMode && "opacity-50 pointer-events-none")}>
-                              {(['OK', 'NOK', 'NA'] as Status[]).map(st => (
-                                <button
-                                  key={st}
-                                  onClick={() => handleStatusChange(sys.id, st)}
-                                  className={clsx(
-                                    "px-3 py-1 rounded font-bold text-xs border transition w-12",
-                                    sys.status === st
-                                      ? (st === 'OK' ? "bg-green-600 text-white border-green-700" :
-                                        st === 'NOK' ? "bg-red-600 text-white border-red-700" :
-                                          "bg-slate-600 text-white border-slate-700")
-                                      : "bg-white text-slate-500 border-slate-300 hover:bg-slate-100"
+                            {(() => {
+                              const otherInspector = systems.find(s => s.categoryId === sys.categoryId && s.status !== 'NA' && s.inspectorCode && s.inspectorCode !== user?.code)?.inspectorName;
+                              const isCategoryLocked = !!otherInspector;
+
+                              return (
+                                <>
+                                  {isCategoryLocked && (
+                                    <div className="text-[10px] text-amber-600 font-bold mb-1">Locked by {otherInspector}</div>
                                   )}
-                                >
-                                  {st}
-                                </button>
-                              ))}
-                            </div>
+                                  <div className={clsx(
+                                    "flex gap-1 justify-center",
+                                    (isEditMode || isCategoryLocked || (sys.status !== 'NA' && sys.inspectorCode && sys.inspectorCode !== user?.code)) && "opacity-50 pointer-events-none"
+                                  )}>
+                                    {(['OK', 'NOK', 'NA'] as Status[]).map(st => (
+                                      <button
+                                        key={st}
+                                        onClick={() => handleStatusChange(sys.id, st)}
+                                        className={clsx(
+                                          "px-2 py-1 rounded text-xs font-bold border transition w-10 shadow-sm",
+                                          (sys.status === st || (st === 'NA' && !sys.status))
+                                            ? (st === 'OK' ? "bg-green-600 text-white border-green-700" :
+                                              st === 'NOK' ? "bg-red-600 text-white border-red-700" :
+                                                "bg-slate-600 text-white border-slate-700")
+                                            : "bg-white text-slate-500 border-slate-300 hover:bg-slate-100"
+                                        )}
+                                      >
+                                        {st}
+                                      </button>
+                                    ))}
+                                  </div>
+                                </>
+                              );
+                            })()}
                           </td>
                           <td className="p-3 border border-slate-300">
-                            <input
-                              disabled={isEditMode || sys.status === 'OK'}
-                              className={clsx(
-                                "w-full p-2 border rounded text-sm outline-none",
-                                errors.has(sys.id) ? "border-red-500 bg-red-50 placeholder-red-300" : "border-slate-200 focus:border-blue-500",
-                                (isEditMode || sys.status === 'OK') && "bg-slate-100 text-slate-400 cursor-not-allowed"
-                              )}
-                              placeholder={errors.has(sys.id) ? "Bắt buộc nhập ghi chú!" : (sys.status === 'OK' ? "OK không cần ghi chú" : "Ghi chú...")}
-                              value={sys.note}
-                              onChange={(e) => handleNoteChange(sys.id, e.target.value)}
-                            />
+                            {(() => {
+                              const isLocked = !!(isEditMode ||
+                                sys.status === 'OK' ||
+                                (sys.status !== 'NA' && sys.inspectorCode && sys.inspectorCode !== user?.code) ||
+                                (sys.status === 'NA' && systems.some(s => s.categoryId === sys.categoryId && s.status !== 'NA' && s.inspectorCode && s.inspectorCode !== user?.code)));
+                              return (
+                                <input
+                                  disabled={isLocked}
+                                  className={clsx(
+                                    "w-full p-2 border rounded text-sm outline-none",
+                                    errors.has(sys.id) ? "border-red-500 bg-red-50 placeholder-red-300" : "border-slate-200 focus:border-blue-500",
+                                    isLocked && "bg-slate-100 text-slate-400 cursor-not-allowed"
+                                  )}
+                                  placeholder={errors.has(sys.id) ? "Bắt buộc nhập ghi chú!" : (sys.status === 'OK' ? "OK không cần ghi chú" : "Ghi chú...")}
+                                  value={sys.note}
+                                  onChange={(e) => handleNoteChange(sys.id, e.target.value)}
+                                />
+                              );
+                            })()}
                           </td>
                         </tr>
                       ))}

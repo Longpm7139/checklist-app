@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react';
 import { useRouter, useParams } from 'next/navigation';
 import { ChecklistItem, Status, SystemCheck } from '@/lib/types';
-import { Save, ArrowLeft, Clock, Settings, Plus, Trash2, X } from 'lucide-react';
+import { Save, ArrowLeft, Clock, Settings, Plus, Trash2, X, MessageSquare, Send } from 'lucide-react';
 import clsx from 'clsx';
 import { subscribeToSystems, subscribeToChecklist, saveChecklist, saveSystem, addLog, saveHistoryItem } from '@/lib/firebase';
 import { useUser } from '@/providers/UserProvider';
@@ -60,7 +60,7 @@ export default function CheckPage() {
                 setItems(DEFAULT_TEMPLATE.map((t: any) => ({
                     id: t.id,
                     content: t.content,
-                    status: null,
+                    status: 'NA',
                     note: '',
                     timestamp: ''
                 })));
@@ -89,6 +89,7 @@ export default function CheckPage() {
                     timestamp: now,
                     // Preserve existing inspector if it's already set (to avoid overwriting detector with repairer who adds a note)
                     inspectorName: i.inspectorName || user?.name,
+                    inspectorCode: i.inspectorCode || user?.code,
                     note: val === 'OK' ? '' : i.note // Clear note if OK
                 };
             }
@@ -99,7 +100,7 @@ export default function CheckPage() {
 
     const handleNoteChange = (id: string, val: string) => {
         const now = new Date().toLocaleString('vi-VN', { hour: '2-digit', minute: '2-digit', day: '2-digit', month: '2-digit', year: 'numeric' });
-        setItems(prev => prev.map(i => i.id === id ? { ...i, note: val, timestamp: now, inspectorName: i.inspectorName || user?.name } : i));
+        setItems(prev => prev.map(i => i.id === id ? { ...i, note: val, timestamp: now, inspectorName: i.inspectorName || user?.name, inspectorCode: i.inspectorCode || user?.code } : i));
         setIsDirty(true);
     };
 
@@ -108,7 +109,7 @@ export default function CheckPage() {
         setItems(prev => [...prev, {
             id: newId,
             content: '',
-            status: null,
+            status: 'NA',
             note: '',
             timestamp: ''
         }]);
@@ -127,25 +128,51 @@ export default function CheckPage() {
         setIsDirty(true);
     };
 
+    const handleShareZalo = async () => {
+        const nokItems = items.filter(i => i.status === 'NOK');
+        if (nokItems.length === 0) {
+            alert('Chỉ có thể gửi báo cáo Zalo khi phát hiện lỗi (NOK).');
+            return;
+        }
+
+        const now = new Date().toLocaleString('vi-VN', { hour: '2-digit', minute: '2-digit', day: '2-digit', month: '2-digit', year: 'numeric' });
+
+        const message = `⚠️ [BÁO LỖI HỆ THỐNG]\n` +
+            `- Hệ thống: ${systemName}\n` +
+            `- Mã ID: ${systemId}\n` +
+            `- Chi tiết lỗi:\n${nokItems.map((item, idx) => `  ${idx + 1}. ${item.content}: ${item.note || 'Chưa có ghi chú'}`).join('\n')}\n` +
+            `- Người báo: ${user?.name || 'Nhân viên'}\n` +
+            `- Thời gian: ${now}`;
+
+        // Only copy to clipboard (Manual paste as requested)
+        try {
+            await navigator.clipboard.writeText(message);
+            alert('ĐÃ SAO CHÉP: Nội dung báo cáo lỗi đã được lưu vào bộ nhớ tạm!\nBây giờ bạn chỉ cần mở Zalo và Dán (Ctrl+V) vào nhóm để gửi.');
+        } catch (copyErr) {
+            console.log('Clipboard copy failed:', copyErr);
+            alert('Không thể sao chép tự động. Vui lòng chụp ảnh màn hình để báo cáo.');
+        }
+    };
+
     const handleSave = async () => {
         setErrorMessage(''); // Clear previous errors
         try {
             // 1. Validation
-            const uncheckedItems = items.filter(i => !i.status);
+            const uncheckedItems = items.filter(i => i.status === 'NA');
             if (uncheckedItems.length > 0) {
                 const missingIndices = items
-                    .map((item, index) => !item.status ? (index + 1) : null)
+                    .map((item, index) => item.status === 'NA' ? (index + 1) : null)
                     .filter(val => val !== null)
                     .join(', ');
                 setErrorMessage(`Chưa chọn trạng thái các mục: ${missingIndices}`);
                 return;
             }
 
-            // Check validation for NOK/NA notes
-            const itemsRequiringNote = items.filter(i => (i.status === 'NOK' || i.status === 'NA') && !(i.note || '').trim());
+            // Check validation for NOK notes
+            const itemsRequiringNote = items.filter(i => i.status === 'NOK' && !(i.note || '').trim());
             if (itemsRequiringNote.length > 0) {
                 const missingNoteIndices = items
-                    .map((item, index) => ((item.status === 'NOK' || item.status === 'NA') && !(item.note || '').trim()) ? (index + 1) : null)
+                    .map((item, index) => (item.status === 'NOK' && !(item.note || '').trim()) ? (index + 1) : null)
                     .filter(val => val !== null)
                     .join(', ');
                 setErrorMessage(`Thiếu ghi chép các mục lỗi: ${missingNoteIndices}`);
@@ -173,22 +200,22 @@ export default function CheckPage() {
                 // Proceed to navigation directly
             } else {
                 // --- SAVE TO FIREBASE ---
+                const now = new Date().toLocaleString('vi-VN', { hour: '2-digit', minute: '2-digit', day: '2-digit', month: '2-digit', year: 'numeric' });
 
                 // 1. Save Details
                 await saveChecklist(systemId, items);
 
-                // 2. Update System Status
-                const hasErrors = items.some(i => i.status === 'NOK');
+                // 2. Update System Status in the main list
+                const hasNOK = items.some(i => i.status === 'NOK');
+                const summaryStatus = hasNOK ? 'NOK' : 'OK';
+                const newNote = hasNOK ? 'Có lỗi chi tiết' : '';
 
-                const newStatus = hasErrors ? 'NOK' : 'OK';
-                const newNote = hasErrors ? 'Có lỗi chi tiết' : '';
-
-                // Update system
                 await saveSystem(systemId, {
-                    status: newStatus,
+                    status: summaryStatus,
                     note: newNote,
-                    inspectorName: user?.name,
-                    timestamp: new Date().toLocaleString('vi-VN', { hour: '2-digit', minute: '2-digit', day: '2-digit', month: '2-digit', year: 'numeric' })
+                    timestamp: now,
+                    inspectorName: user?.name || 'Unknown',
+                    inspectorCode: user?.code || 'UNKNOWN'
                 });
 
                 // 3. Log Inspection
@@ -223,8 +250,8 @@ export default function CheckPage() {
                     inspectorCode: user?.code || 'UNKNOWN',
                     systemId: systemId,
                     systemName: systemName,
-                    result: newStatus,
-                    note: hasErrors ? `Lỗi: ${errorDetails}` : `Hệ thống bình thường. ${items.find(i => i.note)?.note || ''}`,
+                    result: summaryStatus,
+                    note: hasNOK ? `Lỗi: ${errorDetails}` : `Hệ thống bình thường. ${items.find(i => i.note)?.note || ''}`,
                     duration: durationSeconds
                 };
                 await addLog(logEntry);
@@ -238,8 +265,8 @@ export default function CheckPage() {
             if (currentSystemIndex !== -1) {
                 // Search for the NEXT system ensuring we don't loop back to current
                 for (let i = currentSystemIndex + 1; i < systems.length; i++) {
-                    // Check if there is another NOK system ahead
-                    if (systems[i].status === 'NOK') {
+                    // Check if there is another NOK system ahead that BELONGS to this user
+                    if (systems[i].status === 'NOK' && systems[i].inspectorCode === user?.code) {
                         nextNokSystemId = systems[i].id;
                         break;
                     }
@@ -268,6 +295,15 @@ export default function CheckPage() {
             alert("Lỗi khi lưu cấu hình");
         }
     };
+
+    const currentSystem = systems.find(s => s.id === systemId);
+    const isLockedByOther = !!(currentSystem && systems.some(s =>
+        s.categoryId === currentSystem.categoryId &&
+        s.status !== 'NA' &&
+        s.inspectorCode &&
+        s.inspectorCode !== user?.code
+    ));
+
 
     if (!isLoaded) return <div className="p-8 text-center">Đang tải dữ liệu...</div>;
 
@@ -336,12 +372,13 @@ export default function CheckPage() {
                                                         onClick={() => handleStatusChange(item.id, st)}
                                                         className={clsx(
                                                             "py-4 rounded-xl font-bold text-sm border shadow-sm transition active:scale-95 flex items-center justify-center",
-                                                            item.status === st
+                                                            item.status === st || (st === 'NA' && !item.status)
                                                                 ? (st === 'OK' ? "bg-green-600 text-white border-green-700" :
                                                                     st === 'NOK' ? "bg-red-600 text-white border-red-700" :
                                                                         "bg-slate-600 text-white border-slate-700")
                                                                 : "bg-white text-slate-500 border-slate-300"
                                                         )}
+                                                        disabled={isLockedByOther}
                                                     >
                                                         {st}
                                                     </button>
@@ -353,10 +390,11 @@ export default function CheckPage() {
                                         {!isEditing && (
                                             <div className="relative">
                                                 <input
-                                                    disabled={item.status === 'OK'}
+                                                    disabled={item.status === 'OK' || isLockedByOther}
                                                     className={clsx(
-                                                        "w-full p-4 border rounded-xl text-sm outline-none transition-all",
-                                                        item.status === 'OK' ? "bg-slate-50 text-slate-400 opacity-60" : "bg-slate-50/50 border-slate-200 focus:border-blue-500 ring-offset-2 focus:ring-2 focus:ring-blue-100"
+                                                        "w-full p-4 border rounded-xl text-sm outline-none transition-all pr-12",
+                                                        (item.status === 'OK' || isLockedByOther) && "bg-slate-100 text-slate-400 cursor-not-allowed opacity-60",
+                                                        (item.status === 'NOK' && !item.note.trim()) ? "border-red-500 bg-red-50 ring-2 ring-red-200" : "border-slate-200 focus:border-blue-500 bg-slate-50/50"
                                                     )}
                                                     placeholder={item.status === 'OK' ? "✅ OK - Không ghi chú" : "📝 Nhập ghi chú tại đây..."}
                                                     value={item.note}
@@ -373,6 +411,15 @@ export default function CheckPage() {
                                     className="w-full py-5 border-2 border-dashed border-slate-300 text-slate-500 rounded-xl hover:bg-blue-50 hover:border-blue-300 hover:text-blue-600 flex justify-center items-center gap-2 font-bold transition-all shadow-sm"
                                 >
                                     <Plus size={20} /> THÊM MỤC MỚI
+                                </button>
+                            )}
+                            {!isEditing && items.some(i => i.status === 'NOK') && (
+                                <button
+                                    onClick={handleShareZalo}
+                                    className="flex items-center gap-2 px-6 py-3 rounded-xl font-bold bg-[#0068ff] text-white hover:bg-[#0052cc] transition shadow-md active:scale-95 animate-pulse"
+                                    title="Gửi báo cáo lỗi nhanh qua Zalo"
+                                >
+                                    <MessageSquare size={20} /> Báo lỗi qua Zalo
                                 </button>
                             )}
                         </div>
@@ -422,9 +469,10 @@ export default function CheckPage() {
                                                             <button
                                                                 key={st}
                                                                 onClick={() => handleStatusChange(item.id, st)}
+                                                                disabled={isLockedByOther}
                                                                 className={clsx(
                                                                     "px-3 py-1 rounded text-xs font-bold border transition w-12 shadow-sm",
-                                                                    item.status === st
+                                                                    item.status === st || (st === 'NA' && !item.status)
                                                                         ? (st === 'OK' ? "bg-green-600 text-white border-green-700" :
                                                                             st === 'NOK' ? "bg-red-600 text-white border-red-700" :
                                                                                 "bg-slate-600 text-white border-slate-700")
@@ -439,10 +487,11 @@ export default function CheckPage() {
                                             </td>
                                             <td className="p-3 border border-slate-300">
                                                 <input
-                                                    disabled={item.status === 'OK'}
+                                                    disabled={item.status === 'OK' || isLockedByOther}
                                                     className={clsx(
-                                                        "w-full bg-transparent outline-none text-sm placeholder-slate-300",
-                                                        item.status === 'OK' && "text-slate-400 cursor-not-allowed"
+                                                        "w-full p-2 border rounded text-sm outline-none",
+                                                        (item.status === 'OK' || isLockedByOther) && "bg-slate-100 text-slate-400 cursor-not-allowed",
+                                                        (item.status === 'NOK' && !item.note.trim()) ? "border-red-500 bg-red-50" : "border-slate-200 focus:border-blue-500"
                                                     )}
                                                     placeholder={item.status === 'OK' ? "OK không cần ghi chú" : "Nhập ghi chú..."}
                                                     value={item.note}
@@ -483,18 +532,29 @@ export default function CheckPage() {
                             </div>
                         )}
                     </div>
-                    <button
-                        type="button"
-                        onClick={isEditing ? handleSaveConfig : handleSave}
-                        className={clsx(
-                            "w-full sm:w-auto px-6 py-3 font-bold uppercase rounded shadow flex items-center justify-center gap-2 active:scale-95 transition-transform",
-                            isEditing
-                                ? "bg-yellow-500 text-slate-900 hover:bg-yellow-400"
-                                : "bg-blue-700 text-white hover:bg-blue-800"
+                    <div className="w-full sm:w-auto flex flex-col sm:flex-row gap-2">
+                        {!isEditing && items.some(i => i.status === 'NOK') && (
+                            <button
+                                type="button"
+                                onClick={handleShareZalo}
+                                className="px-6 py-3 font-bold rounded shadow flex items-center justify-center gap-2 bg-[#0068ff] text-white hover:bg-[#0052cc] transition-all active:scale-95 animate-pulse"
+                            >
+                                <MessageSquare size={20} /> Gửi báo lỗi Zalo
+                            </button>
                         )}
-                    >
-                        {isEditing ? <><Save size={20} /> Lưu Cấu hình</> : <><Save size={20} /> Lưu & Vào Bảng Tổng Hợp</>}
-                    </button>
+                        <button
+                            type="button"
+                            onClick={isEditing ? handleSaveConfig : handleSave}
+                            className={clsx(
+                                "px-6 py-3 font-bold uppercase rounded shadow flex items-center justify-center gap-2 active:scale-95 transition-transform",
+                                isEditing
+                                    ? "bg-yellow-500 text-slate-900 hover:bg-yellow-400"
+                                    : "bg-blue-700 text-white hover:bg-blue-800"
+                            )}
+                        >
+                            {isEditing ? <><Save size={20} /> Lưu Cấu hình</> : <><Save size={20} /> Lưu & Báo cáo</>}
+                        </button>
+                    </div>
                 </div>
             </div>
         </div>

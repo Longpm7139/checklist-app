@@ -22,6 +22,7 @@ export interface SystemCheck {
   actionNote?: string;
   timestamp?: string;
   inspectorName?: string;
+  inspectorCode?: string;
 }
 
 export interface ChecklistItem {
@@ -33,6 +34,7 @@ export interface ChecklistItem {
   fixStatus?: 'Fixed' | 'Fixing' | 'No Fix';
   actionNote?: string;
   inspectorName?: string;
+  inspectorCode?: string;
   materialRequest?: string;
   executorNames?: string[];
 }
