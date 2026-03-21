@@ -33,14 +33,18 @@ export default function FixedPage() {
         return () => unsub();
     }, []);
 
+    const removeAccents = (str: string) => {
+        return str.normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/đ/g, 'd').replace(/Đ/g, 'D');
+    };
+
     // Search and Pagination Logic
     const filteredHistory = history.filter(item => {
         if (!searchQuery.trim()) return true;
-        const q = searchQuery.toLowerCase();
+        const q = removeAccents(searchQuery.toLowerCase());
         return (
-            (item.systemName ?? '').toLowerCase().includes(q) ||
-            (item.issueContent ?? '').toLowerCase().includes(q) ||
-            (item.actionNote ?? '').toLowerCase().includes(q)
+            removeAccents((item.systemName ?? '').toLowerCase()).includes(q) ||
+            removeAccents((item.issueContent ?? '').toLowerCase()).includes(q) ||
+            removeAccents((item.actionNote ?? '').toLowerCase()).includes(q)
         );
     });
 
@@ -56,6 +60,39 @@ export default function FixedPage() {
 
     const handleNextPage = () => {
         if (currentPage < totalPages) setCurrentPage(prev => prev + 1);
+    };
+
+    const highlightText = (text: string | undefined, query: string) => {
+        if (!text) return text;
+        if (!query.trim()) return text;
+
+        const normalizedText = removeAccents(text.toLowerCase());
+        const normalizedQuery = removeAccents(query.toLowerCase());
+
+        if (!normalizedText.includes(normalizedQuery)) return <span>{text}</span>;
+
+        const parts = [];
+        let currentIndex = 0;
+        let matchIndex = normalizedText.indexOf(normalizedQuery, currentIndex);
+
+        while (matchIndex !== -1) {
+            if (matchIndex > currentIndex) {
+                parts.push(<span key={`text-${currentIndex}`}>{text.slice(currentIndex, matchIndex)}</span>);
+            }
+            parts.push(
+                <mark key={`mark-${matchIndex}`} className="bg-yellow-300 text-slate-900 rounded px-1 font-bold">
+                    {text.slice(matchIndex, matchIndex + query.length)}
+                </mark>
+            );
+            currentIndex = matchIndex + query.length;
+            matchIndex = normalizedText.indexOf(normalizedQuery, currentIndex);
+        }
+
+        if (currentIndex < text.length) {
+            parts.push(<span key={`text-${currentIndex}`}>{text.slice(currentIndex)}</span>);
+        }
+
+        return <span>{parts}</span>;
     };
 
     const handlePrevPage = () => {
@@ -142,8 +179,8 @@ export default function FixedPage() {
                                         <td className="p-4 text-center font-bold text-slate-500">
                                             {indexOfFirstItem + idx + 1}
                                         </td>
-                                        <td className="p-4 font-medium">{item.systemName}</td>
-                                        <td className="p-4 text-red-600">{item.issueContent}</td>
+                                        <td className="p-4 font-medium">{highlightText(item.systemName, searchQuery)}</td>
+                                        <td className="p-4 text-red-600">{highlightText(item.issueContent, searchQuery)}</td>
                                         <td className="p-4 text-slate-500">
                                             <div>Err: {item.timestamp}</div>
                                             {item.resolvedAt ? (
@@ -161,8 +198,8 @@ export default function FixedPage() {
                                         <td className="p-4 text-slate-700">
                                             {item.actionNote ? (
                                                 <div className="flex items-center gap-2">
-                                                    <CheckCircle size={16} className="text-green-500" />
-                                                    {item.actionNote}
+                                                    <CheckCircle size={16} className="text-green-500 flex-shrink-0" />
+                                                    <span>{highlightText(item.actionNote, searchQuery)}</span>
                                                 </div>
                                             ) : (
                                                 <span className="text-slate-400 italic">Chưa khắc phục</span>

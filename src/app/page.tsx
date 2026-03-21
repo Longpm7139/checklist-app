@@ -120,8 +120,12 @@ export default function Home() {
   }, []);
 
   const nowD = new Date();
-  const todayStr = `${nowD.getFullYear()}-${String(nowD.getMonth() + 1).padStart(2, '0')}-${String(nowD.getDate()).padStart(2, '0')}`;
-  const dayDuty = duties.find(d => d.date === todayStr);
+  const shiftD = new Date(nowD);
+  if (shiftD.getHours() < 7) {
+    shiftD.setDate(shiftD.getDate() - 1);
+  }
+  const shiftDateStr = `${shiftD.getFullYear()}-${String(shiftD.getMonth() + 1).padStart(2, '0')}-${String(shiftD.getDate()).padStart(2, '0')}`;
+  const dayDuty = duties.find(d => d.date === shiftDateStr);
   const isUserOnDuty = dayDuty?.assignments?.some((a: any) => a.userCode === user?.code);
 
   // Collective categories for the whole team today
@@ -133,6 +137,10 @@ export default function Home() {
   const teamAssignedCategories = categories.filter(c => teamCategoryIds.includes(c.id));
 
   const handleStatusChange = async (id: string, status: Status) => {
+    if (!isUserOnDuty) {
+      alert("Chỉ nhân viên trong ca trực mới được phép cập nhật tình trạng!");
+      return;
+    }
     const now = new Date().toLocaleString('vi-VN', { hour: '2-digit', minute: '2-digit', day: '2-digit', month: '2-digit', year: 'numeric' });
     const target = systems.find(s => s.id === id);
     if (target) {
@@ -151,6 +159,7 @@ export default function Home() {
   };
 
   const handleNoteChange = async (id: string, note: string) => {
+    if (!isUserOnDuty) return;
     const now = new Date().toLocaleString('vi-VN', { hour: '2-digit', minute: '2-digit', day: '2-digit', month: '2-digit', year: 'numeric' });
     const target = systems.find(s => s.id === id);
     if (target) {
@@ -221,15 +230,10 @@ export default function Home() {
   };
 
   const handleMarkAllOK = () => {
-    // Logic: Set ALL items to 'OK' if they are currently null.
-    // If they are 'NOK' or 'NA', preserve them?
-    // User request: "bình thường tất cả đều ở trạng thái OK, nếu có lỗi thì tự chọn NOK"
-    // This implies a "reset to OK" or "fill with OK".
-    // Safest approach: Fill NULLs with OK. If user wants to reset NOK, they can click OK manually or Reset.
-    // Actually, widespread practice for "Check All" is usually "Set All". 
-    // But let's be smart: If I have marked 5 NOKs, I don't want to lose them when I click "Check All" for the rest.
-    // So: Only update items where status is null.
-
+    if (!isUserOnDuty) {
+      alert("Chỉ nhân viên trong ca trực mới được phép thao tác!");
+      return;
+    }
     const now = new Date().toLocaleString('vi-VN', { hour: '2-digit', minute: '2-digit', day: '2-digit', month: '2-digit', year: 'numeric' });
 
     // Check if any item is null. If yes, fill them being OK.
@@ -280,6 +284,10 @@ export default function Home() {
   };
 
   const handleStartNewShift = async () => {
+    if (!isUserOnDuty) {
+      alert('Chỉ nhân viên được phân công trong ca trực (07:00 hôm nay - 07:00 hôm sau) mới được phép Bắt đầu ca trực!');
+      return;
+    }
     if (confirm('Bắt đầu ca trực mới? Thao tác này sẽ reset các trạng thái OK về NA, nhưng GIỮ NGUYÊN các lỗi chưa sửa và MỞ KHÓA để ca sau có thể tiếp tục làm việc.')) {
       const promises = systems.map(s => {
         const isNOK = s.status === 'NOK';
@@ -370,8 +378,42 @@ export default function Home() {
 
   const buttonText = hasErrors ? `${failedCategoryNames}` : "Tất cả hệ thống";
 
+  const removeAccents = (str: string) => {
+    return str.normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/đ/g, 'd').replace(/Đ/g, 'D');
+  };
 
+  const highlightText = (text: string | undefined, query: string) => {
+    if (!text) return text;
+    if (!query.trim()) return text;
 
+    const normalizedText = removeAccents(text.toLowerCase());
+    const normalizedQuery = removeAccents(query.toLowerCase());
+
+    if (!normalizedText.includes(normalizedQuery)) return <>{text}</>;
+
+    const parts = [];
+    let currentIndex = 0;
+    let matchIndex = normalizedText.indexOf(normalizedQuery, currentIndex);
+
+    while (matchIndex !== -1) {
+      if (matchIndex > currentIndex) {
+        parts.push(<span key={`text-${currentIndex}`}>{text.slice(currentIndex, matchIndex)}</span>);
+      }
+      parts.push(
+        <mark key={`mark-${matchIndex}`} className="bg-yellow-300 text-slate-900 rounded px-1 font-bold">
+          {text.slice(matchIndex, matchIndex + query.length)}
+        </mark>
+      );
+      currentIndex = matchIndex + query.length;
+      matchIndex = normalizedText.indexOf(normalizedQuery, currentIndex);
+    }
+
+    if (currentIndex < text.length) {
+      parts.push(<span key={`text-${currentIndex}`}>{text.slice(currentIndex)}</span>);
+    }
+
+    return <>{parts}</>;
+  };
 
   if (!isLoaded) return null;
 
@@ -580,8 +622,9 @@ export default function Home() {
           {!isUserOnDuty && (
             <div className="mb-4 flex justify-end">
               <button
-                onClick={handleStartNewShift}
-                className="bg-slate-200 hover:bg-slate-300 text-slate-700 px-4 py-2 rounded-xl text-sm font-bold flex items-center gap-2 transition active:scale-95 shadow-sm border border-slate-300"
+                onClick={() => alert('Chỉ nhân viên được phân công trong ca trực (07:00 hôm nay - 07:00 hôm sau) mới được phép Bắt đầu ca trực!')}
+                className="bg-slate-200 text-slate-400 px-4 py-2 rounded-xl text-sm font-bold flex items-center gap-2 shadow-sm border border-slate-300 cursor-not-allowed"
+                title="Bạn không được phân công trong ca trực này"
               >
                 <RotateCcw size={18} /> Bắt đầu ca trực mới
               </button>
@@ -662,7 +705,7 @@ export default function Home() {
 
             {/* Issues Card */}
             <div
-              onClick={() => router.push('/fixed')}
+              onClick={() => router.push('/summary')}
               className="bg-white p-4 rounded-lg shadow-sm border border-slate-200 cursor-pointer hover:shadow-md hover:border-amber-300 transition-all active:scale-95 group"
             >
               <div className="flex justify-between items-start">
@@ -723,11 +766,12 @@ export default function Home() {
                 const matchesCategory = s.categoryId === cat.id;
                 if (!matchesCategory) return false;
                 if (!searchQuery.trim()) return true;
-                const q = searchQuery.toLowerCase();
+                const q = removeAccents(searchQuery.toLowerCase());
                 return (
-                  (s.name ?? '').toLowerCase().includes(q) ||
-                  (s.note ?? '').toLowerCase().includes(q) ||
-                  (s.status ?? '').toLowerCase().includes(q)
+                  removeAccents((s.name ?? '').toLowerCase()).includes(q) ||
+                  removeAccents((s.note ?? '').toLowerCase()).includes(q) ||
+                  removeAccents((s.id ?? '').toLowerCase()).includes(q) ||
+                  removeAccents((s.status ?? '').toLowerCase()).includes(q)
                 );
               });
 
@@ -752,7 +796,7 @@ export default function Home() {
                             ) : (
                               <div className="font-bold text-slate-800 flex items-center justify-between gap-2 w-full">
                                 <div className="flex items-center gap-2">
-                                  {sys.name} <span className="text-[10px] bg-slate-100 px-1.5 py-0.5 rounded text-slate-500 uppercase font-mono">{sys.id}</span>
+                                  {highlightText(sys.name, searchQuery)} <span className="text-[10px] bg-slate-100 px-1.5 py-0.5 rounded text-slate-500 uppercase font-mono">{highlightText(sys.id, searchQuery)}</span>
                                 </div>
                                 {sys.status !== 'NA' && sys.inspectorCode && sys.inspectorCode !== user?.code && (
                                   <span className="text-[10px] bg-amber-100 text-amber-700 font-bold px-2 py-0.5 rounded-full border border-amber-200 animate-pulse">
@@ -779,7 +823,7 @@ export default function Home() {
                         {/* Status Selection (Mobile optimized) */}
                         <div className={clsx(
                           "grid grid-cols-3 gap-2 mb-3",
-                          (isEditMode ||
+                          (!isUserOnDuty || isEditMode ||
                             (sys.status !== 'NA' && sys.inspectorCode && sys.inspectorCode !== user?.code) ||
                             (sys.status === 'NA' && systems.some(s => s.categoryId === sys.categoryId && s.status !== 'NA' && s.inspectorCode && s.inspectorCode !== user?.code))
                           ) && "opacity-50 pointer-events-none"
@@ -805,7 +849,7 @@ export default function Home() {
                         {/* Note Input */}
                         <div className="relative">
                           {(() => {
-                            const isLocked = !!(isEditMode ||
+                            const isLocked = !!(!isUserOnDuty || isEditMode ||
                               sys.status === 'OK' ||
                               (sys.status !== 'NA' && sys.inspectorCode && sys.inspectorCode !== user?.code) ||
                               (sys.status === 'NA' && systems.some(s => s.categoryId === sys.categoryId && s.status !== 'NA' && s.inspectorCode && s.inspectorCode !== user?.code)));
@@ -856,11 +900,12 @@ export default function Home() {
                     const matchesCategory = s.categoryId === cat.id;
                     if (!matchesCategory) return false;
                     if (!searchQuery.trim()) return true;
-                    const q = searchQuery.toLowerCase();
+                    const q = removeAccents(searchQuery.toLowerCase());
                     return (
-                      (s.name ?? '').toLowerCase().includes(q) ||
-                      (s.note ?? '').toLowerCase().includes(q) ||
-                      (s.status ?? '').toLowerCase().includes(q)
+                      removeAccents((s.name ?? '').toLowerCase()).includes(q) ||
+                      removeAccents((s.note ?? '').toLowerCase()).includes(q) ||
+                      removeAccents((s.id ?? '').toLowerCase()).includes(q) ||
+                      removeAccents((s.status ?? '').toLowerCase()).includes(q)
                     );
                   });
 
@@ -888,7 +933,7 @@ export default function Home() {
                                 </button>
                               </div>
                             ) : (
-                              <span>{sys.name} <span className="text-xs text-slate-400 font-normal">({sys.id})</span></span>
+                              <span>{highlightText(sys.name, searchQuery)} <span className="text-xs text-slate-400 font-normal">({highlightText(sys.id, searchQuery)})</span></span>
                             )}
                           </td>
                           <td className="p-3 border border-slate-300 text-center">
@@ -903,7 +948,7 @@ export default function Home() {
                                   )}
                                   <div className={clsx(
                                     "flex gap-1 justify-center",
-                                    (isEditMode || isCategoryLocked || (sys.status !== 'NA' && sys.inspectorCode && sys.inspectorCode !== user?.code)) && "opacity-50 pointer-events-none"
+                                    (!isUserOnDuty || isEditMode || isCategoryLocked || (sys.status !== 'NA' && sys.inspectorCode && sys.inspectorCode !== user?.code)) && "opacity-50 pointer-events-none"
                                   )}>
                                     {(['OK', 'NOK', 'NA'] as Status[]).map(st => (
                                       <button
@@ -928,7 +973,7 @@ export default function Home() {
                           </td>
                           <td className="p-3 border border-slate-300">
                             {(() => {
-                              const isLocked = !!(isEditMode ||
+                              const isLocked = !!(!isUserOnDuty || isEditMode ||
                                 sys.status === 'OK' ||
                                 (sys.status !== 'NA' && sys.inspectorCode && sys.inspectorCode !== user?.code) ||
                                 (sys.status === 'NA' && systems.some(s => s.categoryId === sys.categoryId && s.status !== 'NA' && s.inspectorCode && s.inspectorCode !== user?.code)));

@@ -214,9 +214,25 @@ export default function SummaryPage() {
                     await saveSystem(sysId, { status: newStatus, note: newNote });
                 }
             }
+            // Build Zalo message for all fixed & material rows
+            const actionableRows = [...fixedRows, ...materialRows];
+            let zaloText = "[THÔNG BÁO XỬ LÝ LỖI] 🛠\n";
+            actionableRows.forEach((r, idx) => {
+                zaloText += `${idx + 1}. Hệ thống: ${r.systemName}
+🚨 Lỗi: ${r.issueContent}
+⚙️ Trạng thái: ${r.fixStatus === 'Pending Material' ? 'Chờ vật tư' : 'Đã khắc phục'}
+📝 Nội dung: ${r.actionDescription || 'Chưa nhập chi tiết'}
+👤 Người thực hiện: ${r.executorNames.length > 0 ? r.executorNames.join(', ') : 'Chưa nhập'}\n\n`;
+            });
+            zaloText += `🕒 Thời gian tổng hợp: ${new Date().toLocaleString('vi-VN', { hour: '2-digit', minute: '2-digit', day: '2-digit', month: '2-digit', year: 'numeric' })}`;
 
-            alert("Đã lưu các lỗi đã sửa vào lịch sử và cập nhật trạng thái hệ thống!");
-            router.push('/fixed');
+            navigator.clipboard.writeText(zaloText).then(() => {
+                alert("Đã lưu lịch sử và ĐÃ SAO CHÉP báo cáo các lỗi vào Clipboard! Bạn có thể dán (Ctrl+V) vào nhóm Zalo.");
+                router.push('/fixed');
+            }).catch(() => {
+                alert("Đã lưu lịch sử nhưng sao chép tự động thất bại.");
+                router.push('/fixed');
+            });
 
         } catch (error) {
             console.error("Error saving report:", error);
@@ -274,8 +290,8 @@ export default function SummaryPage() {
                                                         key={opt.label}
                                                         onClick={() => handleStatusChange(row.id, opt.label as any)}
                                                         className={clsx(
-                                                            "px-2 py-2 rounded-lg text-xs font-bold border text-white transition-all active:scale-95",
-                                                            row.fixStatus === opt.label ? opt.cls : "bg-slate-100 border-slate-200 text-slate-500"
+                                                            "px-2 py-2 rounded-lg text-xs font-bold border transition-all active:scale-95",
+                                                            row.fixStatus === opt.label ? `${opt.cls} text-white` : "bg-slate-100 border-slate-200 text-slate-600 hover:bg-slate-200"
                                                         )}
                                                     >
                                                         {opt.text}
@@ -395,8 +411,8 @@ export default function SummaryPage() {
                                                         key={opt.label}
                                                         onClick={() => handleStatusChange(row.id, opt.label as any)}
                                                         className={clsx(
-                                                            "px-2 py-1 rounded text-xs font-bold border text-white transition",
-                                                            row.fixStatus === opt.label ? opt.cls : "bg-slate-300 border-slate-400 text-slate-600"
+                                                            "px-2 py-1 rounded text-xs font-bold border transition",
+                                                            row.fixStatus === opt.label ? `${opt.cls} text-white` : "bg-slate-200 border-slate-300 text-slate-600 hover:bg-slate-300"
                                                         )}
                                                     >
                                                         {opt.label === 'Pending Material' ? 'Chờ vật tư' : opt.label}
@@ -448,7 +464,7 @@ export default function SummaryPage() {
                                                 disabled={row.fixStatus !== 'Fixed' && row.fixStatus !== 'Pending Material'}
                                                 className={clsx(
                                                     "w-full bg-transparent outline-none",
-                                                    row.fixStatus !== 'Fixed' && "cursor-not-allowed text-slate-400"
+                                                    row.fixStatus !== 'Fixed' && row.fixStatus !== 'Pending Material' && "cursor-not-allowed text-slate-400"
                                                 )}
                                                 placeholder={
                                                     row.fixStatus === 'Fixed' ? "Nhập nội dung xử lý..." :
@@ -504,7 +520,7 @@ export default function SummaryPage() {
                         className="px-6 py-3 bg-blue-700 text-white font-bold uppercase rounded shadow hover:bg-blue-800 flex items-center gap-2"
                         onClick={handleSaveReport}
                     >
-                        <Save size={20} /> Lưu & Cập Nhật Lịch Sử
+                        <Save size={20} /> Lưu & Cập Nhật Lịch Sử & ZCopy
                     </button>
                 </div>
             </div>

@@ -140,10 +140,17 @@ export default function IncidentsPage() {
                 participants: selectedParticipants
             };
             saveIncident(updatedIncident);
+
+            const message = `[THÔNG BÁO XỬ LÝ SỰ CỐ] ✅\n📌 Tên sự cố: ${updatedIncident.title}\n📍 Hệ thống: ${updatedIncident.systemName}\n📝 Nội dung xử lý: ${updatedIncident.resolutionNote}\n👤 Người tham gia: ${updatedIncident.participants?.join(', ') || updatedIncident.resolvedBy}\n🕒 Thời gian: ${updatedIncident.resolvedAt}`;
+
+            navigator.clipboard.writeText(message).then(() => {
+                alert("Đã xác nhận xử lý thành công và ĐÃ SAO CHÉP báo cáo Zalo! Bạn có thể dán (Ctrl+V) vào nhóm.");
+            }).catch(() => {
+                alert("Đã xác nhận xử lý thành công nhưng quá trình sao chép tự động thất bại.");
+            });
         }
 
         setResolvingId(null);
-        alert("Đã xác nhận xử lý xong sự cố!");
     };
 
     const handleExport = () => {
@@ -427,7 +434,7 @@ export default function IncidentsPage() {
                                 onClick={submitResolve}
                                 className="px-6 py-2 bg-green-600 text-white font-bold rounded shadow hover:bg-green-700"
                             >
-                                Xác nhận hoàn thành
+                                Xác nhận hoàn thành & ZCopy
                             </button>
                         </div>
                     </div>

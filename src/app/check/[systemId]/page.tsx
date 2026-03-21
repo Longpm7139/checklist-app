@@ -5,7 +5,7 @@ import { useRouter, useParams } from 'next/navigation';
 import { ChecklistItem, Status, SystemCheck } from '@/lib/types';
 import { Save, ArrowLeft, Clock, Settings, Plus, Trash2, X, MessageSquare, Send } from 'lucide-react';
 import clsx from 'clsx';
-import { subscribeToSystems, subscribeToChecklist, saveChecklist, saveSystem, addLog, saveHistoryItem } from '@/lib/firebase';
+import { subscribeToSystems, subscribeToChecklist, saveChecklist, saveSystem, addLog, saveHistoryItem, subscribeToDuties } from '@/lib/firebase';
 import { useUser } from '@/providers/UserProvider';
 
 const DEFAULT_TEMPLATE = [
@@ -26,6 +26,7 @@ export default function CheckPage() {
     const [systems, setSystems] = useState<SystemCheck[]>([]);
     const [items, setItems] = useState<ChecklistItem[]>([]);
     const [systemName, setSystemName] = useState('');
+    const [duties, setDuties] = useState<any[]>([]);
 
     // UI state
     const [isEditing, setIsEditing] = useState(false);
@@ -72,13 +73,23 @@ export default function CheckPage() {
             setIsLoaded(true);
         });
 
+        // 3. Subscribe to Duties
+        const unsubDuties = subscribeToDuties((data) => {
+            setDuties(data);
+        });
+
         return () => {
             unsubSys();
             unsubChecklist();
+            unsubDuties();
         };
     }, [systemId]);
 
     const handleStatusChange = (id: string, val: Status) => {
+        if (!isUserOnDuty) {
+            alert("Chỉ nhân viên trong ca trực mới được phép cập nhật tình trạng!");
+            return;
+        }
         const now = new Date().toLocaleString('vi-VN', { hour: '2-digit', minute: '2-digit', day: '2-digit', month: '2-digit', year: 'numeric' });
 
         setItems(prev => prev.map(i => {
@@ -99,6 +110,7 @@ export default function CheckPage() {
     };
 
     const handleNoteChange = (id: string, val: string) => {
+        if (!isUserOnDuty) return;
         const now = new Date().toLocaleString('vi-VN', { hour: '2-digit', minute: '2-digit', day: '2-digit', month: '2-digit', year: 'numeric' });
         setItems(prev => prev.map(i => i.id === id ? { ...i, note: val, timestamp: now, inspectorName: i.inspectorName || user?.name, inspectorCode: i.inspectorCode || user?.code } : i));
         setIsDirty(true);
@@ -128,33 +140,12 @@ export default function CheckPage() {
         setIsDirty(true);
     };
 
-    const handleShareZalo = async () => {
-        const nokItems = items.filter(i => i.status === 'NOK');
-        if (nokItems.length === 0) {
-            alert('Chỉ có thể gửi báo cáo Zalo khi phát hiện lỗi (NOK).');
-            return;
-        }
-
-        const now = new Date().toLocaleString('vi-VN', { hour: '2-digit', minute: '2-digit', day: '2-digit', month: '2-digit', year: 'numeric' });
-
-        const message = `⚠️ [BÁO LỖI HỆ THỐNG]\n` +
-            `- Hệ thống: ${systemName}\n` +
-            `- Mã ID: ${systemId}\n` +
-            `- Chi tiết lỗi:\n${nokItems.map((item, idx) => `  ${idx + 1}. ${item.content}: ${item.note || 'Chưa có ghi chú'}`).join('\n')}\n` +
-            `- Người báo: ${user?.name || 'Nhân viên'}\n` +
-            `- Thời gian: ${now}`;
-
-        // Only copy to clipboard (Manual paste as requested)
-        try {
-            await navigator.clipboard.writeText(message);
-            alert('ĐÃ SAO CHÉP: Nội dung báo cáo lỗi đã được lưu vào bộ nhớ tạm!\nBây giờ bạn chỉ cần mở Zalo và Dán (Ctrl+V) vào nhóm để gửi.');
-        } catch (copyErr) {
-            console.log('Clipboard copy failed:', copyErr);
-            alert('Không thể sao chép tự động. Vui lòng chụp ảnh màn hình để báo cáo.');
-        }
-    };
 
     const handleSave = async () => {
+        if (!isUserOnDuty && !isEditing) {
+            alert('Bạn không nằm trong ca trực hiện tại nên không thể Lưu báo cáo!');
+            return;
+        }
         setErrorMessage(''); // Clear previous errors
         try {
             // 1. Validation
@@ -227,7 +218,7 @@ export default function CheckPage() {
                     .map(i => i.content)
                     .join(', ');
 
-                // 4. Sync NOK items to History (Error Summary)
+                // Sync NOK items to History (Error Summary)
                 const nokItems = items.filter(i => i.status === 'NOK');
                 for (const item of nokItems) {
                     await saveHistoryItem(`${systemId}_${item.id}`, {
@@ -255,6 +246,24 @@ export default function CheckPage() {
                     duration: durationSeconds
                 };
                 await addLog(logEntry);
+
+                // Zalo Integration
+                if (hasNOK) {
+                    const message = `⚠️ [BÁO LỖI HỆ THỐNG]\n` +
+                        `- Hệ thống: ${systemName}\n` +
+                        `- Mã ID: ${systemId}\n` +
+                        `- Chi tiết lỗi:\n${nokItems.map((item, idx) => `  ${idx + 1}. ${item.content}: ${item.note || 'Chưa có ghi chú'}`).join('\n')}\n` +
+                        `- Người báo: ${user?.name || 'Nhân viên'}\n` +
+                        `- Thời gian: ${now}`;
+                    try {
+                        await navigator.clipboard.writeText(message);
+                        alert('Đã lưu hệ thống và ĐÃ SAO CHÉP báo cáo lỗi!\nBạn có thể Dán (Ctrl+V) vào Zalo để gửi.');
+                    } catch (e) {
+                        alert('Đã lưu thành công nhưng sao chép Zalo tự động thất bại.');
+                    }
+                } else {
+                    alert('Đã lưu kết quả kiểm tra thành công!');
+                }
             }
 
             // --- NAVIGATION ---
@@ -296,8 +305,17 @@ export default function CheckPage() {
         }
     };
 
+    const nowD = new Date();
+    const shiftD = new Date(nowD);
+    if (shiftD.getHours() < 7) {
+        shiftD.setDate(shiftD.getDate() - 1);
+    }
+    const shiftDateStr = `${shiftD.getFullYear()}-${String(shiftD.getMonth() + 1).padStart(2, '0')}-${String(shiftD.getDate()).padStart(2, '0')}`;
+    const dayDuty = duties.find(d => d.date === shiftDateStr);
+    const isUserOnDuty = dayDuty?.assignments?.some((a: any) => a.userCode === user?.code);
+
     const currentSystem = systems.find(s => s.id === systemId);
-    const isLockedByOther = !!(currentSystem && systems.some(s =>
+    const isLockedByOther = !isUserOnDuty || !!(currentSystem && systems.some(s =>
         s.categoryId === currentSystem.categoryId &&
         s.status !== 'NA' &&
         s.inspectorCode &&
@@ -413,15 +431,6 @@ export default function CheckPage() {
                                     <Plus size={20} /> THÊM MỤC MỚI
                                 </button>
                             )}
-                            {!isEditing && items.some(i => i.status === 'NOK') && (
-                                <button
-                                    onClick={handleShareZalo}
-                                    className="flex items-center gap-2 px-6 py-3 rounded-xl font-bold bg-[#0068ff] text-white hover:bg-[#0052cc] transition shadow-md active:scale-95 animate-pulse"
-                                    title="Gửi báo cáo lỗi nhanh qua Zalo"
-                                >
-                                    <MessageSquare size={20} /> Báo lỗi qua Zalo
-                                </button>
-                            )}
                         </div>
 
                         {/* Desktop Table View (hidden on mobile) */}
@@ -533,15 +542,6 @@ export default function CheckPage() {
                         )}
                     </div>
                     <div className="w-full sm:w-auto flex flex-col sm:flex-row gap-2">
-                        {!isEditing && items.some(i => i.status === 'NOK') && (
-                            <button
-                                type="button"
-                                onClick={handleShareZalo}
-                                className="px-6 py-3 font-bold rounded shadow flex items-center justify-center gap-2 bg-[#0068ff] text-white hover:bg-[#0052cc] transition-all active:scale-95 animate-pulse"
-                            >
-                                <MessageSquare size={20} /> Gửi báo lỗi Zalo
-                            </button>
-                        )}
                         <button
                             type="button"
                             onClick={isEditing ? handleSaveConfig : handleSave}
@@ -552,7 +552,7 @@ export default function CheckPage() {
                                     : "bg-blue-700 text-white hover:bg-blue-800"
                             )}
                         >
-                            {isEditing ? <><Save size={20} /> Lưu Cấu hình</> : <><Save size={20} /> Lưu & Báo cáo</>}
+                            {isEditing ? <><Save size={20} /> Lưu Cấu hình</> : <><Save size={20} /> Lưu & Báo cáo & Gửi Zalo</>}
                         </button>
                     </div>
                 </div>

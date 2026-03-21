@@ -319,7 +319,7 @@ export default function ExportReportPage() {
                                 </div>
                                 <div className="bg-gradient-to-b from-slate-50 to-white rounded-xl p-4 border border-slate-200 shadow-sm transition hover:shadow-md">
                                     <div className="text-3xl sm:text-4xl font-black text-slate-600">{naSystems}</div>
-                                    <div className="text-[10px] sm:text-xs font-bold uppercase tracking-wider text-slate-500 mt-2">Đang dừng / NA</div>
+                                    <div className="text-[10px] sm:text-xs font-bold uppercase tracking-wider text-slate-500 mt-2">Chưa kiểm tra / NA</div>
                                 </div>
                             </div>
 
