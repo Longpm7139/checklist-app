@@ -24,10 +24,11 @@ function NoteInput({
 }) {
     const [localValue, setLocalValue] = useState(value);
     const isComposing = useRef(false);
+    const isFocused = useRef(false);
     const debounceTimer = useRef<NodeJS.Timeout | null>(null);
 
     useEffect(() => {
-        if (!isComposing.current && value !== localValue) {
+        if (!isFocused.current && !isComposing.current && value !== localValue) {
             setLocalValue(value);
         }
     }, [value]);
@@ -50,7 +51,9 @@ function NoteInput({
         debounceTimer.current = setTimeout(() => onChange(val), 800);
     };
 
+    const handleFocus = () => { isFocused.current = true; };
     const handleBlur = () => {
+        isFocused.current = false;
         if (debounceTimer.current) clearTimeout(debounceTimer.current);
         if (localValue !== value) onChange(localValue);
     };
@@ -61,6 +64,7 @@ function NoteInput({
             className={className}
             placeholder={placeholder}
             value={localValue}
+            onFocus={handleFocus}
             onChange={handleChange}
             onCompositionStart={handleCompositionStart}
             onCompositionEnd={handleCompositionEnd}
@@ -84,10 +88,11 @@ function NoteTextArea({
 }) {
     const [localValue, setLocalValue] = useState(value);
     const isComposing = useRef(false);
+    const isFocused = useRef(false);
     const debounceTimer = useRef<NodeJS.Timeout | null>(null);
 
     useEffect(() => {
-        if (!isComposing.current && value !== localValue) {
+        if (!isFocused.current && !isComposing.current && value !== localValue) {
             setLocalValue(value);
         }
     }, [value]);
@@ -110,7 +115,9 @@ function NoteTextArea({
         debounceTimer.current = setTimeout(() => onChange(val), 800);
     };
 
+    const handleFocus = () => { isFocused.current = true; };
     const handleBlur = () => {
+        isFocused.current = false;
         if (debounceTimer.current) clearTimeout(debounceTimer.current);
         if (localValue !== value) onChange(localValue);
     };
@@ -121,6 +128,7 @@ function NoteTextArea({
             className={className}
             placeholder={placeholder}
             value={localValue}
+            onFocus={handleFocus}
             onChange={handleChange}
             onCompositionStart={handleCompositionStart}
             onCompositionEnd={handleCompositionEnd}

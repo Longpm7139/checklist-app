@@ -82,11 +82,12 @@ function NoteInput({
 }) {
   const [localValue, setLocalValue] = useState(value);
   const isComposing = useRef(false);
+  const isFocused = useRef(false);
   const debounceTimer = useRef<NodeJS.Timeout | null>(null);
 
-  // Sync with prop value if needed (but only if NOT composing)
+  // Sync with prop value ONLY if not focused AND not composing
   useEffect(() => {
-    if (!isComposing.current && value !== localValue) {
+    if (!isFocused.current && !isComposing.current && value !== localValue) {
       setLocalValue(value);
     }
   }, [value]);
@@ -118,7 +119,12 @@ function NoteInput({
     }, 800);
   };
 
+  const handleFocus = () => {
+    isFocused.current = true;
+  };
+
   const handleBlur = () => {
+    isFocused.current = false;
     if (debounceTimer.current) clearTimeout(debounceTimer.current);
     if (localValue !== value) {
       onChange(localValue);
@@ -131,6 +137,7 @@ function NoteInput({
       className={className}
       placeholder={placeholder}
       value={localValue}
+      onFocus={handleFocus}
       onChange={handleChange}
       onCompositionStart={handleCompositionStart}
       onCompositionEnd={handleCompositionEnd}
@@ -171,6 +178,9 @@ export default function Home() {
       a.categoryIds && a.categoryIds.includes(cat.id)
     )
   );
+
+  const uncheckedCount = systems.filter(s => s.status === 'NA').length;
+  const buttonText = uncheckedCount > 0 ? `Đánh dấu ${uncheckedCount}` : "Tất cả";
 
   useEffect(() => {
     const unsubSystems = subscribeToSystems((data) => {
@@ -1045,10 +1055,12 @@ export default function Home() {
         </div>
       </div>
 
-      <ChangePasswordModal
-        isOpen={isChangePasswordOpen}
-        onClose={() => setIsChangePasswordOpen(false)}
-      />
+      {isChangePasswordOpen && (
+        <ChangePasswordModal
+          userCode={user?.code || ''}
+          onClose={() => setIsChangePasswordOpen(false)}
+        />
+      )}
     </div>
   );
 }
