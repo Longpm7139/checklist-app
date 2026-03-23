@@ -177,76 +177,98 @@ export default function KPIPage() {
                 });
 
                 // Calculate Stats per User
+                // --- Helper to map Log Timestamp string to Duty Date + Shift ---
+                const getLogDutyInfo = (timestamp: string) => {
+                    if (!timestamp) return null;
+                    const parts = timestamp.split(' ');
+                    const datePart = parts.find(p => p.includes('/') || p.includes('-'));
+                    const timePart = parts.find(p => p.includes(':'));
+                    if (!datePart || !timePart) return null;
+
+                    let d, m, y;
+                    const cleanDatePart = datePart.replace(/[^\d\/\-]/g, '');
+                    if (cleanDatePart.includes('/')) {
+                        [d, m, y] = cleanDatePart.split('/');
+                    } else {
+                        [y, m, d] = cleanDatePart.split('-');
+                    }
+
+                    const [hh, min] = timePart.split(':').map(Number);
+                    const logDate = new Date(Number(y), Number(m) - 1, Number(d));
+
+                    let dutyDate = new Date(logDate);
+                    let shift: 'DAY' | 'NIGHT' = 'DAY';
+
+                    if (hh < 7) {
+                        dutyDate.setDate(dutyDate.getDate() - 1);
+                        shift = 'NIGHT';
+                    } else if (hh >= 19) {
+                        shift = 'NIGHT';
+                    } else {
+                        shift = 'DAY';
+                    }
+
+                    const dutyDateStr = `${dutyDate.getFullYear()}-${String(dutyDate.getMonth() + 1).padStart(2, '0')}-${String(dutyDate.getDate()).padStart(2, '0')}`;
+                    return { dutyDateStr, shift };
+                };
+
+                // 1. Group ALL filtered logs by Duty Date and Shift
+                const logsByDuty: { [key: string]: any[] } = {};
+                filteredLogs.forEach((l: any) => {
+                    const info = getLogDutyInfo(l.timestamp);
+                    if (!info) return;
+                    const key = `${info.dutyDateStr}_${info.shift}`;
+                    if (!logsByDuty[key]) logsByDuty[key] = [];
+                    logsByDuty[key].push(l);
+                });
+
+                // 2. Calculate Stats per User
                 const calculatedStats = allUsers.map(u => {
-                    // 1. Inspections (TEAM-BASED LOGIC)
-                    // Rule: For each day the user is on duty, they get 1 point per unique category inspected by ANY member of the duty team.
-                    // Max points per day = 11 (Categories A through K).
-                    // Non-duty staff can still inspect but get 0 inspection points.
-
-                    // First, group logs by date
-                    const logsByDate: { [date: string]: any[] } = {};
-                    filteredLogs.forEach((l: any) => {
-                        const datePart = l.timestamp.split(' ').find((p: string) => p.includes('/') || p.includes('-'));
-                        if (!datePart) return;
-
-                        let isoDate = "";
-                        const cleanDatePart = datePart.replace(/[^\d\/\-]/g, '');
-                        if (cleanDatePart.includes('/')) {
-                            const [d, m, y] = cleanDatePart.split('/');
-                            isoDate = `${y}-${m.padStart(2, '0')}-${d.padStart(2, '0')}`;
-                        } else {
-                            isoDate = cleanDatePart;
-                        }
-
-                        if (!logsByDate[isoDate]) logsByDate[isoDate] = [];
-                        logsByDate[isoDate].push(l);
-                    });
-
                     let userInspections = 0;
                     let fastChecksCount = 0;
 
-                    Object.keys(logsByDate).forEach(dateStr => {
-                        const dayDuty = duties.find(d => d.date === dateStr);
-                        if (!dayDuty) return;
+                    // Iterate through ALL duties to see where this user was assigned
+                    duties.forEach(dayDuty => {
+                        const dateStr = dayDuty.date;
+                        ['DAY', 'NIGHT'].forEach(shiftType => {
+                            const shiftAssignments = dayDuty.assignments?.filter((a: any) => a.shift === shiftType && a.userCode === u.code) || [];
+                            if (shiftAssignments.length === 0) return;
 
-                        // Identify the assigned duty team for this date
-                        const teamMembers = dayDuty.assignments?.map((a: any) => a.userCode) || [];
-                        const isUserOnDutyToday = teamMembers.includes(u.code);
+                            const shiftTeamMembers = dayDuty.assignments?.filter((a: any) => a.shift === shiftType).map((a: any) => a.userCode) || [];
+                            const key = `${dateStr}_${shiftType}`;
+                            const shiftLogs = logsByDuty[key] || [];
 
-                        // If NOT on duty, skip inspection points for this day for this user
-                        // and also skip fastCheck penalties (only score duty staff for these)
-                        if (!isUserOnDutyToday) return;
+                            const teamLogs = shiftLogs.filter((l: any) => shiftTeamMembers.includes(l.inspectorCode));
+                            if (teamLogs.length > 0) {
+                                userInspections += 11;
+                            }
 
-                        // Count fast checks for this USER on days they are on duty
-                        const userLogsOnDuty = logsByDate[dateStr].filter((l: any) =>
-                            ((l.inspectorCode === u.code) || (l.inspectorName === u.name))
-                        );
-
-                        // Points are awarded: if the duty team created any logs today, both duty members get exactly 11 points.
-                        const teamLogs = logsByDate[dateStr].filter((l: any) =>
-                            teamMembers.includes(l.inspectorCode)
-                        );
-
-                        if (teamLogs.length > 0) {
-                            userInspections += 11;
-                        }
+                            const userLogs = shiftLogs.filter((l: any) =>
+                                ((l.inspectorCode === u.code) || (l.inspectorName === u.name))
+                            );
+                            userLogs.forEach((l: any) => {
+                                if (l.duration && l.duration < 30) {
+                                    fastChecksCount++;
+                                }
+                            });
+                        });
                     });
 
-                    // 2. Faults Found
+                    // Faults Found
                     const userFaultsFound = filteredHistoryCreated.filter((h: any) => {
                         const codes = h.inspectorCode ? (Array.isArray(h.inspectorCode) ? h.inspectorCode : h.inspectorCode.split(',').map((s: string) => s.trim())) : [];
                         const names = h.inspectorName ? (Array.isArray(h.inspectorName) ? h.inspectorName : h.inspectorName.split(',').map((s: string) => s.trim())) : [];
                         return codes.includes(u.code) || names.includes(u.name) || h.inspectorCode === u.code || h.inspectorName === u.name;
                     }).length;
 
-                    // 3. Fixes
+                    // Fixes
                     const userFixes = filteredHistory.filter((h: any) => {
                         const codes = h.resolverCode ? (Array.isArray(h.resolverCode) ? h.resolverCode : h.resolverCode.split(',').map((s: string) => s.trim())) : [];
                         const names = h.resolverName ? (Array.isArray(h.resolverName) ? h.resolverName : h.resolverName.split(',').map((s: string) => s.trim())) : [];
                         return codes.includes(u.code) || names.includes(u.name) || h.resolverCode === u.code || h.resolverName === u.name;
                     }).length;
 
-                    // 4. Incidents
+                    // Incidents
                     const userIncidents = filteredIncidents.filter((i: any) => {
                         const codes = i.resolvedByCode ? (Array.isArray(i.resolvedByCode) ? i.resolvedByCode : i.resolvedByCode.split(',').map((s: string) => s.trim())) : [];
                         const names = i.resolvedBy ? (Array.isArray(i.resolvedBy) ? i.resolvedBy : i.resolvedBy.split(',').map((s: string) => s.trim())) : [];
@@ -255,15 +277,15 @@ export default function KPIPage() {
                         return codes.includes(u.code) || names.includes(u.name) || partArray.includes(u.name) || partArray.includes(u.code) || i.resolvedByCode === u.code || i.resolvedBy === u.name;
                     }).length;
 
-                    // 5a. Maintenance (Bảo dưỡng)
+                    // Maintenance
                     const userMaintenance = filteredTasks.filter((t: any) => {
-                        if (t.type === 'PROJECT') return false; // Default undefined is Maintenance
+                        if (t.type === 'PROJECT') return false;
                         const assignees = t.assignees || [];
                         const arr = Array.isArray(assignees) ? assignees : assignees.split(',').map((s: string) => s.trim());
                         return arr.includes(u.code) || arr.includes(u.name);
                     }).length;
 
-                    // 5b. Project Execution (Thi công/Dự án)
+                    // Project Execution
                     const userProjectExec = filteredTasks.filter((t: any) => {
                         if (t.type !== 'PROJECT') return false;
                         const assignees = t.assignees || [];
@@ -271,15 +293,12 @@ export default function KPIPage() {
                         return arr.includes(u.code) || arr.includes(u.name);
                     }).length;
 
-                    // 6. Project Supervision
+                    // Project Supervision
                     const userProjectSup = filteredTasks.filter((t: any) => {
                         const supervisors = t.supervisors || [];
                         const arr = Array.isArray(supervisors) ? supervisors : supervisors.split(',').map((s: string) => s.trim());
                         return arr.includes(u.code) || arr.includes(u.name);
                     }).length;
-
-                    // 7. Negligence (Fast Checks) - Already counted above during duty checks
-                    const fastChecks = fastChecksCount;
 
                     return {
                         userId: u.id,
@@ -292,7 +311,7 @@ export default function KPIPage() {
                         faultFoundCount: userFaultsFound,
                         projectExecCount: userProjectExec,
                         projectSupCount: userProjectSup,
-                        fastCheckCount: fastChecks,
+                        fastCheckCount: fastChecksCount,
                         score: (userInspections * SCORING_RULES.INSPECTION) +
                             (userFaultsFound * SCORING_RULES.FAULT_FOUND) +
                             (userFixes * SCORING_RULES.FIX) +
@@ -300,42 +319,25 @@ export default function KPIPage() {
                             (userMaintenance * SCORING_RULES.MAINTENANCE) +
                             (userProjectExec * SCORING_RULES.PROJECT_EXEC) +
                             (userProjectSup * SCORING_RULES.PROJECT_SUP) +
-                            (fastChecks * SCORING_RULES.NEGLIGENCE)
+                            (fastChecksCount * SCORING_RULES.NEGLIGENCE)
                     };
                 });
 
-                // Sort by Score DESC
+                // 3. Sort and set stats
                 calculatedStats.sort((a, b) => b.score - a.score);
                 setStats(calculatedStats);
 
-                // --- Calculate Global Total Inspections (Unique categories per team per day) ---
-                const logsByDate: { [date: string]: any[] } = {};
-                filteredLogs.forEach((l: any) => {
-                    const datePart = l.timestamp.split(' ').find((p: string) => p.includes('/') || p.includes('-'));
-                    if (!datePart) return;
-
-                    const cleanDatePart = datePart.replace(/[^\d\/\-]/g, '');
-                    let isoDate = cleanDatePart.includes('/') ?
-                        `${cleanDatePart.split('/')[2]}-${cleanDatePart.split('/')[1].padStart(2, '0')}-${cleanDatePart.split('/')[0].padStart(2, '0')}` :
-                        cleanDatePart;
-
-                    if (!logsByDate[isoDate]) logsByDate[isoDate] = [];
-                    logsByDate[isoDate].push(l);
-                });
-
+                // 4. Calculate Global Total Inspections
                 let globalInspections = 0;
-                const categoryMap: any = {
-                    'A': 'CAT1', 'B': 'CAT2', 'C': 'CAT3', 'D': 'CAT4', 'E': 'CAT5',
-                    'F': 'CAT6', 'G': 'CAT7', 'H': 'CAT8', 'I': 'CAT9', 'J': 'CAT10', 'K': 'CAT11'
-                };
-
-                Object.keys(logsByDate).forEach(dateStr => {
+                Object.keys(logsByDuty).forEach(key => {
+                    const [dateStr, shiftType] = key.split('_');
                     const dayDuty = duties.find(d => d.date === dateStr);
                     if (!dayDuty) return;
 
-                    const teamMembers = dayDuty.assignments?.map((a: any) => a.userCode) || [];
-                    const teamLogs = logsByDate[dateStr].filter((l: any) => teamMembers.includes(l.inspectorCode));
+                    const shiftTeamMembers = dayDuty.assignments?.filter((a: any) => a.shift === shiftType).map((a: any) => a.userCode) || [];
+                    const shiftLogs = logsByDuty[key];
 
+                    const teamLogs = shiftLogs.filter((l: any) => shiftTeamMembers.includes(l.inspectorCode));
                     if (teamLogs.length > 0) {
                         globalInspections += 11;
                     }

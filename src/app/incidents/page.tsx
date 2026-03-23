@@ -2,13 +2,12 @@
 
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { ArrowLeft, Siren, CheckCircle, Plus, User, Clock, AlertTriangle } from 'lucide-react';
+import { ArrowLeft, Siren, CheckCircle, Plus, User as UserIcon, Clock, AlertTriangle, Search, Download, Loader2 } from 'lucide-react';
 import { useUser } from '@/providers/UserProvider';
-
-import { Incident } from '@/lib/types';
+import { IMESafeInput, IMESafeTextArea } from '@/components/IMESafeInput';
+import { Incident, User } from '@/lib/types';
 import { subscribeToIncidents, saveIncident } from '@/lib/firebase';
 import * as XLSX from 'xlsx';
-import { Search, Download, Loader2 } from 'lucide-react';
 
 export default function IncidentsPage() {
     const router = useRouter();
@@ -24,7 +23,7 @@ export default function IncidentsPage() {
     const [newDesc, setNewDesc] = useState('');
     const [assignee, setAssignee] = useState('');
 
-    const [users, setUsers] = useState<{ id: number, name: string, code: string }[]>([]);
+    const [users, setUsers] = useState<User[]>([]);
     const [resolvingId, setResolvingId] = useState<string | null>(null);
     const [resolutionNote, setResolutionNote] = useState('');
     const [selectedParticipants, setSelectedParticipants] = useState<string[]>([]);
@@ -220,12 +219,13 @@ export default function IncidentsPage() {
                 {viewMode === 'LIST' && (
                     <div className="mb-6 relative">
                         <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={20} />
-                        <input
+                        <IMESafeInput
                             type="text"
                             placeholder="Tìm kiếm sự cố theo tên, hệ thống, mô tả..."
                             className="w-full pl-10 pr-4 py-3 rounded-xl border border-slate-200 shadow-sm outline-none focus:border-red-500 focus:ring-1 focus:ring-red-200 transition"
                             value={searchTerm}
-                            onChange={(e) => setSearchTerm(e.target.value)}
+                            onChangeValue={(val: string) => setSearchTerm(val)}
+                            debounceMs={300}
                         />
                     </div>
                 )}
@@ -236,39 +236,39 @@ export default function IncidentsPage() {
                         <div className="space-y-4">
                             <div>
                                 <label className="block text-sm font-medium text-slate-700 mb-1">Tên sự cố *</label>
-                                <input
+                                <IMESafeInput
                                     className="w-full border border-slate-300 rounded p-2 focus:border-red-500 outline-none"
                                     placeholder="VD: Cầu thang A5 bị kẹt..."
                                     value={newTitle}
-                                    onChange={e => setNewTitle(e.target.value)}
+                                    onChangeValue={(val: string) => setNewTitle(val)}
                                 />
                             </div>
                             <div>
                                 <label className="block text-sm font-medium text-slate-700 mb-1">Hệ thống / Vị trí *</label>
-                                <input
+                                <IMESafeInput
                                     className="w-full border border-slate-300 rounded p-2 focus:border-red-500 outline-none"
                                     placeholder="VD: Khu vực sân đỗ số 5"
                                     value={newSystem}
-                                    onChange={e => setNewSystem(e.target.value)}
+                                    onChangeValue={(val: string) => setNewSystem(val)}
                                 />
                             </div>
                             <div>
                                 <label className="block text-sm font-medium text-slate-700 mb-1">Mô tả chi tiết</label>
-                                <textarea
+                                <IMESafeTextArea
                                     className="w-full border border-slate-300 rounded p-2 focus:border-red-500 outline-none"
                                     rows={3}
                                     placeholder="Mô tả hiện trạng..."
                                     value={newDesc}
-                                    onChange={e => setNewDesc(e.target.value)}
+                                    onChangeValue={(val: string) => setNewDesc(val)}
                                 />
                             </div>
                             <div>
                                 <label className="block text-sm font-medium text-slate-700 mb-1">Giao cho nhân viên (Mã NV) - Bỏ trống nếu chung</label>
-                                <input
+                                <IMESafeInput
                                     className="w-full border border-slate-300 rounded p-2 focus:border-red-500 outline-none"
                                     placeholder="VD: NV001"
                                     value={assignee}
-                                    onChange={e => setAssignee(e.target.value)}
+                                    onChangeValue={(val: string) => setAssignee(val)}
                                 />
                             </div>
                         </div>
@@ -329,7 +329,7 @@ export default function IncidentsPage() {
                                                     <Clock size={12} /> {inc.createdAt}
                                                 </div>
                                                 <div className="flex items-center gap-1.5">
-                                                    <User size={12} /> {inc.reportedBy}
+                                                    <UserIcon size={12} /> {inc.reportedBy}
                                                 </div>
                                             </div>
                                         </div>
@@ -396,12 +396,12 @@ export default function IncidentsPage() {
 
                         <div className="mb-4">
                             <label className="block text-sm font-bold text-slate-700 mb-2">1. Nội dung xử lý:</label>
-                            <textarea
+                            <IMESafeTextArea
                                 className="w-full border border-slate-300 rounded p-3 focus:border-blue-500 outline-none bg-slate-50"
                                 rows={3}
                                 placeholder="Mô tả công việc đã thực hiện..."
                                 value={resolutionNote}
-                                onChange={e => setResolutionNote(e.target.value)}
+                                onChangeValue={(val: string) => setResolutionNote(val)}
                             />
                         </div>
 

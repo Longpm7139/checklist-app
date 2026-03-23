@@ -1,7 +1,7 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
-import { useRouter } from 'next/navigation';
+import React, { useState, useEffect, Suspense } from 'react';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { ArrowLeft, Download, FileText, Calendar, CheckSquare, List, Activity, Settings, User, AlertTriangle, ShieldCheck, Wrench } from 'lucide-react';
 import { subscribeToSystems, subscribeToIncidents, subscribeToMaintenance, subscribeToDuties } from '@/lib/firebase';
 import { SystemCheck, Incident, MaintenanceTask } from '@/lib/types';
@@ -10,8 +10,10 @@ import { Document, Packer, Paragraph, TextRun, Table, TableRow, TableCell, Borde
 import { saveAs } from 'file-saver';
 import clsx from 'clsx';
 
-export default function ExportReportPage() {
+function ExportReportContent() {
     const router = useRouter();
+    const searchParams = useSearchParams();
+    const queryShift = searchParams.get('shift');
     const { user } = useUser();
     const [systems, setSystems] = useState<SystemCheck[]>([]);
     const [incidents, setIncidents] = useState<Incident[]>([]);
@@ -22,7 +24,7 @@ export default function ExportReportPage() {
     const [selectedDate, setSelectedDate] = useState(
         new Date().toLocaleDateString('en-CA') // YYYY-MM-DD
     );
-    const [shift, setShift] = useState('Hành chính');
+    const [shift, setShift] = useState(queryShift || 'Hành chính');
     const [generalEvaluation, setGeneralEvaluation] = useState('Hệ thống hoạt động cơ bản ổn định, đáp ứng được yêu cầu khai thác.');
     const [materialRequest, setMaterialRequest] = useState('Không có');
     const [isGenerating, setIsGenerating] = useState(false);
@@ -40,6 +42,7 @@ export default function ExportReportPage() {
             unsubDuties();
         };
     }, []);
+
 
     // Derived Data for the selected date
     const formattedDateObj = new Date(selectedDate);
@@ -377,5 +380,13 @@ export default function ExportReportPage() {
                 </div>
             </div>
         </div>
+    );
+}
+
+export default function ExportReportPage() {
+    return (
+        <Suspense fallback={<div className="p-8 text-center text-slate-500 font-medium animate-pulse">Đang tải cấu hình báo cáo...</div>}>
+            <ExportReportContent />
+        </Suspense>
     );
 }

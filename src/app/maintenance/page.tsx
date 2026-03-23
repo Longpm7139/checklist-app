@@ -2,9 +2,10 @@
 
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { ArrowLeft, Wrench, Calendar, CheckSquare, Plus, User, Clock, AlertTriangle } from 'lucide-react';
+import { ArrowLeft, Wrench, Calendar, CheckSquare, Plus, User as UserIcon, Clock, AlertTriangle } from 'lucide-react';
 import { useUser } from '@/providers/UserProvider';
-import { MaintenanceTask } from '@/lib/types';
+import { IMESafeInput, IMESafeTextArea } from '@/components/IMESafeInput';
+import { MaintenanceTask, User } from '@/lib/types';
 import clsx from 'clsx';
 import { subscribeToMaintenance, saveMaintenance } from '@/lib/firebase';
 
@@ -13,7 +14,7 @@ export default function MaintenancePage() {
     const { user: currentUser } = useUser();
     const [tasks, setTasks] = useState<MaintenanceTask[]>([]);
     const [viewMode, setViewMode] = useState<'LIST' | 'CREATE'>('LIST');
-    const [availableUsers, setAvailableUsers] = useState<{ id: number, code: string, name: string }[]>([]);
+    const [availableUsers, setAvailableUsers] = useState<User[]>([]);
 
     // Form State
     const [title, setTitle] = useState('');
@@ -213,21 +214,21 @@ export default function MaintenancePage() {
                             </div>
                             <div>
                                 <label className="block text-sm font-medium text-slate-700 mb-1">Tên công việc *</label>
-                                <input
+                                <IMESafeInput
                                     className="w-full border border-slate-300 rounded p-2 focus:border-blue-500 outline-none"
                                     placeholder="VD: Cầu A1..."
                                     value={title}
-                                    onChange={e => setTitle(e.target.value)}
+                                    onChangeValue={(val: string) => setTitle(val)}
                                 />
                             </div>
                             <div>
                                 <label className="block text-sm font-medium text-slate-700 mb-1">Mô tả chi tiết</label>
-                                <textarea
+                                <IMESafeTextArea
                                     className="w-full border border-slate-300 rounded p-2 focus:border-blue-500 outline-none"
                                     rows={3}
                                     placeholder="Nội dung cần làm..."
                                     value={desc}
-                                    onChange={e => setDesc(e.target.value)}
+                                    onChangeValue={(val: string) => setDesc(val)}
                                 />
                             </div>
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -343,7 +344,7 @@ export default function MaintenancePage() {
 
                                         <div className="space-y-1.5">
                                             <div className="text-[11px] text-slate-500 font-medium flex items-start gap-2">
-                                                <User size={14} className="mt-0.5 text-blue-500 shrink-0" />
+                                                <UserIcon size={14} className="mt-0.5 text-blue-500 shrink-0" />
                                                 <div className="leading-snug">
                                                     Giao cho: <span className="text-slate-700 font-bold">{
                                                         [...(task.assigneeNames || []), ...(task.supervisorNames || [])]
@@ -415,12 +416,12 @@ export default function MaintenancePage() {
                                 <label className="block text-sm font-medium text-slate-700 mb-1">
                                     Kết quả bảo dưỡng (Đã làm được gì?) *
                                 </label>
-                                <textarea
+                                <IMESafeTextArea
                                     className="w-full border border-slate-300 rounded p-2 focus:border-blue-500 outline-none"
                                     rows={3}
                                     placeholder="Nhập ghi chú kết quả..."
                                     value={completeNote}
-                                    onChange={(e) => setCompleteNote(e.target.value)}
+                                    onChangeValue={(val: string) => setCompleteNote(val)}
                                 />
                             </div>
 
@@ -428,12 +429,12 @@ export default function MaintenancePage() {
                                 <label className="block text-sm font-medium text-slate-700 mb-1">
                                     Nội dung tồn tại (Nếu có)
                                 </label>
-                                <textarea
+                                <IMESafeTextArea
                                     className="w-full border border-yellow-300 bg-yellow-50 rounded p-2 focus:border-yellow-500 outline-none"
                                     rows={3}
                                     placeholder="Nhập các vấn đề còn tồn tại sau bảo dưỡng..."
                                     value={remainingIssues}
-                                    onChange={(e) => setRemainingIssues(e.target.value)}
+                                    onChangeValue={(val: string) => setRemainingIssues(val)}
                                 />
                                 <p className="text-xs text-slate-500 mt-1">Cần nêu rõ các hư hỏng hoặc vấn đề chưa xử lý được.</p>
                             </div>

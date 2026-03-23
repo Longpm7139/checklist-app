@@ -66,6 +66,29 @@ export const deleteSystem = async (id: string) => {
     await deleteDoc(doc(db, "systems", id));
 };
 
+// Categories
+export const subscribeToCategories = (callback: (data: any[]) => void, onError?: (error: any) => void) => {
+    const q = query(collection(db, "categories"));
+    return onSnapshot(q, (querySnapshot) => {
+        const categories: any[] = [];
+        querySnapshot.forEach((doc) => {
+            categories.push({ ...doc.data(), id: doc.id });
+        });
+        callback(categories);
+    }, (error) => {
+        console.error("subscribeToCategories error:", error);
+        if (onError) onError(error);
+    });
+};
+
+export const saveCategory = async (id: string, data: any) => {
+    await setDoc(doc(db, "categories", id), removeUndefined(data), { merge: true });
+};
+
+export const deleteCategory = async (id: string) => {
+    await deleteDoc(doc(db, "categories", id));
+};
+
 // Logs
 export const addLog = async (log: any) => {
     // Use timestamp as ID or auto-id
@@ -340,7 +363,8 @@ export const backupAllData = async () => {
         "material_history",
         "systems",
         "users",
-        "details" // This is special, document IDs are system IDs
+        "details", // This is special, document IDs are system IDs
+        "categories"
     ];
 
     const backupData: Record<string, any[]> = {};

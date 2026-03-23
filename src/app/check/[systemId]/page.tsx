@@ -7,135 +7,10 @@ import { Save, ArrowLeft, Clock, Settings, Plus, Trash2, X, MessageSquare, Send 
 import clsx from 'clsx';
 import { subscribeToSystems, subscribeToChecklist, saveChecklist, saveSystem, addLog, saveHistoryItem, subscribeToDuties } from '@/lib/firebase';
 import { useUser } from '@/providers/UserProvider';
+import { IMESafeInput, IMESafeTextArea } from '@/components/IMESafeInput';
 
 // --- HELPER COMPONENTS FOR IME-SAFE DEBOUNCED INPUT ---
-function NoteInput({
-    value,
-    onChange,
-    disabled,
-    placeholder,
-    className
-}: {
-    value: string;
-    onChange: (val: string) => void;
-    disabled?: boolean;
-    placeholder?: string;
-    className?: string;
-}) {
-    const [localValue, setLocalValue] = useState(value);
-    const isComposing = useRef(false);
-    const isFocused = useRef(false);
-    const debounceTimer = useRef<NodeJS.Timeout | null>(null);
-
-    useEffect(() => {
-        if (!isFocused.current && !isComposing.current && value !== localValue) {
-            setLocalValue(value);
-        }
-    }, [value]);
-
-    const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-        const val = e.target.value;
-        setLocalValue(val);
-        if (debounceTimer.current) clearTimeout(debounceTimer.current);
-        if (!isComposing.current) {
-            debounceTimer.current = setTimeout(() => onChange(val), 800);
-        }
-    };
-
-    const handleCompositionStart = () => { isComposing.current = true; };
-    const handleCompositionEnd = (e: React.CompositionEvent<HTMLInputElement>) => {
-        isComposing.current = false;
-        const val = (e.target as HTMLInputElement).value;
-        setLocalValue(val);
-        if (debounceTimer.current) clearTimeout(debounceTimer.current);
-        debounceTimer.current = setTimeout(() => onChange(val), 800);
-    };
-
-    const handleFocus = () => { isFocused.current = true; };
-    const handleBlur = () => {
-        isFocused.current = false;
-        if (debounceTimer.current) clearTimeout(debounceTimer.current);
-        if (localValue !== value) onChange(localValue);
-    };
-
-    return (
-        <input
-            disabled={disabled}
-            className={className}
-            placeholder={placeholder}
-            value={localValue}
-            onFocus={handleFocus}
-            onChange={handleChange}
-            onCompositionStart={handleCompositionStart}
-            onCompositionEnd={handleCompositionEnd}
-            onBlur={handleBlur}
-        />
-    );
-}
-
-function NoteTextArea({
-    value,
-    onChange,
-    disabled,
-    placeholder,
-    className
-}: {
-    value: string;
-    onChange: (val: string) => void;
-    disabled?: boolean;
-    placeholder?: string;
-    className?: string;
-}) {
-    const [localValue, setLocalValue] = useState(value);
-    const isComposing = useRef(false);
-    const isFocused = useRef(false);
-    const debounceTimer = useRef<NodeJS.Timeout | null>(null);
-
-    useEffect(() => {
-        if (!isFocused.current && !isComposing.current && value !== localValue) {
-            setLocalValue(value);
-        }
-    }, [value]);
-
-    const handleChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
-        const val = e.target.value;
-        setLocalValue(val);
-        if (debounceTimer.current) clearTimeout(debounceTimer.current);
-        if (!isComposing.current) {
-            debounceTimer.current = setTimeout(() => onChange(val), 800);
-        }
-    };
-
-    const handleCompositionStart = () => { isComposing.current = true; };
-    const handleCompositionEnd = (e: React.CompositionEvent<HTMLTextAreaElement>) => {
-        isComposing.current = false;
-        const val = (e.target as HTMLTextAreaElement).value;
-        setLocalValue(val);
-        if (debounceTimer.current) clearTimeout(debounceTimer.current);
-        debounceTimer.current = setTimeout(() => onChange(val), 800);
-    };
-
-    const handleFocus = () => { isFocused.current = true; };
-    const handleBlur = () => {
-        isFocused.current = false;
-        if (debounceTimer.current) clearTimeout(debounceTimer.current);
-        if (localValue !== value) onChange(localValue);
-    };
-
-    return (
-        <textarea
-            disabled={disabled}
-            className={className}
-            placeholder={placeholder}
-            value={localValue}
-            onFocus={handleFocus}
-            onChange={handleChange}
-            onCompositionStart={handleCompositionStart}
-            onCompositionEnd={handleCompositionEnd}
-            onBlur={handleBlur}
-        />
-    );
-}
+// (Moved to shared components/IMESafeInput.tsx)
 
 const DEFAULT_TEMPLATE = [
     { id: '1', content: 'Kiểm tra ngoại quan thiết bị (Vỏ, dây cáp)' },
@@ -488,10 +363,10 @@ export default function CheckPage() {
                                     <div className="p-4 space-y-4">
                                         <div className="text-slate-800 font-medium leading-relaxed">
                                             {isEditing ? (
-                                                <NoteTextArea
+                                                <IMESafeTextArea
                                                     className="w-full border border-slate-300 rounded-lg p-3 text-sm focus:border-blue-500 outline-none min-h-[80px]"
                                                     value={item.content}
-                                                    onChange={(val) => handleUpdateContent(item.id, val)}
+                                                    onChangeValue={(val: string) => handleUpdateContent(item.id, val)}
                                                     placeholder="Nội dung kiểm tra..."
                                                 />
                                             ) : (
@@ -523,7 +398,7 @@ export default function CheckPage() {
 
                                         {!isEditing && (
                                             <div className="relative">
-                                                <NoteInput
+                                                <IMESafeInput
                                                     disabled={item.status === 'OK' || isLockedByOther}
                                                     className={clsx(
                                                         "w-full p-4 border rounded-xl text-sm outline-none transition-all pr-12",
@@ -532,7 +407,7 @@ export default function CheckPage() {
                                                     )}
                                                     placeholder={item.status === 'OK' ? "✅ OK - Không ghi chú" : "📝 Nhập ghi chú tại đây..."}
                                                     value={item.note}
-                                                    onChange={(val) => handleNoteChange(item.id, val)}
+                                                    onChangeValue={(val: string) => handleNoteChange(item.id, val)}
                                                 />
                                             </div>
                                         )}
@@ -568,10 +443,10 @@ export default function CheckPage() {
                                             </td>
                                             <td className="p-3 border border-slate-300 font-medium text-slate-800">
                                                 {isEditing ? (
-                                                    <NoteInput
+                                                    <IMESafeInput
                                                         className="w-full border border-slate-300 rounded px-2 py-1 focus:border-blue-500 outline-none"
                                                         value={item.content}
-                                                        onChange={(val) => handleUpdateContent(item.id, val)}
+                                                        onChangeValue={(val: string) => handleUpdateContent(item.id, val)}
                                                         placeholder="Nhập nội dung kiểm tra..."
                                                     />
                                                 ) : (
@@ -610,7 +485,7 @@ export default function CheckPage() {
                                                 )}
                                             </td>
                                             <td className="p-3 border border-slate-300">
-                                                <NoteInput
+                                                <IMESafeInput
                                                     disabled={item.status === 'OK' || isLockedByOther}
                                                     className={clsx(
                                                         "w-full p-2 border rounded text-sm outline-none",
@@ -619,7 +494,7 @@ export default function CheckPage() {
                                                     )}
                                                     placeholder={item.status === 'OK' ? "OK không cần ghi chú" : "Nhập ghi chú..."}
                                                     value={item.note}
-                                                    onChange={(val) => handleNoteChange(item.id, val)}
+                                                    onChangeValue={(val: string) => handleNoteChange(item.id, val)}
                                                 />
                                             </td>
                                             <td className="p-3 border border-slate-300 text-center text-xs font-mono text-slate-500">

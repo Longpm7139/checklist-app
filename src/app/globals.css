@@ -33,3 +33,28 @@ button {
         overflow: hidden;
     }
 }
+
+/* Ensure inputs are at least 16px on mobile to prevent iOS auto-zoom */
+@media screen and (max-width: 768px) {
+
+    input,
+    textarea,
+    select {
+        font-size: 16px !important;
+    }
+}
+
+/* Smooth transitions for all interactive elements */
+button,
+a,
+input,
+textarea,
+.card-hover {
+    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* Prevent text selection on buttons for better "app" feel */
+button {
+    user-select: none;
+    -webkit-tap-highlight-color: transparent;
+}

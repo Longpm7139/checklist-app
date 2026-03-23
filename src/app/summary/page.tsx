@@ -1,13 +1,31 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { useRouter } from 'next/navigation';
-import { ChecklistItem, SystemCheck } from '@/lib/types';
-import { ArrowLeft, Save, RotateCcw, History as HistoryIcon, ChevronLeft, ChevronRight } from 'lucide-react';
+import { useSearchParams, useRouter } from 'next/navigation';
+import { IMESafeInput, IMESafeTextArea } from '@/components/IMESafeInput';
+import {
+    Package,
+    CheckCircle,
+    Clock,
+    Trash2,
+    Search,
+    ArrowLeft,
+    History as HistoryIcon,
+    User as UserIcon,
+    ChevronLeft,
+    ChevronRight,
+    FileText,
+    Settings,
+    ShieldCheck,
+    CheckSquare,
+    Save,
+    RotateCcw,
+    Wrench
+} from 'lucide-react';
 import clsx from 'clsx';
 import { subscribeToSystems, getAllDetails, saveHistoryItem, saveSystem, saveChecklist, getUsers } from '@/lib/firebase';
 import { useUser } from '@/providers/UserProvider';
-import { User } from '@/lib/types'; // Assuming User type is in types.ts or adding it here if needed
+import { ChecklistItem, SystemCheck, User } from '@/lib/types';
 
 interface SummaryRow {
     id: string;
@@ -353,7 +371,7 @@ export default function SummaryPage() {
                                             <div className="text-[10px] text-slate-400 uppercase font-bold tracking-wider">
                                                 {row.fixStatus === 'Pending Material' ? 'Vật tư cần thay thế' : 'Nội dung thực hiện'}
                                             </div>
-                                            <textarea
+                                            <IMESafeTextArea
                                                 disabled={row.fixStatus !== 'Fixed' && row.fixStatus !== 'Pending Material'}
                                                 className={clsx(
                                                     "w-full p-3 rounded-lg border text-sm outline-none transition-all focus:ring-2 focus:ring-blue-100",
@@ -368,7 +386,7 @@ export default function SummaryPage() {
                                                             "Chỉ nhập khi Fixed hoặc cần Vật tư"
                                                 }
                                                 value={row.actionDescription}
-                                                onChange={(e) => handleActionChange(row.id, e.target.value)}
+                                                onChangeValue={(val: string) => handleActionChange(row.id, val)}
                                             />
                                         </div>
                                     </div>
@@ -456,6 +474,7 @@ export default function SummaryPage() {
                                                                     checked={row.executorNames.includes(u.name)}
                                                                     onChange={() => handleToggleExecutor(row.id, u.name)}
                                                                 />
+                                                                <UserIcon size={14} className="text-slate-400" />
                                                                 <span className="text-sm font-medium">{u.name}</span>
                                                             </label>
                                                         ))}
@@ -464,7 +483,7 @@ export default function SummaryPage() {
                                             )}
                                         </td>
                                         <td className="p-3 border border-slate-300">
-                                            <input
+                                            <IMESafeInput
                                                 disabled={row.fixStatus !== 'Fixed' && row.fixStatus !== 'Pending Material'}
                                                 className={clsx(
                                                     "w-full bg-transparent outline-none",
@@ -476,7 +495,7 @@ export default function SummaryPage() {
                                                             "Chỉ nhập khi Fixed hoặc cần Vật tư"
                                                 }
                                                 value={row.actionDescription}
-                                                onChange={(e) => handleActionChange(row.id, e.target.value)}
+                                                onChangeValue={(val: string) => handleActionChange(row.id, val)}
                                             />
                                         </td>
                                     </tr>

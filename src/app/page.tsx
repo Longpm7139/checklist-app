@@ -6,11 +6,12 @@ import { SystemCheck, Status, SystemCategory, MaintenanceTask } from '@/lib/type
 import {
   Save, AlertCircle, Edit2, Trash2, Plus, Check, X, RotateCcw, History as HistoryIcon,
   CheckCheck, Search, LogOut, Users, Lock, ClipboardList, BarChart2, Package,
-  Wrench, QrCode, Key, UserCheck, FileText, ArrowRight, CheckCircle, Filter
+  Wrench, QrCode, Key, UserCheck, FileText, ArrowRight, CheckCircle, Filter, AlertTriangle
 } from 'lucide-react';
 import clsx from 'clsx';
 import { useUser } from '@/providers/UserProvider';
 import ChangePasswordModal from '@/components/ChangePasswordModal';
+import { IMESafeInput } from '@/components/IMESafeInput';
 
 const DEFAULT_CATEGORIES: SystemCategory[] = [
   { id: 'CAT1', name: 'A. Hệ thống Cầu hành khách' },
@@ -64,91 +65,26 @@ const DEFAULT_SYSTEMS: SystemCheck[] = [
   { id: 'K2', categoryId: 'CAT11', name: 'Cửa trượt 2', status: 'NA', note: '' },
 ];
 
-import { subscribeToSystems, saveSystem, deleteSystem, subscribeToIncidents, backupAllData, subscribeToDuties, addLog, subscribeToMaintenance } from '@/lib/firebase';
+import {
+  subscribeToSystems,
+  saveSystem,
+  deleteSystem,
+  subscribeToIncidents,
+  backupAllData,
+  subscribeToDuties,
+  addLog,
+  subscribeToMaintenance,
+  subscribeToCategories,
+  saveCategory,
+  deleteCategory
+} from '@/lib/firebase';
 
 // --- HELPER COMPONENT FOR IME-SAFE DEBOUNCED INPUT ---
-function NoteInput({
-  value,
-  onChange,
-  disabled,
-  placeholder,
-  className
-}: {
-  value: string;
-  onChange: (val: string) => void;
-  disabled?: boolean;
-  placeholder?: string;
-  className?: string;
-}) {
-  const [localValue, setLocalValue] = useState(value);
-  const isComposing = useRef(false);
-  const isFocused = useRef(false);
-  const debounceTimer = useRef<NodeJS.Timeout | null>(null);
-
-  // Sync with prop value ONLY if not focused AND not composing
-  useEffect(() => {
-    if (!isFocused.current && !isComposing.current && value !== localValue) {
-      setLocalValue(value);
-    }
-  }, [value]);
-
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const val = e.target.value;
-    setLocalValue(val);
-
-    if (debounceTimer.current) clearTimeout(debounceTimer.current);
-
-    if (!isComposing.current) {
-      debounceTimer.current = setTimeout(() => {
-        onChange(val);
-      }, 800);
-    }
-  };
-
-  const handleCompositionStart = () => {
-    isComposing.current = true;
-  };
-
-  const handleCompositionEnd = (e: React.CompositionEvent<HTMLInputElement>) => {
-    isComposing.current = false;
-    const val = (e.target as HTMLInputElement).value;
-    setLocalValue(val);
-    if (debounceTimer.current) clearTimeout(debounceTimer.current);
-    debounceTimer.current = setTimeout(() => {
-      onChange(val);
-    }, 800);
-  };
-
-  const handleFocus = () => {
-    isFocused.current = true;
-  };
-
-  const handleBlur = () => {
-    isFocused.current = false;
-    if (debounceTimer.current) clearTimeout(debounceTimer.current);
-    if (localValue !== value) {
-      onChange(localValue);
-    }
-  };
-
-  return (
-    <input
-      disabled={disabled}
-      className={className}
-      placeholder={placeholder}
-      value={localValue}
-      onFocus={handleFocus}
-      onChange={handleChange}
-      onCompositionStart={handleCompositionStart}
-      onCompositionEnd={handleCompositionEnd}
-      onBlur={handleBlur}
-    />
-  );
-}
+// (Moved to shared components/IMESafeInput.tsx)
 
 export default function Home() {
   const router = useRouter();
-  const [categories, setCategories] = useState<SystemCategory[]>(DEFAULT_CATEGORIES);
+  const [categories, setCategories] = useState<SystemCategory[]>([]);
   const [systems, setSystems] = useState<SystemCheck[]>([]);
   const [incidents, setIncidents] = useState<any[]>([]);
   const [duties, setDuties] = useState<any[]>([]);
@@ -201,12 +137,27 @@ export default function Home() {
     const unsubIncidents = subscribeToIncidents(setIncidents);
     const unsubDuties = subscribeToDuties(setDuties);
     const unsubMaintenance = subscribeToMaintenance(setTasks);
+    const unsubCategories = subscribeToCategories(async (data) => {
+      if (data.length === 0) {
+        // Seed if empty
+        for (const cat of DEFAULT_CATEGORIES) {
+          await saveCategory(cat.id, cat);
+        }
+      } else {
+        // Sort categories by ID if needed, or by name
+        setCategories(data.sort((a, b) => {
+          // Extract leading letter and number if possible for natural sort
+          return a.id.localeCompare(b.id, undefined, { numeric: true });
+        }));
+      }
+    });
 
     return () => {
       unsubSystems();
       unsubIncidents();
       unsubDuties();
       unsubMaintenance();
+      unsubCategories();
     };
   }, []);
 
@@ -292,6 +243,30 @@ export default function Home() {
     }
   };
 
+  const handleAddCategory = async () => {
+    const nameInput = prompt("Nhập tên nhóm hệ thống mới (ví dụ: I. Hệ thống Icute):");
+    if (!nameInput || !nameInput.trim()) return;
+
+    // Generate a simple ID based on existing categories length or similar
+    const nextId = `CAT${categories.length + 1}`;
+    await saveCategory(nextId, { id: nextId, name: nameInput.trim() });
+  };
+
+  const handleUpdateCategoryName = async (id: string, newName: string) => {
+    await saveCategory(id, { name: newName });
+  };
+
+  const handleDeleteCategory = async (id: string) => {
+    const systemsInCat = systems.filter(s => s.categoryId === id);
+    if (systemsInCat.length > 0) {
+      alert(`Không thể xóa nhóm này vì vẫn còn ${systemsInCat.length} hệ thống bên trong. Hãy xóa các hệ thống con trước.`);
+      return;
+    }
+    if (confirm('Bạn có chắc chắn muốn xóa NHÓM hệ thống này không?')) {
+      await deleteCategory(id);
+    }
+  };
+
   const handleUpdateSystemName = async (id: string, newName: string) => {
     const target = systems.find(s => s.id === id);
     if (target) {
@@ -305,11 +280,19 @@ export default function Home() {
 
   const handleResetDefaults = async () => {
     if (confirm('Bạn có chắc chắn muốn khôi phục danh sách mặc định? Dữ liệu hiện tại trên Cloud sẽ bị xóa và thay thế.')) {
-      // Delete all current
+      // Delete all current systems
       for (const s of systems) {
         await deleteSystem(s.id);
       }
-      // Add defaults
+      // Delete all current categories
+      for (const c of categories) {
+        await deleteCategory(c.id);
+      }
+      // Add defaults categories
+      for (const c of DEFAULT_CATEGORIES) {
+        await saveCategory(c.id, c);
+      }
+      // Add defaults systems
       for (const s of DEFAULT_SYSTEMS) {
         await saveSystem(s.id, s);
       }
@@ -470,13 +453,13 @@ export default function Home() {
 
   return (
     <div className="min-h-screen bg-slate-50 p-4 font-sans text-slate-900">
-      <div className="max-w-4xl mx-auto bg-white border border-slate-300 shadow-sm relative">
+      <div className="max-w-4xl mx-auto bg-white border border-slate-300 shadow-sm relative pb-28">
         <h1 className="text-xl font-bold bg-slate-800 text-white p-4 text-center uppercase flex justify-between items-center relative">
           <div className="flex flex-col items-start gap-1">
             <span>Bảng Kiểm Tra Hệ Thống</span>
             {user && <span className="text-xs font-normal text-slate-300 normal-case">Nhân viên: {user.name} ({user.code})</span>}
           </div>
-          <div className="flex gap-2">
+          <div className="flex gap-2 flex-wrap justify-end">
             <button
               onClick={() => router.push('/incidents')}
               className="p-2 rounded text-sm font-normal flex items-center gap-1 bg-red-600 hover:bg-red-700 text-white transition"
@@ -601,6 +584,15 @@ export default function Home() {
             >
               <Search size={16} />
             </button>
+            {isUserOnDuty && (
+              <button
+                onClick={() => router.push(`/export-report?shift=${currentShiftType === 'DAY' ? 'Ca ngày' : 'Ca đêm'}`)}
+                className="p-2 rounded text-sm font-bold flex items-center gap-1 bg-indigo-600 hover:bg-indigo-700 text-white transition shadow-sm"
+                title={`Báo cáo ${currentShiftType === 'DAY' ? 'Ca Ngày' : 'Ca Đêm'}`}
+              >
+                <FileText size={16} /> Báo cáo {currentShiftType === 'DAY' ? 'Ca Ngày' : 'Ca Đêm'}
+              </button>
+            )}
             <button
               onClick={() => router.push('/fixed')}
               className="p-2 rounded text-sm font-normal flex items-center gap-1 bg-slate-700 hover:bg-slate-600 text-slate-200 transition"
@@ -688,7 +680,7 @@ export default function Home() {
               </button>
             </div>
           )}
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4">
             <div className="bg-white p-4 rounded-lg shadow-sm border border-slate-200">
               <div className="flex justify-between items-start mb-2">
                 <div>
@@ -777,6 +769,31 @@ export default function Home() {
                 Xem chi tiết & Gửi Zalo <ArrowRight size={12} className="opacity-0 group-hover:opacity-100 transition-all transform translate-x-0 group-hover:translate-x-1" />
               </div>
             </div>
+
+            <div className="bg-white p-4 rounded-lg shadow-sm border border-slate-200 col-span-2 md:col-span-1 lg:col-span-1">
+              <div className="flex justify-between items-start">
+                <div>
+                  <h3 className="text-slate-500 text-xs font-bold uppercase tracking-wider text-red-600">Nhóm hệ thống đang lỗi</h3>
+                  <div className="mt-2 flex flex-wrap gap-1">
+                    {failedCategoryIds.length > 0 ? (
+                      failedCategoryIds.map(id => {
+                        const cat = categories.find(c => c.id === id);
+                        return (
+                          <span key={id} className="px-2 py-0.5 bg-red-100 text-red-700 rounded text-[9px] font-bold border border-red-200 whitespace-nowrap">
+                            {cat?.name || id}
+                          </span>
+                        );
+                      })
+                    ) : (
+                      <span className="text-xs text-green-600 font-medium italic">Tất cả hệ thống OK</span>
+                    )}
+                  </div>
+                </div>
+                <div className={clsx("p-2 rounded-lg transition-colors", failedCategoryIds.length > 0 ? "bg-red-100 text-red-600 animate-pulse" : "bg-green-100 text-green-600")}>
+                  <AlertTriangle size={20} />
+                </div>
+              </div>
+            </div>
           </div>
         </div>
 
@@ -819,12 +836,29 @@ export default function Home() {
               );
             });
 
-            if (catSystems.length === 0) return null;
+            if (catSystems.length === 0 && !isEditMode) return null;
 
             return (
               <div key={cat.id} className="mb-6">
-                <div className="bg-blue-600 text-white px-4 py-2 font-bold uppercase text-sm tracking-widest shadow-sm rounded-t-lg">
-                  {cat.name}
+                <div className="bg-blue-600 text-white px-4 py-2 font-bold uppercase text-sm tracking-widest shadow-sm rounded-t-lg flex justify-between items-center group">
+                  {isEditMode ? (
+                    <div className="flex items-center gap-2 w-full">
+                      <IMESafeInput
+                        value={cat.name}
+                        onChangeValue={(val: string) => handleUpdateCategoryName(cat.id, val)}
+                        className="bg-blue-700 border-none text-white px-2 py-1 rounded w-full outline-none focus:ring-1 focus:ring-white/50"
+                      />
+                      <button
+                        onClick={() => handleDeleteCategory(cat.id)}
+                        className="p-1 hover:bg-red-500 rounded transition-colors text-white/70 hover:text-white"
+                        title="Xóa nhóm"
+                      >
+                        <Trash2 size={16} />
+                      </button>
+                    </div>
+                  ) : (
+                    <span>{cat.name}</span>
+                  )}
                 </div>
                 <div className="bg-white border-x border-b border-slate-200 rounded-b-lg overflow-hidden divide-y divide-slate-100 shadow-sm">
                   {catSystems.map(sys => (
@@ -832,9 +866,9 @@ export default function Home() {
                       <div className="flex justify-between items-start mb-3">
                         <div className="flex-1">
                           {isEditMode ? (
-                            <NoteInput
+                            <IMESafeInput
                               value={sys.name}
-                              onChange={(val) => handleUpdateSystemName(sys.id, val)}
+                              onChangeValue={(val: string) => handleUpdateSystemName(sys.id, val)}
                               className="border border-slate-300 rounded px-2 py-1 w-full text-sm font-bold focus:border-blue-500 outline-none"
                             />
                           ) : (
@@ -893,7 +927,7 @@ export default function Home() {
                             (sys.status !== 'NA' && sys.inspectorCode && sys.inspectorCode !== user?.code) ||
                             (sys.status === 'NA' && systems.some(s => s.categoryId === sys.categoryId && s.status !== 'NA' && s.inspectorCode && s.inspectorCode !== user?.code)));
                           return (
-                            <NoteInput
+                            <IMESafeInput
                               disabled={isLocked}
                               className={clsx(
                                 "w-full p-3 border rounded-lg text-sm outline-none transition-all",
@@ -902,7 +936,7 @@ export default function Home() {
                               )}
                               placeholder={errors.has(sys.id) ? "⚠️ Bắt buộc nhập ghi chú!" : (sys.status === 'OK' ? "✅ OK - Không ghi chú" : "📝 Ghi chú...")}
                               value={sys.note}
-                              onChange={(val) => handleNoteChange(sys.id, val)}
+                              onChangeValue={(val: string) => handleNoteChange(sys.id, val)}
                             />
                           );
                         })()}
@@ -921,6 +955,14 @@ export default function Home() {
               </div>
             );
           })}
+          {isEditMode && (
+            <button
+              onClick={handleAddCategory}
+              className="w-full py-4 mb-8 bg-white border-2 border-dashed border-blue-300 rounded-xl text-blue-600 font-bold flex items-center justify-center gap-2 hover:bg-blue-50 transition-all active:scale-95"
+            >
+              <Plus size={20} /> Thêm nhóm hệ thống mới
+            </button>
+          )}
         </div>
 
         <div className="hidden md:block overflow-x-auto">
@@ -947,13 +989,34 @@ export default function Home() {
                   );
                 });
 
-                if (catSystems.length === 0) return null;
+                if (catSystems.length === 0 && !isEditMode) return null;
 
                 return (
                   <React.Fragment key={cat.id}>
-                    <tr className="bg-blue-50">
+                    <tr className="bg-blue-50 group">
                       <td colSpan={3} className="p-3 border border-slate-300 font-bold text-blue-800">
-                        {cat.name}
+                        <div className="flex justify-between items-center">
+                          {isEditMode ? (
+                            <div className="flex items-center gap-2 w-full">
+                              <IMESafeInput
+                                value={cat.name}
+                                onChangeValue={(val: string) => handleUpdateCategoryName(cat.id, val)}
+                                className="bg-white border border-blue-200 rounded px-2 py-1 w-full max-w-md outline-none focus:border-blue-500"
+                              />
+                            </div>
+                          ) : (
+                            <span>{cat.name}</span>
+                          )}
+                          {isEditMode && (
+                            <button
+                              onClick={() => handleDeleteCategory(cat.id)}
+                              className="text-red-500 hover:text-red-700 p-1 bg-red-50 rounded"
+                              title="Xóa nhóm"
+                            >
+                              <Trash2 size={18} />
+                            </button>
+                          )}
+                        </div>
                       </td>
                     </tr>
                     {catSystems.map(sys => (
@@ -961,9 +1024,9 @@ export default function Home() {
                         <td className="p-3 border border-slate-300 font-medium pl-8">
                           {isEditMode ? (
                             <div className="flex items-center gap-2">
-                              <NoteInput
+                              <IMESafeInput
                                 value={sys.name}
-                                onChange={(val) => handleUpdateSystemName(sys.id, val)}
+                                onChangeValue={(val: string) => handleUpdateSystemName(sys.id, val)}
                                 className="border border-slate-300 rounded px-2 py-1 w-full text-sm focus:border-blue-500 outline-none"
                               />
                               <button onClick={() => handleDeleteSystem(sys.id)} className="text-red-500 hover:text-red-700 p-1">
@@ -1017,7 +1080,7 @@ export default function Home() {
                               (sys.status !== 'NA' && sys.inspectorCode && sys.inspectorCode !== user?.code) ||
                               (sys.status === 'NA' && systems.some(s => s.categoryId === sys.categoryId && s.status !== 'NA' && s.inspectorCode && s.inspectorCode !== user?.code)));
                             return (
-                              <NoteInput
+                              <IMESafeInput
                                 disabled={isLocked}
                                 className={clsx(
                                   "w-full p-2 border rounded text-sm outline-none",
@@ -1026,51 +1089,82 @@ export default function Home() {
                                 )}
                                 placeholder={errors.has(sys.id) ? "Bắt buộc nhập ghi chú!" : (sys.status === 'OK' ? "OK không cần ghi chú" : "Ghi chú...")}
                                 value={sys.note}
-                                onChange={(val) => handleNoteChange(sys.id, val)}
+                                onChangeValue={(val) => handleNoteChange(sys.id, val)}
                               />
                             );
                           })()}
                         </td>
                       </tr>
                     ))}
+                    {isEditMode && (
+                      <tr className="bg-slate-50">
+                        <td colSpan={3} className="p-3 border border-slate-300 pl-8">
+                          <button
+                            onClick={() => handleAddSystem(cat.id)}
+                            className="text-blue-600 font-bold text-sm flex items-center gap-2 hover:text-blue-800 transition shadow-sm bg-white border border-blue-200 px-3 py-1 rounded-md"
+                          >
+                            <Plus size={16} /> Thêm hệ thống mới
+                          </button>
+                        </td>
+                      </tr>
+                    )}
                   </React.Fragment>
                 );
               })}
+              {isEditMode && (
+                <tr>
+                  <td colSpan={3} className="p-4 border border-slate-300 text-center">
+                    <button
+                      onClick={handleAddCategory}
+                      className="w-full py-3 bg-white border-2 border-dashed border-blue-300 rounded-lg text-blue-600 font-bold flex items-center justify-center gap-2 hover:bg-blue-50 transition-all"
+                    >
+                      <Plus size={20} /> Thêm nhóm hệ thống mới
+                    </button>
+                  </td>
+                </tr>
+              )}
             </tbody>
           </table>
         </div>
 
-        <div className="p-6 bg-slate-50 border-t border-slate-200 flex flex-col md:flex-row gap-4 items-center justify-between sticky bottom-0 z-10 shadow-[0_-4px_10px_rgba(0,0,0,0.05)]">
-          {!isUserOnDuty ? (
-            <div className="bg-amber-50 text-amber-700 p-4 rounded-xl border border-amber-200 flex items-center gap-3 w-full">
+        {!isUserOnDuty && (
+          <div className="p-6 bg-slate-50 border-t border-slate-200 sticky bottom-0 z-10 shadow-[0_-4px_10px_rgba(0,0,0,0.05)]">
+            <div className="bg-amber-50 text-amber-700 p-4 rounded-xl border border-amber-200 flex items-center gap-3 w-full max-w-4xl mx-auto">
               <Lock size={24} className="flex-shrink-0" />
               <div className="text-sm font-medium"> Bạn không được phân công trực trong ca này. Chỉ được quyền Xem và Admin mới được thao tác. </div>
             </div>
-          ) : (
-            <>
-              <div className="flex flex-col gap-1 w-full md:w-auto">
-                <div className="text-xs font-bold text-slate-400 uppercase tracking-widest"> Thao tác nhanh </div>
-                <button
-                  onClick={handleMarkAllOK}
-                  className="bg-green-600 hover:bg-green-700 text-white px-6 py-4 rounded-xl text-lg font-bold flex items-center justify-center gap-3 shadow-md hover:shadow-lg transition-all active:scale-95 border-b-4 border-green-800"
-                >
-                  <CheckCircle size={24} /> {buttonText} OK
-                </button>
-              </div>
-
-              <div className="flex flex-col gap-1 w-full md:w-auto">
-                <div className="text-xs font-bold text-slate-400 uppercase tracking-widest"> Hoàn thành ca trực </div>
-                <button
-                  onClick={handleSaveChecklist}
-                  className="bg-slate-800 hover:bg-black text-white px-10 py-4 rounded-xl text-lg font-black flex items-center justify-center gap-3 shadow-lg hover:shadow-xl transition-all active:scale-95 group border-b-4 border-black"
-                >
-                  <Save size={24} /> LƯU & BÁO CÁO <ArrowRight size={24} className="group-hover:translate-x-2 transition-transform" />
-                </button>
-              </div>
-            </>
-          )}
-        </div>
+          </div>
+        )}
       </div>
+
+      {isUserOnDuty && (
+        <div className="fixed bottom-6 right-6 z-50 flex flex-col items-end gap-3 pointer-events-none">
+          {/* Label Tooltips for Desktop - ADMIN ONLY */}
+          {user?.role === 'ADMIN' && (
+            <button
+              onClick={handleMarkAllOK}
+              className="p-3 rounded-full bg-green-600 hover:bg-green-700 text-white shadow-xl transition-all active:scale-90 flex items-center gap-2 pointer-events-auto group md:hover:pr-4 order-2"
+              title="Đánh dấu tất cả OK (Dành cho Admin)"
+            >
+              <span className="hidden md:inline overflow-hidden max-w-0 group-hover:max-w-xs transition-all duration-300 font-bold text-sm whitespace-nowrap">
+                {buttonText} OK (Admin)
+              </span>
+              <CheckCircle size={24} />
+            </button>
+          )}
+
+          <button
+            onClick={handleSaveChecklist}
+            className="p-4 rounded-full bg-blue-600 hover:bg-blue-700 text-white shadow-2xl transition-all active:scale-95 flex items-center gap-2 pointer-events-auto group md:hover:pr-5 order-3"
+            title="Lưu & Báo cáo"
+          >
+            <span className="hidden md:inline overflow-hidden max-w-0 group-hover:max-w-xs transition-all duration-300 font-bold whitespace-nowrap border-r border-white/20 mr-1 pr-2">
+              Lưu & Báo cáo
+            </span>
+            <Save size={28} />
+          </button>
+        </div>
+      )}
 
       {isChangePasswordOpen && (
         <ChangePasswordModal
