@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import { SystemCheck, Status, SystemCategory, MaintenanceTask } from '@/lib/types';
 import {
@@ -66,6 +66,79 @@ const DEFAULT_SYSTEMS: SystemCheck[] = [
 
 import { subscribeToSystems, saveSystem, deleteSystem, subscribeToIncidents, backupAllData, subscribeToDuties, addLog, subscribeToMaintenance } from '@/lib/firebase';
 
+// --- HELPER COMPONENT FOR IME-SAFE DEBOUNCED INPUT ---
+function NoteInput({
+  value,
+  onChange,
+  disabled,
+  placeholder,
+  className
+}: {
+  value: string;
+  onChange: (val: string) => void;
+  disabled?: boolean;
+  placeholder?: string;
+  className?: string;
+}) {
+  const [localValue, setLocalValue] = useState(value);
+  const isComposing = useRef(false);
+  const debounceTimer = useRef<NodeJS.Timeout | null>(null);
+
+  // Sync with prop value if needed (but only if NOT composing)
+  useEffect(() => {
+    if (!isComposing.current && value !== localValue) {
+      setLocalValue(value);
+    }
+  }, [value]);
+
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const val = e.target.value;
+    setLocalValue(val);
+
+    if (debounceTimer.current) clearTimeout(debounceTimer.current);
+
+    if (!isComposing.current) {
+      debounceTimer.current = setTimeout(() => {
+        onChange(val);
+      }, 800);
+    }
+  };
+
+  const handleCompositionStart = () => {
+    isComposing.current = true;
+  };
+
+  const handleCompositionEnd = (e: React.CompositionEvent<HTMLInputElement>) => {
+    isComposing.current = false;
+    const val = (e.target as HTMLInputElement).value;
+    setLocalValue(val);
+    if (debounceTimer.current) clearTimeout(debounceTimer.current);
+    debounceTimer.current = setTimeout(() => {
+      onChange(val);
+    }, 800);
+  };
+
+  const handleBlur = () => {
+    if (debounceTimer.current) clearTimeout(debounceTimer.current);
+    if (localValue !== value) {
+      onChange(localValue);
+    }
+  };
+
+  return (
+    <input
+      disabled={disabled}
+      className={className}
+      placeholder={placeholder}
+      value={localValue}
+      onChange={handleChange}
+      onCompositionStart={handleCompositionStart}
+      onCompositionEnd={handleCompositionEnd}
+      onBlur={handleBlur}
+    />
+  );
+}
+
 export default function Home() {
   const router = useRouter();
   const [categories, setCategories] = useState<SystemCategory[]>(DEFAULT_CATEGORIES);
@@ -75,77 +148,50 @@ export default function Home() {
   const [tasks, setTasks] = useState<MaintenanceTask[]>([]);
   const [isLoaded, setIsLoaded] = useState(false);
   const [errors, setErrors] = useState<Set<string>>(new Set());
-  const [sessionInteractedNokIds, setSessionInteractedNokIds] = useState<Set<string>>(new Set());
   const [isEditMode, setIsEditMode] = useState(false);
+  const [isChangePasswordOpen, setIsChangePasswordOpen] = useState(false);
   const [isSearchOpen, setIsSearchOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
-  const [isChangePasswordOpen, setIsChangePasswordOpen] = useState(false);
+  const [sessionInteractedNokIds, setSessionInteractedNokIds] = useState<Set<string>>(new Set());
+
   const { user, logout } = useUser();
 
+  // Determine Current Shift Type (Day: 07:00-19:00, Night: 19:00-07:00)
+  const currentHour = new Date().getHours();
+  const currentShiftType = (currentHour >= 7 && currentHour < 19) ? 'DAY' : 'NIGHT';
+
+  // Filter duties for the CURRENT shifts only
+  const currentShiftAssignments = duties.filter(d => d.shiftType === currentShiftType);
+
+  const isUserOnDuty = currentShiftAssignments.some((a: any) => a.userCode === user?.code) || user?.role === 'ADMIN';
+
+  // Identify categories assigned to the user OR their teammates in the SAME current shift
+  const teamAssignedCategories = categories.filter(cat =>
+    currentShiftAssignments.some((a: any) =>
+      a.categoryIds && a.categoryIds.includes(cat.id)
+    )
+  );
+
   useEffect(() => {
-    // 1. Subscribe to Systems
-    const unsubSys = subscribeToSystems((data) => {
-      if (data.length === 0) {
-        // Seed defaults if empty (First run)
-        console.log("Seeding default systems to Firebase...");
-        DEFAULT_SYSTEMS.forEach(s => saveSystem(s.id, s));
-      } else {
-        console.log("Loaded systems from Firebase:", data.length);
-        const sorted = (data as SystemCheck[]).sort((a, b) => a.id.localeCompare(b.id, undefined, { numeric: true }));
-        setSystems(sorted);
-      }
+    const unsubSystems = subscribeToSystems((data) => {
+      setSystems(data);
       setIsLoaded(true);
     });
-
-    // 2. Subscribe to Incidents (for the dashboard alert)
-    const unsubInc = subscribeToIncidents((data) => {
-      setIncidents(data);
-    });
-
-    // 3. Subscribe to Duties
-    const unsubDuties = subscribeToDuties((data) => {
-      setDuties(data);
-    });
-
-    // 4. Subscribe to Maintenance Tasks
-    const unsubTasks = subscribeToMaintenance((data) => {
-      setTasks(data as MaintenanceTask[]);
-    });
+    const unsubIncidents = subscribeToIncidents(setIncidents);
+    const unsubDuties = subscribeToDuties(setDuties);
+    const unsubMaintenance = subscribeToMaintenance(setTasks);
 
     return () => {
-      unsubSys();
-      unsubInc();
+      unsubSystems();
+      unsubIncidents();
       unsubDuties();
-      unsubTasks();
+      unsubMaintenance();
     };
   }, []);
 
-  const nowD = new Date();
-  const currentHour = nowD.getHours();
-  const shiftD = new Date(nowD);
-  if (currentHour < 7) {
-    shiftD.setDate(shiftD.getDate() - 1);
-  }
-  const currentShiftType = (currentHour >= 7 && currentHour < 19) ? 'DAY' : 'NIGHT';
-  const shiftDateStr = `${shiftD.getFullYear()}-${String(shiftD.getMonth() + 1).padStart(2, '0')}-${String(shiftD.getDate()).padStart(2, '0')}`;
-  const dayDuty = duties.find(d => d.date === shiftDateStr);
-
-  const currentShiftAssignments = dayDuty?.assignments?.filter((a: any) => a.shift === currentShiftType) || [];
-  const isUserOnDuty = currentShiftAssignments.some((a: any) => a.userCode === user?.code) || user?.role === 'ADMIN';
-
-  // Collective categories for the whole team today
-  const teamCategoryIds = currentShiftAssignments.reduce((acc: string[], a: any) => {
-    const ids = a.categoryIds || [];
-    return [...acc, ...ids];
-  }, []);
-
-  const teamAssignedCategories = categories.filter(c => teamCategoryIds.includes(c.id));
-
   const handleStatusChange = async (id: string, status: Status) => {
-    if (!isUserOnDuty) {
-      alert("Chỉ nhân viên trong ca trực mới được phép cập nhật tình trạng!");
-      return;
-    }
+    if (!isUserOnDuty) return;
+
     const now = new Date().toLocaleString('vi-VN', { hour: '2-digit', minute: '2-digit', day: '2-digit', month: '2-digit', year: 'numeric' });
     const target = systems.find(s => s.id === id);
     if (target) {
@@ -256,17 +302,6 @@ export default function Home() {
     }
     const now = new Date().toLocaleString('vi-VN', { hour: '2-digit', minute: '2-digit', day: '2-digit', month: '2-digit', year: 'numeric' });
 
-    // Check if any item is null. If yes, fill them being OK.
-    // If ALL are already set (e.g. some OK, some NOK), maybe user wants to RESET everything to OK?
-    // Let's stick to "Fill Empties" first. It's safer.
-    // Wait, if I want to "Quick check", I might just click it at the start.
-    // If I click it later, I probably want to fill.
-    // Let's go with: Update item if status is NULL.
-
-    // OPTION: If user really wants to force all OK, they can Delete All and start over, or we provide a clear "Force OK" button.
-    // Let's assume "Fill Unchecked".
-
-    // Iterate and save individually. Firestore batch is better but this is simpler for now.
     systems.forEach(async (s) => {
       if (s.status === 'NA' || !s.status) {
         await saveSystem(s.id, {
@@ -277,7 +312,6 @@ export default function Home() {
           inspectorCode: user?.code
         });
 
-        // ADD LOG to ensure KPI points are counted!
         await addLog({
           id: Date.now().toString() + Math.random().toString(36).substring(2, 7),
           timestamp: now,
@@ -287,17 +321,15 @@ export default function Home() {
           systemName: s.name,
           result: 'OK',
           note: 'Đã kiểm tra nhanh',
-          duration: 30 // Set to exactly 30 to avoid fast-check penalties
+          duration: 30
         });
       }
     });
-    // No need to setSystems, the listener will update it.
 
-    // Clear errors for items that became OK
     setErrors(prev => {
       const next = new Set(prev);
       systems.forEach(s => {
-        if (s.status === 'NA') next.delete(s.id); // If we set it to OK, remove error
+        if (s.status === 'NA') next.delete(s.id);
       });
       return next;
     });
@@ -314,10 +346,8 @@ export default function Home() {
         return saveSystem(s.id, {
           ...s,
           status: isNOK ? 'NOK' : 'NA',
-          // Only clear note if it was OK or NA. Keep notes for NOK.
           note: isNOK ? s.note : '',
           timestamp: isNOK ? s.timestamp : '',
-          // CLEAR inspector info to UNLOCK for the next shift
           inspectorName: null,
           inspectorCode: null
         });
@@ -328,9 +358,7 @@ export default function Home() {
   };
 
   const handleSaveChecklist = () => {
-    // 1. Validate NOK and NA notes
     const newErrors = new Set<string>();
-    // Filter for NOK only (NA is default)
     const itemsRequiringNote = systems.filter(s => s.status === 'NOK');
 
     itemsRequiringNote.forEach(s => {
@@ -345,7 +373,6 @@ export default function Home() {
       return;
     }
 
-    // 1.5 Validate that ALL systems in a CATEGORY are checked if the category was started
     const uncheckedCategories: string[] = [];
     const checkedCountTotal = systems.filter(s => s.status && s.status !== 'NA' && !!s.inspectorCode).length;
 
@@ -354,22 +381,16 @@ export default function Home() {
       return;
     }
 
-    // 2. Save is already handled by individual updates.
-
-    // 3. Redirect logic: Link to first NOK reported by CURRENT USER
     const myNokItems = systems.filter(s => s.status === 'NOK' && s.inspectorCode === user?.code);
     const newlyInteractedNokItems = myNokItems.filter(s => sessionInteractedNokIds.has(s.id));
 
     if (newlyInteractedNokItems.length > 0) {
-      // Go to the first newly interacted NOK system
       sessionStorage.setItem('pendingNokChecks', JSON.stringify(newlyInteractedNokItems.map(s => s.id)));
       router.push(`/check/${newlyInteractedNokItems[0].id}`);
     } else if (myNokItems.length > 0) {
-      // Fallback: Go to the first NOK system reported by this user
       sessionStorage.setItem('pendingNokChecks', JSON.stringify([myNokItems[0].id]));
       router.push(`/check/${myNokItems[0].id}`);
     } else {
-      // All of my systems are OK or I checked nothing -> Summary
       sessionStorage.removeItem('pendingNokChecks');
       router.push('/summary');
     }
@@ -377,7 +398,6 @@ export default function Home() {
 
   const hasErrors = systems.some(s => s.status === 'NOK');
 
-  // Compute failed category names for the button
   const failedCategoryIds = Array.from(new Set(
     systems
       .filter(s => s.status === 'NOK')
@@ -387,8 +407,6 @@ export default function Home() {
   const failedCategoryNames = failedCategoryIds.map(id => {
     return categories.find(c => c.id === id)?.name || id;
   }).join(', ');
-
-  const buttonText = hasErrors ? `${failedCategoryNames}` : "Tất cả hệ thống";
 
   const removeAccents = (str: string) => {
     return str.normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/đ/g, 'd').replace(/Đ/g, 'D');
@@ -552,7 +570,7 @@ export default function Home() {
             <button
               onClick={() => {
                 setIsSearchOpen(!isSearchOpen);
-                if (isSearchOpen) setSearchQuery(''); // Clear when closing
+                if (isSearchOpen) setSearchQuery('');
               }}
               className={clsx(
                 "p-2 rounded text-sm font-normal flex items-center gap-1 transition",
@@ -594,10 +612,9 @@ export default function Home() {
           </div>
         </h1>
 
-        {/* DASHBOARD ANALYTICS */}
         <div className="bg-slate-50 p-4 border-b border-slate-200">
           {isUserOnDuty && teamAssignedCategories.length > 0 && (
-            <div className="mb-4 bg-indigo-600 text-white p-4 rounded-lg shadow-md animate-in fade-in slide-in-from-top-4 duration-500">
+            <div className="mb-4 bg-indigo-600 text-white p-4 rounded-lg shadow-md">
               <div className="flex flex-col md:flex-row items-center justify-between gap-4">
                 <div className="flex items-center gap-3 w-full">
                   <div className="p-2 bg-white/20 rounded-full">
@@ -645,7 +662,6 @@ export default function Home() {
             </div>
           )}
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-            {/* Progress Card */}
             <div className="bg-white p-4 rounded-lg shadow-sm border border-slate-200">
               <div className="flex justify-between items-start mb-2">
                 <div>
@@ -678,7 +694,6 @@ export default function Home() {
               </div>
             </div>
 
-            {/* Incidents Card */}
             <div
               onClick={() => router.push('/incidents')}
               className="bg-white p-4 rounded-lg shadow-sm border border-slate-200 cursor-pointer hover:shadow-md hover:border-red-300 transition-all active:scale-95 group"
@@ -699,7 +714,6 @@ export default function Home() {
               </div>
             </div>
 
-            {/* Maintenance Card */}
             <div className="bg-white p-4 rounded-lg shadow-sm border border-slate-200">
               <div className="flex justify-between items-start">
                 <div>
@@ -717,7 +731,6 @@ export default function Home() {
               </div>
             </div>
 
-            {/* Issues Card */}
             <div
               onClick={() => router.push('/summary')}
               className="bg-white p-4 rounded-lg shadow-sm border border-slate-200 cursor-pointer hover:shadow-md hover:border-amber-300 transition-all active:scale-95 group"
@@ -729,140 +742,247 @@ export default function Home() {
                     {systems.filter(s => s.status === 'NOK').length}
                   </div>
                 </div>
-                <div className={clsx("p-2 rounded-lg transition-colors", systems.some(s => s.status === 'NOK') ? "bg-amber-100 text-amber-600" : "bg-green-100 text-green-600")}>
-                  {systems.some(s => s.status === 'NOK') ? <AlertCircle size={20} /> : <CheckCheck size={20} />}
+                <div className="p-2 bg-amber-100 text-amber-600 rounded-lg">
+                  <AlertCircle size={20} />
                 </div>
               </div>
-              <div className="mt-4 text-xs text-slate-400 flex items-center justify-between">
-                <span>{systems.filter(s => s.status === 'NOK').length > 0 ? "Bấm để xem danh sách lỗi" : "Hệ thống ổn định"}</span>
-                {systems.some(s => s.status === 'NOK') && <ArrowRight size={12} className="text-amber-500 opacity-50 group-hover:opacity-100 transition-all transform translate-x-0 group-hover:translate-x-1" />}
+              <div className="mt-4 text-xs text-amber-600 font-medium flex items-center gap-1">
+                Xem chi tiết & Gửi Zalo <ArrowRight size={12} className="opacity-0 group-hover:opacity-100 transition-all transform translate-x-0 group-hover:translate-x-1" />
               </div>
             </div>
           </div>
         </div>
 
-        <div className="p-4 bg-white border-b border-slate-200 flex flex-col md:flex-row justify-between items-center gap-4">
-          {/* Search Input */}
-          <div className={clsx("w-full md:w-1/2 transition-all overflow-hidden", isSearchOpen ? "max-h-20 opacity-100" : "max-h-0 opacity-0")}>
+        {isSearchOpen && (
+          <div className="p-4 bg-white border-b border-slate-200 animate-in slide-in-from-top-2 duration-200">
             <div className="relative">
+              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-slate-400" size={18} />
               <input
+                autoFocus
                 type="text"
-                placeholder="Tìm theo tên hệ thống, ghi chú, trạng thái..."
-                className="w-full p-2 pl-9 border border-slate-300 rounded shadow-sm focus:border-blue-500 outline-none"
+                className="w-full pl-10 pr-4 py-3 border border-slate-300 rounded-xl outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100 transition-all shadow-sm"
+                placeholder="Tìm hệ thống theo mã (A1, B2...), tên hoặc ghi chú..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
               />
-              <Search className="absolute left-3 top-2.5 text-slate-400" size={16} />
+              {searchQuery && (
+                <button
+                  onClick={() => setSearchQuery('')}
+                  className="absolute right-3 top-1/2 transform -translate-y-1/2 text-slate-400 hover:text-slate-600"
+                >
+                  <X size={18} />
+                </button>
+              )}
             </div>
           </div>
+        )}
 
-          <button
-            onClick={handleMarkAllOK}
-            className={clsx(
-              "px-4 py-2 border rounded font-bold flex items-center gap-2 transition ml-auto max-w-md h-auto whitespace-normal text-left",
-              hasErrors
-                ? "bg-red-100 text-red-700 border-red-300 hover:bg-red-200"
-                : "bg-green-100 text-green-700 border-green-300 hover:bg-green-200"
-            )}
-            title={hasErrors ? "Đang có lỗi (Click để điền OK các mục còn lại)" : "Chọn OK cho tất cả các mục chưa kiểm tra"}
-          >
-            {hasErrors ? <AlertCircle size={18} className="flex-shrink-0" /> : <CheckCheck size={18} className="flex-shrink-0" />}
-            <span className="truncate-2-lines">{buttonText}</span>
-          </button>
-        </div>
-
-        {/* RESPONSIVE SYSTEMS LIST */}
-        <div className="w-full">
-          {/* Mobile Card View (hidden on md-up) */}
-          <div className="block md:hidden">
-            {categories.map(cat => {
-              const catSystems = systems.filter(s => {
-                const matchesCategory = s.categoryId === cat.id;
-                if (!matchesCategory) return false;
-                if (!searchQuery.trim()) return true;
-                const q = removeAccents(searchQuery.toLowerCase());
-                return (
-                  removeAccents((s.name ?? '').toLowerCase()).includes(q) ||
-                  removeAccents((s.note ?? '').toLowerCase()).includes(q) ||
-                  removeAccents((s.id ?? '').toLowerCase()).includes(q) ||
-                  removeAccents((s.status ?? '').toLowerCase()).includes(q)
-                );
-              });
-
-              if (catSystems.length === 0) return null;
-
+        <div className="p-4 md:hidden">
+          {categories.map(cat => {
+            const catSystems = systems.filter(s => {
+              const matchesCategory = s.categoryId === cat.id;
+              if (!matchesCategory) return false;
+              if (!searchQuery.trim()) return true;
+              const q = removeAccents(searchQuery.toLowerCase());
               return (
-                <div key={cat.id} className="mb-6">
-                  <div className="bg-blue-600 text-white px-4 py-2 font-bold uppercase text-sm tracking-widest shadow-sm rounded-t-lg">
-                    {cat.name}
-                  </div>
-                  <div className="bg-white border-x border-b border-slate-200 rounded-b-lg overflow-hidden divide-y divide-slate-100 shadow-sm">
-                    {catSystems.map(sys => (
-                      <div key={sys.id} className="p-4 active:bg-slate-50 transition-colors">
-                        <div className="flex justify-between items-start mb-3">
-                          <div className="flex-1">
-                            {isEditMode ? (
-                              <input
-                                value={sys.name}
-                                onChange={(e) => handleUpdateSystemName(sys.id, e.target.value)}
-                                className="border border-slate-300 rounded px-2 py-1 w-full text-sm font-bold focus:border-blue-500 outline-none"
-                              />
-                            ) : (
-                              <div className="font-bold text-slate-800 flex items-center justify-between gap-2 w-full">
-                                <div className="flex items-center gap-2">
-                                  {highlightText(sys.name, searchQuery)} <span className="text-[10px] bg-slate-100 px-1.5 py-0.5 rounded text-slate-500 uppercase font-mono">{highlightText(sys.id, searchQuery)}</span>
-                                </div>
-                                {sys.status !== 'NA' && sys.inspectorCode && sys.inspectorCode !== user?.code && (
-                                  <span className="text-[10px] bg-amber-100 text-amber-700 font-bold px-2 py-0.5 rounded-full border border-amber-200 animate-pulse">
-                                    Locked: {sys.inspectorName}
-                                  </span>
-                                )}
-                                {sys.status === 'NA' && systems.some(s => s.categoryId === sys.categoryId && s.status !== 'NA' && s.inspectorCode && s.inspectorCode !== user?.code) && (
-                                  <span className="text-[10px] bg-amber-100 text-amber-700 font-bold px-2 py-0.5 rounded-full border border-amber-200">
-                                    Locked by {systems.find(s => s.categoryId === sys.categoryId && s.status !== 'NA' && s.inspectorCode && s.inspectorCode !== user?.code)?.inspectorName}
-                                  </span>
-                                )}
+                removeAccents((s.name ?? '').toLowerCase()).includes(q) ||
+                removeAccents((s.note ?? '').toLowerCase()).includes(q) ||
+                removeAccents((s.id ?? '').toLowerCase()).includes(q) ||
+                removeAccents((s.status ?? '').toLowerCase()).includes(q)
+              );
+            });
+
+            if (catSystems.length === 0) return null;
+
+            return (
+              <div key={cat.id} className="mb-6">
+                <div className="bg-blue-600 text-white px-4 py-2 font-bold uppercase text-sm tracking-widest shadow-sm rounded-t-lg">
+                  {cat.name}
+                </div>
+                <div className="bg-white border-x border-b border-slate-200 rounded-b-lg overflow-hidden divide-y divide-slate-100 shadow-sm">
+                  {catSystems.map(sys => (
+                    <div key={sys.id} className="p-4 active:bg-slate-50 transition-colors">
+                      <div className="flex justify-between items-start mb-3">
+                        <div className="flex-1">
+                          {isEditMode ? (
+                            <NoteInput
+                              value={sys.name}
+                              onChange={(val) => handleUpdateSystemName(sys.id, val)}
+                              className="border border-slate-300 rounded px-2 py-1 w-full text-sm font-bold focus:border-blue-500 outline-none"
+                            />
+                          ) : (
+                            <div className="font-bold text-slate-800 flex items-center justify-between gap-2 w-full">
+                              <div className="flex items-center gap-2">
+                                {highlightText(sys.name, searchQuery)} <span className="text-[10px] bg-slate-100 px-1.5 py-0.5 rounded text-slate-500 uppercase font-mono">{highlightText(sys.id, searchQuery)}</span>
                               </div>
-                            )}
-                          </div>
-                          {isEditMode && (
-                            <div className="flex gap-1 ml-2">
-                              <button onClick={() => handleDeleteSystem(sys.id)} className="p-2 text-red-500 bg-red-50 rounded">
-                                <Trash2 size={16} />
-                              </button>
+                              {sys.status !== 'NA' && sys.inspectorCode && sys.inspectorCode !== user?.code && (
+                                <span className="text-[10px] bg-amber-100 text-amber-700 font-bold px-2 py-0.5 rounded-full border border-amber-200">
+                                  Locked: {sys.inspectorName}
+                                </span>
+                              )}
                             </div>
                           )}
                         </div>
+                        {isEditMode && (
+                          <div className="flex gap-1 ml-2">
+                            <button onClick={() => handleDeleteSystem(sys.id)} className="p-2 text-red-500 bg-red-50 rounded">
+                              <Trash2 size={16} />
+                            </button>
+                          </div>
+                        )}
+                      </div>
 
-                        {/* Status Selection (Mobile optimized) */}
-                        <div className={clsx(
-                          "grid grid-cols-3 gap-2 mb-3",
-                          (!isUserOnDuty || isEditMode ||
+                      <div className={clsx(
+                        "grid grid-cols-3 gap-2 mb-3",
+                        (!isUserOnDuty || isEditMode ||
+                          (sys.status === 'NOK' && !sys.inspectorCode) ||
+                          (sys.status !== 'NA' && sys.inspectorCode && sys.inspectorCode !== user?.code) ||
+                          (sys.status === 'NA' && systems.some(s => s.categoryId === sys.categoryId && s.status !== 'NA' && s.inspectorCode && s.inspectorCode !== user?.code))
+                        ) && "opacity-50 pointer-events-none"
+                      )}>
+                        {(['OK', 'NOK', 'NA'] as Status[]).map(st => (
+                          <button
+                            key={st}
+                            onClick={() => handleStatusChange(sys.id, st)}
+                            className={clsx(
+                              "py-3 rounded-lg font-bold text-sm border shadow-sm transition active:scale-95 flex items-center justify-center",
+                              sys.status === st || (st === 'NA' && !sys.status)
+                                ? (st === 'OK' ? "bg-green-600 text-white border-green-700" :
+                                  st === 'NOK' ? "bg-red-600 text-white border-red-700" :
+                                    "bg-slate-600 text-white border-slate-700")
+                                : "bg-white text-slate-500 border-slate-300"
+                            )}
+                          >
+                            {st}
+                          </button>
+                        ))}
+                      </div>
+
+                      <div className="relative">
+                        {(() => {
+                          const isLocked = !!(!isUserOnDuty || isEditMode ||
+                            sys.status === 'OK' ||
                             (sys.status === 'NOK' && !sys.inspectorCode) ||
                             (sys.status !== 'NA' && sys.inspectorCode && sys.inspectorCode !== user?.code) ||
-                            (sys.status === 'NA' && systems.some(s => s.categoryId === sys.categoryId && s.status !== 'NA' && s.inspectorCode && s.inspectorCode !== user?.code))
-                          ) && "opacity-50 pointer-events-none"
-                        )}>
-                          {(['OK', 'NOK', 'NA'] as Status[]).map(st => (
-                            <button
-                              key={st}
-                              onClick={() => handleStatusChange(sys.id, st)}
+                            (sys.status === 'NA' && systems.some(s => s.categoryId === sys.categoryId && s.status !== 'NA' && s.inspectorCode && s.inspectorCode !== user?.code)));
+                          return (
+                            <NoteInput
+                              disabled={isLocked}
                               className={clsx(
-                                "py-3 rounded-lg font-bold text-sm border shadow-sm transition active:scale-95 flex items-center justify-center",
-                                sys.status === st || (st === 'NA' && !sys.status)
-                                  ? (st === 'OK' ? "bg-green-600 text-white border-green-700" :
-                                    st === 'NOK' ? "bg-red-600 text-white border-red-700" :
-                                      "bg-slate-600 text-white border-slate-700")
-                                  : "bg-white text-slate-500 border-slate-300"
+                                "w-full p-3 border rounded-lg text-sm outline-none transition-all",
+                                errors.has(sys.id) ? "border-red-500 bg-red-50 ring-2 ring-red-200" : "border-slate-200 focus:border-blue-500 bg-slate-50/50",
+                                isLocked && "bg-slate-100 text-slate-400 cursor-not-allowed opacity-60"
                               )}
-                            >
-                              {st}
-                            </button>
-                          ))}
-                        </div>
+                              placeholder={errors.has(sys.id) ? "⚠️ Bắt buộc nhập ghi chú!" : (sys.status === 'OK' ? "✅ OK - Không ghi chú" : "📝 Ghi chú...")}
+                              value={sys.note}
+                              onChange={(val) => handleNoteChange(sys.id, val)}
+                            />
+                          );
+                        })()}
+                      </div>
+                    </div>
+                  ))}
+                  {isEditMode && (
+                    <button
+                      onClick={() => handleAddSystem(cat.id)}
+                      className="w-full py-4 text-blue-600 font-bold text-sm bg-slate-50 hover:bg-blue-50 transition border-t border-slate-100 flex items-center justify-center gap-2"
+                    >
+                      <Plus size={18} /> Thêm hệ thống mới
+                    </button>
+                  )}
+                </div>
+              </div>
+            );
+          })}
+        </div>
 
-                        {/* Note Input */}
-                        <div className="relative">
+        <div className="hidden md:block overflow-x-auto">
+          <table className="w-full text-left border-collapse min-w-[600px]">
+            <thead className="bg-slate-200 text-slate-700 font-bold uppercase text-sm">
+              <tr>
+                <th className="p-3 border border-slate-300 w-1/3">Hệ thống</th>
+                <th className="p-3 border border-slate-300 text-center w-1/3">Status</th>
+                <th className="p-3 border border-slate-300 w-1/3">Note</th>
+              </tr>
+            </thead>
+            <tbody>
+              {categories.map(cat => {
+                const catSystems = systems.filter(s => {
+                  const matchesCategory = s.categoryId === cat.id;
+                  if (!matchesCategory) return false;
+                  if (!searchQuery.trim()) return true;
+                  const q = removeAccents(searchQuery.toLowerCase());
+                  return (
+                    removeAccents((s.name ?? '').toLowerCase()).includes(q) ||
+                    removeAccents((s.note ?? '').toLowerCase()).includes(q) ||
+                    removeAccents((s.id ?? '').toLowerCase()).includes(q) ||
+                    removeAccents((s.status ?? '').toLowerCase()).includes(q)
+                  );
+                });
+
+                if (catSystems.length === 0) return null;
+
+                return (
+                  <React.Fragment key={cat.id}>
+                    <tr className="bg-blue-50">
+                      <td colSpan={3} className="p-3 border border-slate-300 font-bold text-blue-800">
+                        {cat.name}
+                      </td>
+                    </tr>
+                    {catSystems.map(sys => (
+                      <tr key={sys.id} className="hover:bg-slate-50">
+                        <td className="p-3 border border-slate-300 font-medium pl-8">
+                          {isEditMode ? (
+                            <div className="flex items-center gap-2">
+                              <NoteInput
+                                value={sys.name}
+                                onChange={(val) => handleUpdateSystemName(sys.id, val)}
+                                className="border border-slate-300 rounded px-2 py-1 w-full text-sm focus:border-blue-500 outline-none"
+                              />
+                              <button onClick={() => handleDeleteSystem(sys.id)} className="text-red-500 hover:text-red-700 p-1">
+                                <Trash2 size={16} />
+                              </button>
+                            </div>
+                          ) : (
+                            <span>{highlightText(sys.name, searchQuery)} <span className="text-xs text-slate-400 font-normal">({highlightText(sys.id, searchQuery)})</span></span>
+                          )}
+                        </td>
+                        <td className="p-3 border border-slate-300 text-center">
+                          {(() => {
+                            const otherInspector = systems.find(s => s.categoryId === sys.categoryId && s.status !== 'NA' && s.inspectorCode && s.inspectorCode !== user?.code)?.inspectorName;
+                            const isCategoryLocked = !!otherInspector;
+
+                            return (
+                              <>
+                                {isCategoryLocked && (
+                                  <div className="text-[10px] text-amber-600 font-bold mb-1">Locked by {otherInspector}</div>
+                                )}
+                                <div className={clsx(
+                                  "flex gap-1 justify-center",
+                                  (!isUserOnDuty || isEditMode || isCategoryLocked || (sys.status === 'NOK' && !sys.inspectorCode) || (sys.status !== 'NA' && sys.inspectorCode && sys.inspectorCode !== user?.code)) && "opacity-50 pointer-events-none"
+                                )}>
+                                  {(['OK', 'NOK', 'NA'] as Status[]).map(st => (
+                                    <button
+                                      key={st}
+                                      onClick={() => handleStatusChange(sys.id, st)}
+                                      className={clsx(
+                                        "px-2 py-1 rounded text-xs font-bold border transition w-10 shadow-sm",
+                                        (sys.status === st || (st === 'NA' && !sys.status))
+                                          ? (st === 'OK' ? "bg-green-600 text-white border-green-700" :
+                                            st === 'NOK' ? "bg-red-600 text-white border-red-700" :
+                                              "bg-slate-600 text-white border-slate-700")
+                                          : "bg-white text-slate-500 border-slate-300 hover:bg-slate-100"
+                                      )}
+                                    >
+                                      {st}
+                                    </button>
+                                  ))}
+                                </div>
+                              </>
+                            );
+                          })()}
+                        </td>
+                        <td className="p-3 border border-slate-300">
                           {(() => {
                             const isLocked = !!(!isUserOnDuty || isEditMode ||
                               sys.status === 'OK' ||
@@ -870,186 +990,65 @@ export default function Home() {
                               (sys.status !== 'NA' && sys.inspectorCode && sys.inspectorCode !== user?.code) ||
                               (sys.status === 'NA' && systems.some(s => s.categoryId === sys.categoryId && s.status !== 'NA' && s.inspectorCode && s.inspectorCode !== user?.code)));
                             return (
-                              <input
+                              <NoteInput
                                 disabled={isLocked}
                                 className={clsx(
-                                  "w-full p-3 border rounded-lg text-sm outline-none transition-all",
-                                  errors.has(sys.id) ? "border-red-500 bg-red-50 ring-2 ring-red-200" : "border-slate-200 focus:border-blue-500 bg-slate-50/50",
-                                  isLocked && "bg-slate-100 text-slate-400 cursor-not-allowed opacity-60"
+                                  "w-full p-2 border rounded text-sm outline-none",
+                                  errors.has(sys.id) ? "border-red-500 bg-red-50 placeholder-red-300" : "border-slate-200 focus:border-blue-500",
+                                  isLocked && "bg-slate-100 text-slate-400 cursor-not-allowed"
                                 )}
-                                placeholder={errors.has(sys.id) ? "⚠️ Bắt buộc nhập ghi chú!" : (sys.status === 'OK' ? "✅ OK - Không ghi chú" : "📝 Ghi chú...")}
+                                placeholder={errors.has(sys.id) ? "Bắt buộc nhập ghi chú!" : (sys.status === 'OK' ? "OK không cần ghi chú" : "Ghi chú...")}
                                 value={sys.note}
-                                onChange={(e) => handleNoteChange(sys.id, e.target.value)}
+                                onChange={(val) => handleNoteChange(sys.id, val)}
                               />
                             );
                           })()}
-                        </div>
-                      </div>
-                    ))}
-                    {isEditMode && (
-                      <button
-                        onClick={() => handleAddSystem(cat.id)}
-                        className="w-full py-4 text-blue-600 font-bold text-sm bg-slate-50 hover:bg-blue-50 transition border-t border-slate-100 flex items-center justify-center gap-2"
-                      >
-                        <Plus size={18} /> Thêm hệ thống mới
-                      </button>
-                    )}
-                  </div>
-                </div>
-              );
-            })}
-          </div>
-
-          {/* Desktop Table View (hidden on small screens) */}
-          <div className="hidden md:block overflow-x-auto">
-            <table className="w-full text-left border-collapse min-w-[600px]">
-              <thead className="bg-slate-200 text-slate-700 font-bold uppercase text-sm">
-                <tr>
-                  <th className="p-3 border border-slate-300 w-1/3">Hệ thống</th>
-                  <th className="p-3 border border-slate-300 text-center w-1/3">Status</th>
-                  <th className="p-3 border border-slate-300 w-1/3">Note</th>
-                </tr>
-              </thead>
-              <tbody>
-                {categories.map(cat => {
-                  const catSystems = systems.filter(s => {
-                    const matchesCategory = s.categoryId === cat.id;
-                    if (!matchesCategory) return false;
-                    if (!searchQuery.trim()) return true;
-                    const q = removeAccents(searchQuery.toLowerCase());
-                    return (
-                      removeAccents((s.name ?? '').toLowerCase()).includes(q) ||
-                      removeAccents((s.note ?? '').toLowerCase()).includes(q) ||
-                      removeAccents((s.id ?? '').toLowerCase()).includes(q) ||
-                      removeAccents((s.status ?? '').toLowerCase()).includes(q)
-                    );
-                  });
-
-                  if (catSystems.length === 0) return null;
-
-                  return (
-                    <React.Fragment key={cat.id}>
-                      <tr className="bg-blue-50">
-                        <td colSpan={3} className="p-3 border border-slate-300 font-bold text-blue-800">
-                          {cat.name}
                         </td>
                       </tr>
-                      {catSystems.map(sys => (
-                        <tr key={sys.id} className="hover:bg-slate-50">
-                          <td className="p-3 border border-slate-300 font-medium pl-8">
-                            {isEditMode ? (
-                              <div className="flex items-center gap-2">
-                                <input
-                                  value={sys.name}
-                                  onChange={(e) => handleUpdateSystemName(sys.id, e.target.value)}
-                                  className="border border-slate-300 rounded px-2 py-1 w-full text-sm focus:border-blue-500 outline-none"
-                                />
-                                <button onClick={() => handleDeleteSystem(sys.id)} className="text-red-500 hover:text-red-700 p-1">
-                                  <Trash2 size={16} />
-                                </button>
-                              </div>
-                            ) : (
-                              <span>{highlightText(sys.name, searchQuery)} <span className="text-xs text-slate-400 font-normal">({highlightText(sys.id, searchQuery)})</span></span>
-                            )}
-                          </td>
-                          <td className="p-3 border border-slate-300 text-center">
-                            {(() => {
-                              const otherInspector = systems.find(s => s.categoryId === sys.categoryId && s.status !== 'NA' && s.inspectorCode && s.inspectorCode !== user?.code)?.inspectorName;
-                              const isCategoryLocked = !!otherInspector;
-
-                              return (
-                                <>
-                                  {isCategoryLocked && (
-                                    <div className="text-[10px] text-amber-600 font-bold mb-1">Locked by {otherInspector}</div>
-                                  )}
-                                  <div className={clsx(
-                                    "flex gap-1 justify-center",
-                                    (!isUserOnDuty || isEditMode || isCategoryLocked || (sys.status === 'NOK' && !sys.inspectorCode) || (sys.status !== 'NA' && sys.inspectorCode && sys.inspectorCode !== user?.code)) && "opacity-50 pointer-events-none"
-                                  )}>
-                                    {(['OK', 'NOK', 'NA'] as Status[]).map(st => (
-                                      <button
-                                        key={st}
-                                        onClick={() => handleStatusChange(sys.id, st)}
-                                        className={clsx(
-                                          "px-2 py-1 rounded text-xs font-bold border transition w-10 shadow-sm",
-                                          (sys.status === st || (st === 'NA' && !sys.status))
-                                            ? (st === 'OK' ? "bg-green-600 text-white border-green-700" :
-                                              st === 'NOK' ? "bg-red-600 text-white border-red-700" :
-                                                "bg-slate-600 text-white border-slate-700")
-                                            : "bg-white text-slate-500 border-slate-300 hover:bg-slate-100"
-                                        )}
-                                      >
-                                        {st}
-                                      </button>
-                                    ))}
-                                  </div>
-                                </>
-                              );
-                            })()}
-                          </td>
-                          <td className="p-3 border border-slate-300">
-                            {(() => {
-                              const isLocked = !!(!isUserOnDuty || isEditMode ||
-                                sys.status === 'OK' ||
-                                (sys.status === 'NOK' && !sys.inspectorCode) ||
-                                (sys.status !== 'NA' && sys.inspectorCode && sys.inspectorCode !== user?.code) ||
-                                (sys.status === 'NA' && systems.some(s => s.categoryId === sys.categoryId && s.status !== 'NA' && s.inspectorCode && s.inspectorCode !== user?.code)));
-                              return (
-                                <input
-                                  disabled={isLocked}
-                                  className={clsx(
-                                    "w-full p-2 border rounded text-sm outline-none",
-                                    errors.has(sys.id) ? "border-red-500 bg-red-50 placeholder-red-300" : "border-slate-200 focus:border-blue-500",
-                                    isLocked && "bg-slate-100 text-slate-400 cursor-not-allowed"
-                                  )}
-                                  placeholder={errors.has(sys.id) ? "Bắt buộc nhập ghi chú!" : (sys.status === 'OK' ? "OK không cần ghi chú" : "Ghi chú...")}
-                                  value={sys.note}
-                                  onChange={(e) => handleNoteChange(sys.id, e.target.value)}
-                                />
-                              );
-                            })()}
-                          </td>
-                        </tr>
-                      ))}
-                      {isEditMode && (
-                        <tr className="bg-slate-50 border-b border-slate-300">
-                          <td colSpan={3} className="p-2 text-center" onClick={() => handleAddSystem(cat.id)}>
-                            <button className="text-blue-600 hover:text-blue-800 text-sm font-medium flex items-center justify-center gap-1 mx-auto py-1 px-3 border border-dashed border-blue-300 rounded hover:bg-blue-50 w-full">
-                              <Plus size={14} /> Thêm hệ thống mới
-                            </button>
-                          </td>
-                        </tr>
-                      )}
-                    </React.Fragment>
-                  );
-                })}
-              </tbody>
-            </table>
-          </div>
+                    ))}
+                  </React.Fragment>
+                );
+              })}
+            </tbody>
+          </table>
         </div>
 
-        {
-          !isEditMode && (
-            <div className="p-4 bg-slate-100 border-t border-slate-300 flex justify-end sticky bottom-0">
-              <button
-                onClick={handleSaveChecklist}
-                className="px-6 py-3 bg-blue-700 text-white font-bold uppercase rounded shadow hover:bg-blue-800 flex items-center gap-2"
-              >
-                <Save size={20} /> Lưu Kiểm Tra
-              </button>
+        <div className="p-6 bg-slate-50 border-t border-slate-200 flex flex-col md:flex-row gap-4 items-center justify-between sticky bottom-0 z-10 shadow-[0_-4px_10px_rgba(0,0,0,0.05)]">
+          {!isUserOnDuty ? (
+            <div className="bg-amber-50 text-amber-700 p-4 rounded-xl border border-amber-200 flex items-center gap-3 w-full">
+              <Lock size={24} className="flex-shrink-0" />
+              <div className="text-sm font-medium"> Bạn không được phân công trực trong ca này. Chỉ được quyền Xem và Admin mới được thao tác. </div>
             </div>
-          )
-        }
+          ) : (
+            <>
+              <div className="flex flex-col gap-1 w-full md:w-auto">
+                <div className="text-xs font-bold text-slate-400 uppercase tracking-widest"> Thao tác nhanh </div>
+                <button
+                  onClick={handleMarkAllOK}
+                  className="bg-green-600 hover:bg-green-700 text-white px-6 py-4 rounded-xl text-lg font-bold flex items-center justify-center gap-3 shadow-md hover:shadow-lg transition-all active:scale-95 border-b-4 border-green-800"
+                >
+                  <CheckCircle size={24} /> {buttonText} OK
+                </button>
+              </div>
 
-        {
-          isChangePasswordOpen && user && (
-            <ChangePasswordModal
-              userCode={user.code}
-              onClose={() => setIsChangePasswordOpen(false)}
-            />
-          )
-        }
-      </div >
-    </div >
+              <div className="flex flex-col gap-1 w-full md:w-auto">
+                <div className="text-xs font-bold text-slate-400 uppercase tracking-widest"> Hoàn thành ca trực </div>
+                <button
+                  onClick={handleSaveChecklist}
+                  className="bg-slate-800 hover:bg-black text-white px-10 py-4 rounded-xl text-lg font-black flex items-center justify-center gap-3 shadow-lg hover:shadow-xl transition-all active:scale-95 group border-b-4 border-black"
+                >
+                  <Save size={24} /> LƯU & BÁO CÁO <ArrowRight size={24} className="group-hover:translate-x-2 transition-transform" />
+                </button>
+              </div>
+            </>
+          )}
+        </div>
+      </div>
+
+      <ChangePasswordModal
+        isOpen={isChangePasswordOpen}
+        onClose={() => setIsChangePasswordOpen(false)}
+      />
+    </div>
   );
 }

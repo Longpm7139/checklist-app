@@ -1,12 +1,133 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useRouter, useParams } from 'next/navigation';
 import { ChecklistItem, Status, SystemCheck } from '@/lib/types';
 import { Save, ArrowLeft, Clock, Settings, Plus, Trash2, X, MessageSquare, Send } from 'lucide-react';
 import clsx from 'clsx';
 import { subscribeToSystems, subscribeToChecklist, saveChecklist, saveSystem, addLog, saveHistoryItem, subscribeToDuties } from '@/lib/firebase';
 import { useUser } from '@/providers/UserProvider';
+
+// --- HELPER COMPONENTS FOR IME-SAFE DEBOUNCED INPUT ---
+function NoteInput({
+    value,
+    onChange,
+    disabled,
+    placeholder,
+    className
+}: {
+    value: string;
+    onChange: (val: string) => void;
+    disabled?: boolean;
+    placeholder?: string;
+    className?: string;
+}) {
+    const [localValue, setLocalValue] = useState(value);
+    const isComposing = useRef(false);
+    const debounceTimer = useRef<NodeJS.Timeout | null>(null);
+
+    useEffect(() => {
+        if (!isComposing.current && value !== localValue) {
+            setLocalValue(value);
+        }
+    }, [value]);
+
+    const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+        const val = e.target.value;
+        setLocalValue(val);
+        if (debounceTimer.current) clearTimeout(debounceTimer.current);
+        if (!isComposing.current) {
+            debounceTimer.current = setTimeout(() => onChange(val), 800);
+        }
+    };
+
+    const handleCompositionStart = () => { isComposing.current = true; };
+    const handleCompositionEnd = (e: React.CompositionEvent<HTMLInputElement>) => {
+        isComposing.current = false;
+        const val = (e.target as HTMLInputElement).value;
+        setLocalValue(val);
+        if (debounceTimer.current) clearTimeout(debounceTimer.current);
+        debounceTimer.current = setTimeout(() => onChange(val), 800);
+    };
+
+    const handleBlur = () => {
+        if (debounceTimer.current) clearTimeout(debounceTimer.current);
+        if (localValue !== value) onChange(localValue);
+    };
+
+    return (
+        <input
+            disabled={disabled}
+            className={className}
+            placeholder={placeholder}
+            value={localValue}
+            onChange={handleChange}
+            onCompositionStart={handleCompositionStart}
+            onCompositionEnd={handleCompositionEnd}
+            onBlur={handleBlur}
+        />
+    );
+}
+
+function NoteTextArea({
+    value,
+    onChange,
+    disabled,
+    placeholder,
+    className
+}: {
+    value: string;
+    onChange: (val: string) => void;
+    disabled?: boolean;
+    placeholder?: string;
+    className?: string;
+}) {
+    const [localValue, setLocalValue] = useState(value);
+    const isComposing = useRef(false);
+    const debounceTimer = useRef<NodeJS.Timeout | null>(null);
+
+    useEffect(() => {
+        if (!isComposing.current && value !== localValue) {
+            setLocalValue(value);
+        }
+    }, [value]);
+
+    const handleChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
+        const val = e.target.value;
+        setLocalValue(val);
+        if (debounceTimer.current) clearTimeout(debounceTimer.current);
+        if (!isComposing.current) {
+            debounceTimer.current = setTimeout(() => onChange(val), 800);
+        }
+    };
+
+    const handleCompositionStart = () => { isComposing.current = true; };
+    const handleCompositionEnd = (e: React.CompositionEvent<HTMLTextAreaElement>) => {
+        isComposing.current = false;
+        const val = (e.target as HTMLTextAreaElement).value;
+        setLocalValue(val);
+        if (debounceTimer.current) clearTimeout(debounceTimer.current);
+        debounceTimer.current = setTimeout(() => onChange(val), 800);
+    };
+
+    const handleBlur = () => {
+        if (debounceTimer.current) clearTimeout(debounceTimer.current);
+        if (localValue !== value) onChange(localValue);
+    };
+
+    return (
+        <textarea
+            disabled={disabled}
+            className={className}
+            placeholder={placeholder}
+            value={localValue}
+            onChange={handleChange}
+            onCompositionStart={handleCompositionStart}
+            onCompositionEnd={handleCompositionEnd}
+            onBlur={handleBlur}
+        />
+    );
+}
 
 const DEFAULT_TEMPLATE = [
     { id: '1', content: 'Kiểm tra ngoại quan thiết bị (Vỏ, dây cáp)' },
@@ -22,19 +143,15 @@ export default function CheckPage() {
     const systemId = (params.systemId as string)?.trim() || "";
     const { user } = useUser();
 
-    // Data state
     const [systems, setSystems] = useState<SystemCheck[]>([]);
     const [items, setItems] = useState<ChecklistItem[]>([]);
     const [systemName, setSystemName] = useState('');
     const [duties, setDuties] = useState<any[]>([]);
 
-    // UI state
     const [isEditing, setIsEditing] = useState(false);
     const [startTime, setStartTime] = useState<number>(Date.now());
     const [errorMessage, setErrorMessage] = useState('');
     const [isLoaded, setIsLoaded] = useState(false);
-
-    // NEW: Dirty check state
     const [isDirty, setIsDirty] = useState(false);
 
     useEffect(() => {
@@ -44,7 +161,6 @@ export default function CheckPage() {
             return;
         }
 
-        // 1. Subscribe to Systems (for name & navigation)
         const unsubSys = subscribeToSystems((data) => {
             setSystems(data as SystemCheck[]);
             const current = data.find(s => s.id === systemId);
@@ -53,7 +169,6 @@ export default function CheckPage() {
             console.error("Systems subscription error:", err);
         });
 
-        // 2. Subscribe to Checklist Details
         const unsubChecklist = subscribeToChecklist(systemId, (data) => {
             if (data && data.length > 0) {
                 setItems(data);
@@ -73,7 +188,6 @@ export default function CheckPage() {
             setIsLoaded(true);
         });
 
-        // 3. Subscribe to Duties
         const unsubDuties = subscribeToDuties((data) => {
             setDuties(data);
         });
@@ -98,10 +212,9 @@ export default function CheckPage() {
                     ...i,
                     status: val,
                     timestamp: now,
-                    // Preserve existing inspector if it's already set (to avoid overwriting detector with repairer who adds a note)
                     inspectorName: i.inspectorName || user?.name,
                     inspectorCode: i.inspectorCode || user?.code,
-                    note: val === 'OK' ? '' : i.note // Clear note if OK
+                    note: val === 'OK' ? '' : i.note
                 };
             }
             return i;
@@ -146,9 +259,8 @@ export default function CheckPage() {
             alert('Bạn không nằm trong ca trực hiện tại nên không thể Lưu báo cáo!');
             return;
         }
-        setErrorMessage(''); // Clear previous errors
+        setErrorMessage('');
         try {
-            // 1. Validation
             const uncheckedItems = items.filter(i => i.status === 'NA');
             if (uncheckedItems.length > 0) {
                 const missingIndices = items
@@ -159,7 +271,6 @@ export default function CheckPage() {
                 return;
             }
 
-            // Check validation for NOK notes
             const itemsRequiringNote = items.filter(i => i.status === 'NOK' && !(i.note || '').trim());
             if (itemsRequiringNote.length > 0) {
                 const missingNoteIndices = items
@@ -170,7 +281,6 @@ export default function CheckPage() {
                 return;
             }
 
-            // 3. Consistency Check: If Parent System is NOK, Detailed Checklist MUST have at least one NOK item
             const currentSystem = systems.find(s => s.id === systemId);
             if (currentSystem && currentSystem.status === 'NOK') {
                 const hasDetailedNOK = items.some(i => i.status === 'NOK');
@@ -180,20 +290,12 @@ export default function CheckPage() {
                 }
             }
 
-            // --- NEW: DIRTY CHECK REFINED ---
-            // If system has status (already checked) AND no changes made (isDirty is false)
-            // THEN skip saving and logging, regardless of who is accessing it.
-            // This prevents team members from "claiming" each other's work by just clicking Save.
             const isFirstTime = !currentSystem?.status;
 
             if (!isFirstTime && !isDirty) {
                 console.log("No changes detected. Skipping save and log for already-checked system.");
-                // Proceed to navigation directly
             } else {
-                // --- SAVE TO FIREBASE ---
                 const now = new Date().toLocaleString('vi-VN', { hour: '2-digit', minute: '2-digit', day: '2-digit', month: '2-digit', year: 'numeric' });
-
-                // --- PREPARE DATA FOR DB & ZALO ---
                 const durationSeconds = Math.round((Date.now() - startTime) / 1000);
                 const hasNOK = items.some(i => i.status === 'NOK');
                 const summaryStatus = hasNOK ? 'NOK' : 'OK';
@@ -201,7 +303,6 @@ export default function CheckPage() {
                 const nokItems = items.filter(i => i.status === 'NOK');
                 const errorDetails = nokItems.map(i => i.content).join(', ');
 
-                // Prepare Zalo message
                 let zaloMessage = '';
                 if (hasNOK) {
                     zaloMessage = `⚠️ [BÁO LỖI HỆ THỐNG]\n` +
@@ -212,22 +313,18 @@ export default function CheckPage() {
                         `- Thời gian: ${now}`;
                 }
 
-                // 4. ATTEMPT CLIPBOARD COPY AS EARLY AS POSSIBLE (to stay within user gesture window)
                 let copySuccess = false;
                 if (hasNOK) {
                     try {
                         await navigator.clipboard.writeText(zaloMessage);
                         copySuccess = true;
                     } catch (e) {
-                        console.error("Initial copy failed, will try fallback later if needed", e);
+                        console.error("Initial copy failed", e);
                     }
                 }
 
-                // 5. PERFORM DB WRITES IN PARALLEL
                 const dbPromises = [];
-                // 1. Save Details
                 dbPromises.push(saveChecklist(systemId, items));
-                // 2. Update System Status
                 dbPromises.push(saveSystem(systemId, {
                     status: summaryStatus,
                     note: newNote,
@@ -235,7 +332,6 @@ export default function CheckPage() {
                     inspectorName: user?.name || 'Unknown',
                     inspectorCode: user?.code || 'UNKNOWN'
                 }));
-                // 3. Sync to History
                 for (const item of nokItems) {
                     dbPromises.push(saveHistoryItem(`${systemId}_${item.id}`, {
                         id: `${systemId}_${item.id}`,
@@ -248,7 +344,6 @@ export default function CheckPage() {
                         inspectorCode: user?.code,
                     }));
                 }
-                // 4. Add Log
                 dbPromises.push(addLog({
                     id: Date.now().toString(),
                     timestamp: now,
@@ -263,12 +358,10 @@ export default function CheckPage() {
 
                 await Promise.all(dbPromises);
 
-                // --- FEEDBACK ---
                 if (hasNOK) {
                     if (copySuccess) {
                         alert('Đã lưu hệ thống và ĐÃ SAO CHÉP báo cáo lỗi!\nBạn có thể Dán (Ctrl+V) vào Zalo để gửi.');
                     } else {
-                        // If it failed above, try one more time now (maybe slightly different timing helps)
                         try {
                             await navigator.clipboard.writeText(zaloMessage);
                             alert('Đã lưu hệ thống và ĐÃ SAO CHÉP báo cáo lỗi!\nBạn có thể Dán (Ctrl+V) vào Zalo để gửi.');
@@ -281,14 +374,11 @@ export default function CheckPage() {
                 }
             }
 
-            // --- NAVIGATION ---
-            // Find next NOK system
             let nextNokSystemId = null;
             try {
                 const pendingStr = sessionStorage.getItem('pendingNokChecks');
                 if (pendingStr) {
                     let pending: string[] = JSON.parse(pendingStr);
-                    // Remove current system from queue
                     pending = pending.filter(id => id !== systemId);
 
                     if (pending.length > 0) {
@@ -316,7 +406,6 @@ export default function CheckPage() {
     };
 
     const handleSaveConfig = async () => {
-        // Just save the structure/items without changing status/logs
         try {
             await saveChecklist(systemId, items);
             setIsEditing(false);
@@ -347,13 +436,11 @@ export default function CheckPage() {
         s.inspectorCode !== user?.code
     ));
 
-
     if (!isLoaded) return <div className="p-8 text-center">Đang tải dữ liệu...</div>;
 
     return (
         <div className="min-h-screen bg-slate-50 p-4 font-sans text-slate-900">
             <div className="max-w-6xl mx-auto bg-white border border-slate-300 shadow-sm">
-                {/* HEADER */}
                 <div className="p-4 bg-slate-800 text-white flex justify-between items-center">
                     <div className="flex items-center gap-3">
                         <button onClick={() => router.push('/')} className="p-1 hover:bg-white/10 rounded">
@@ -376,11 +463,8 @@ export default function CheckPage() {
                     )}
                 </div>
 
-                {/* TABLE */}
                 <div className="overflow-x-auto w-full">
-                    {/* RESPONSIVE CHECKLIST CONTENT */}
                     <div className="w-full">
-                        {/* Mobile Card View (hidden on md-up) */}
                         <div className="block md:hidden space-y-4 p-4">
                             {items.map((item, idx) => (
                                 <div key={item.id} className="bg-white rounded-lg shadow-sm border border-slate-200 overflow-hidden">
@@ -394,13 +478,12 @@ export default function CheckPage() {
                                         )}
                                     </div>
                                     <div className="p-4 space-y-4">
-                                        {/* Content */}
                                         <div className="text-slate-800 font-medium leading-relaxed">
                                             {isEditing ? (
-                                                <textarea
+                                                <NoteTextArea
                                                     className="w-full border border-slate-300 rounded-lg p-3 text-sm focus:border-blue-500 outline-none min-h-[80px]"
                                                     value={item.content}
-                                                    onChange={(e) => handleUpdateContent(item.id, e.target.value)}
+                                                    onChange={(val) => handleUpdateContent(item.id, val)}
                                                     placeholder="Nội dung kiểm tra..."
                                                 />
                                             ) : (
@@ -408,7 +491,6 @@ export default function CheckPage() {
                                             )}
                                         </div>
 
-                                        {/* Status selection (only if not editing) */}
                                         {!isEditing && (
                                             <div className="grid grid-cols-3 gap-2">
                                                 {(['OK', 'NOK', 'NA'] as Status[]).map(st => (
@@ -431,10 +513,9 @@ export default function CheckPage() {
                                             </div>
                                         )}
 
-                                        {/* Note field */}
                                         {!isEditing && (
                                             <div className="relative">
-                                                <input
+                                                <NoteInput
                                                     disabled={item.status === 'OK' || isLockedByOther}
                                                     className={clsx(
                                                         "w-full p-4 border rounded-xl text-sm outline-none transition-all pr-12",
@@ -443,7 +524,7 @@ export default function CheckPage() {
                                                     )}
                                                     placeholder={item.status === 'OK' ? "✅ OK - Không ghi chú" : "📝 Nhập ghi chú tại đây..."}
                                                     value={item.note}
-                                                    onChange={(e) => handleNoteChange(item.id, e.target.value)}
+                                                    onChange={(val) => handleNoteChange(item.id, val)}
                                                 />
                                             </div>
                                         )}
@@ -460,7 +541,6 @@ export default function CheckPage() {
                             )}
                         </div>
 
-                        {/* Desktop Table View (hidden on mobile) */}
                         <div className="hidden md:block overflow-x-auto">
                             <table className="w-full text-left border-collapse min-w-[800px]">
                                 <thead className="bg-slate-200 text-slate-700 font-bold uppercase text-sm">
@@ -480,10 +560,10 @@ export default function CheckPage() {
                                             </td>
                                             <td className="p-3 border border-slate-300 font-medium text-slate-800">
                                                 {isEditing ? (
-                                                    <input
+                                                    <NoteInput
                                                         className="w-full border border-slate-300 rounded px-2 py-1 focus:border-blue-500 outline-none"
                                                         value={item.content}
-                                                        onChange={(e) => handleUpdateContent(item.id, e.target.value)}
+                                                        onChange={(val) => handleUpdateContent(item.id, val)}
                                                         placeholder="Nhập nội dung kiểm tra..."
                                                     />
                                                 ) : (
@@ -522,7 +602,7 @@ export default function CheckPage() {
                                                 )}
                                             </td>
                                             <td className="p-3 border border-slate-300">
-                                                <input
+                                                <NoteInput
                                                     disabled={item.status === 'OK' || isLockedByOther}
                                                     className={clsx(
                                                         "w-full p-2 border rounded text-sm outline-none",
@@ -531,7 +611,7 @@ export default function CheckPage() {
                                                     )}
                                                     placeholder={item.status === 'OK' ? "OK không cần ghi chú" : "Nhập ghi chú..."}
                                                     value={item.note}
-                                                    onChange={(e) => handleNoteChange(item.id, e.target.value)}
+                                                    onChange={(val) => handleNoteChange(item.id, val)}
                                                 />
                                             </td>
                                             <td className="p-3 border border-slate-300 text-center text-xs font-mono text-slate-500">
@@ -559,7 +639,6 @@ export default function CheckPage() {
                     </div>
                 </div>
 
-                {/* FOOTER */}
                 <div className="p-4 bg-slate-100 border-t border-slate-300 flex flex-col sm:flex-row justify-between items-center sticky bottom-0 z-50 shadow-[0_-4px_6px_-1px_rgba(0,0,0,0.1)] gap-4">
                     <div className="w-full sm:flex-1">
                         {errorMessage && (
