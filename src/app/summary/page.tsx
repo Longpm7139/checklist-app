@@ -208,10 +208,14 @@ export default function SummaryPage() {
 
                     // Re-evaluate System Status
                     const hasRemainingErrors = currentItems.some((d: any) => d.status === 'NOK');
-                    const newStatus = hasRemainingErrors ? 'NOK' : 'OK';
+                    const newStatus = hasRemainingErrors ? 'NOK' : 'NA';
                     const newNote = hasRemainingErrors ? 'Có lỗi chi tiết' : '';
 
-                    await saveSystem(sysId, { status: newStatus, note: newNote });
+                    await saveSystem(sysId, {
+                        status: newStatus,
+                        note: newNote,
+                        ...(newStatus === 'NA' ? { inspectorName: null, inspectorCode: null } : {})
+                    });
                 }
             }
             // Build Zalo message for all fixed & material rows

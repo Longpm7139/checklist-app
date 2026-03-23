@@ -22,9 +22,14 @@ const ALL_CATEGORY_IDS = [
 // ──────────────────────────────────────────
 // Types
 // ──────────────────────────────────────────
+interface RotationDay {
+    dayCodes: string[];
+    nightCodes: string[];
+}
+
 interface RotationConfig {
-    startDate: string;          // YYYY-MM-DD: date pair[0] starts
-    pairs: { userCodes: string[] }[];
+    startDate: string;
+    days: RotationDay[];
 }
 
 // ──────────────────────────────────────────
@@ -58,13 +63,13 @@ function getCalendarWeeks(year: number, month: number): (Date | null)[][] {
     return weeks;
 }
 
-function getPairIndex(dateStr: string, cfg: RotationConfig): number {
-    if (!cfg.pairs.length || !cfg.startDate) return -1;
+function getDayIndex(dateStr: string, cfg: RotationConfig): number {
+    if (!cfg.days?.length || !cfg.startDate) return -1;
     const start = new Date(cfg.startDate + 'T00:00:00');
     const target = new Date(dateStr + 'T00:00:00');
     const diff = Math.floor((target.getTime() - start.getTime()) / 86400000);
     if (diff < 0) return -1;
-    return diff % cfg.pairs.length;
+    return diff % cfg.days.length;
 }
 
 function getLocalISODate(d: Date): string {
@@ -88,7 +93,10 @@ export default function DutiesPage() {
     // Rotation config
     const [rotationConfig, setRotationConfig] = useState<RotationConfig>({
         startDate: getLocalISODate(new Date()),
-        pairs: [{ userCodes: ['', ''] }, { userCodes: ['', ''] }],
+        days: [
+            { dayCodes: ['', ''], nightCodes: ['', ''] },
+            { dayCodes: ['', ''], nightCodes: ['', ''] }
+        ],
     });
     const [isSavingRotation, setIsSavingRotation] = useState(false);
 
@@ -97,13 +105,14 @@ export default function DutiesPage() {
     const [viewYear, setViewYear] = useState(now.getFullYear());
     const [viewMonth, setViewMonth] = useState(now.getMonth());
 
-    // monthAssignments: date -> [code1, code2]
-    const [monthAssignments, setMonthAssignments] = useState<Record<string, string[]>>({});
+    // monthAssignments: date -> { day: string[], night: string[] }
+    const [monthAssignments, setMonthAssignments] = useState<Record<string, { day: string[], night: string[] }>>({});
     const [isSavingMonth, setIsSavingMonth] = useState(false);
 
     // Edit modal
     const [editDay, setEditDay] = useState<string | null>(null);
-    const [editCodes, setEditCodes] = useState<string[]>(['', '']);
+    const [editDayCodes, setEditDayCodes] = useState<string[]>(['', '']);
+    const [editNightCodes, setEditNightCodes] = useState<string[]>(['', '']);
 
     // ── Auth ──
     useEffect(() => {
@@ -126,10 +135,12 @@ export default function DutiesPage() {
     // ── Sync allDuties → monthAssignments when month changes ──
     useEffect(() => {
         const prefix = `${viewYear}-${String(viewMonth + 1).padStart(2, '0')}`;
-        const map: Record<string, string[]> = {};
+        const map: Record<string, { day: string[], night: string[] }> = {};
         allDuties.forEach(duty => {
             if (duty.date?.startsWith(prefix)) {
-                map[duty.date] = (duty.assignments || []).map((a: any) => a.userCode).filter(Boolean);
+                const dayCodes = (duty.assignments || []).filter((a: any) => a.shift === 'DAY').map((a: any) => a.userCode).filter(Boolean);
+                const nightCodes = (duty.assignments || []).filter((a: any) => a.shift === 'NIGHT').map((a: any) => a.userCode).filter(Boolean);
+                map[duty.date] = { day: dayCodes, night: nightCodes };
             }
         });
         setMonthAssignments(map);
@@ -139,16 +150,21 @@ export default function DutiesPage() {
 
     // ── Generate full month from rotation ──
     const handleGenerate = () => {
-        if (!rotationConfig.pairs.length || !rotationConfig.startDate) {
+        if (!rotationConfig.days?.length || !rotationConfig.startDate) {
             alert('Vui lòng thiết lập khuôn lịch xoay vòng trước!');
             setTab('rotation');
             return;
         }
-        const map: Record<string, string[]> = {};
+        const map: Record<string, { day: string[], night: string[] }> = {};
         getDaysInMonth(viewYear, viewMonth).forEach(d => {
             const dateStr = getLocalISODate(d);
-            const idx = getPairIndex(dateStr, rotationConfig);
-            if (idx >= 0) map[dateStr] = (rotationConfig.pairs[idx].userCodes || []).filter(Boolean);
+            const idx = getDayIndex(dateStr, rotationConfig);
+            if (idx >= 0) {
+                map[dateStr] = {
+                    day: (rotationConfig.days[idx].dayCodes || []).filter(Boolean),
+                    night: (rotationConfig.days[idx].nightCodes || []).filter(Boolean),
+                };
+            }
         });
         setMonthAssignments(prev => ({ ...prev, ...map }));
         alert(`Đã tạo lịch tháng ${viewMonth + 1}/${viewYear}!\nKiểm tra lại rồi nhấn "Lưu lịch tháng".`);
@@ -158,17 +174,20 @@ export default function DutiesPage() {
     const handleSaveMonth = async () => {
         setIsSavingMonth(true);
         try {
-            for (const [date, codes] of Object.entries(monthAssignments)) {
-                const valid = codes.filter(Boolean);
-                if (!valid.length) continue;
-                await saveDuty(date, valid.map(code => ({
-                    userCode: code,
-                    userName: getUserName(code),
-                    categoryIds: ALL_CATEGORY_IDS,
-                })));
+            for (const [date, assignment] of Object.entries(monthAssignments)) {
+                const validDay = (assignment.day || []).filter(Boolean);
+                const validNight = (assignment.night || []).filter(Boolean);
+                if (!validDay.length && !validNight.length) continue;
+
+                const payload = [
+                    ...validDay.map(code => ({ userCode: code, userName: getUserName(code), categoryIds: ALL_CATEGORY_IDS, shift: 'DAY' })),
+                    ...validNight.map(code => ({ userCode: code, userName: getUserName(code), categoryIds: ALL_CATEGORY_IDS, shift: 'NIGHT' }))
+                ];
+                await saveDuty(date, payload);
             }
             alert(`✅ Đã lưu lịch tháng ${viewMonth + 1}/${viewYear}!`);
         } catch (e) {
+            console.error(e);
             alert('Lỗi khi lưu lịch!');
         } finally {
             setIsSavingMonth(false);
@@ -198,8 +217,8 @@ export default function DutiesPage() {
 
     // ── Pair label helper ──
     const getPairLabel = (dateStr: string) => {
-        const idx = getPairIndex(dateStr, rotationConfig);
-        return idx >= 0 ? `Ca ${idx + 1}` : '';
+        const idx = getDayIndex(dateStr, rotationConfig);
+        return idx >= 0 ? `Ngày ${idx + 1}` : '';
     };
 
     return (
@@ -283,7 +302,7 @@ export default function DutiesPage() {
                                                 const dateStr = getLocalISODate(day);
                                                 const isToday = dateStr === todayStr;
                                                 const isSun = di === 6;
-                                                const assignees = monthAssignments[dateStr] || [];
+                                                const assignees = monthAssignments[dateStr] || { day: [], night: [] };
                                                 const pairLabel = getPairLabel(dateStr);
 
                                                 return (
@@ -295,8 +314,9 @@ export default function DutiesPage() {
                                                         )}
                                                         onClick={() => {
                                                             setEditDay(dateStr);
-                                                            const cur = monthAssignments[dateStr] || [];
-                                                            setEditCodes([cur[0] || '', cur[1] || '']);
+                                                            const cur = monthAssignments[dateStr] || { day: [], night: [] };
+                                                            setEditDayCodes([cur.day[0] || '', cur.day[1] || '']);
+                                                            setEditNightCodes([cur.night[0] || '', cur.night[1] || '']);
                                                         }}
                                                     >
                                                         {/* Day number */}
@@ -310,15 +330,30 @@ export default function DutiesPage() {
                                                             )}
                                                         </div>
                                                         {/* Staff names */}
-                                                        <div className="space-y-0.5">
-                                                            {assignees.length > 0 ? assignees.slice(0, 2).map((code, i) => (
-                                                                <div key={i} className={clsx(
-                                                                    'text-[10px] px-1.5 py-0.5 rounded font-semibold truncate',
-                                                                    i === 0 ? 'bg-blue-100 text-blue-700' : 'bg-emerald-100 text-emerald-700'
-                                                                )}>
-                                                                    {getUserName(code)}
+                                                        <div className="space-y-0.5 flex flex-col gap-1">
+                                                            {/* Day Shift */}
+                                                            {assignees.day.length > 0 && (
+                                                                <div className="flex flex-col gap-0.5">
+                                                                    <div className="text-[8px] uppercase font-bold text-amber-500">Ca Ngày</div>
+                                                                    {assignees.day.slice(0, 2).map((code, i) => (
+                                                                        <div key={`d${i}`} className="text-[9px] px-1 py-0.5 rounded font-semibold truncate bg-amber-100 text-amber-700">
+                                                                            {getUserName(code)}
+                                                                        </div>
+                                                                    ))}
                                                                 </div>
-                                                            )) : (
+                                                            )}
+                                                            {/* Night Shift */}
+                                                            {assignees.night.length > 0 && (
+                                                                <div className="flex flex-col gap-0.5 mt-1 border-t border-slate-200/50 pt-1">
+                                                                    <div className="text-[8px] uppercase font-bold text-indigo-500">Ca Đêm</div>
+                                                                    {assignees.night.slice(0, 2).map((code, i) => (
+                                                                        <div key={`n${i}`} className="text-[9px] px-1 py-0.5 rounded font-semibold truncate bg-indigo-100 text-indigo-700">
+                                                                            {getUserName(code)}
+                                                                        </div>
+                                                                    ))}
+                                                                </div>
+                                                            )}
+                                                            {(!assignees.day.length && !assignees.night.length) && (
                                                                 <div className="text-[9px] text-slate-300 italic mt-1">Chưa phân công</div>
                                                             )}
                                                         </div>
@@ -359,59 +394,88 @@ export default function DutiesPage() {
                                 </p>
                             </div>
 
-                            {/* Pairs list */}
+                            {/* Days list */}
                             <div>
                                 <div className="flex justify-between items-center mb-3">
-                                    <label className="text-xs font-bold uppercase text-slate-400">Danh sách các ca</label>
+                                    <label className="text-xs font-bold uppercase text-slate-400">Danh sách lặp xoay vòng (Ngày)</label>
                                     <button
                                         onClick={() => setRotationConfig(prev => ({
                                             ...prev,
-                                            pairs: [...prev.pairs, { userCodes: ['', ''] }]
+                                            days: [...(prev.days || []), { dayCodes: ['', ''], nightCodes: ['', ''] }]
                                         }))}
                                         className="text-xs text-blue-600 font-bold flex items-center gap-1 hover:underline"
                                     >
-                                        <Plus size={12} />Thêm ca
+                                        <Plus size={12} />Thêm ngày
                                     </button>
                                 </div>
 
-                                <div className="space-y-2">
-                                    {rotationConfig.pairs.map((pair, pIdx) => (
+                                <div className="space-y-3">
+                                    {(rotationConfig.days || []).map((dayPair, pIdx) => (
                                         <div key={pIdx} className="p-3 bg-slate-50 rounded-lg border border-slate-200">
                                             <div className="flex justify-between items-center mb-2">
                                                 <span className="text-xs font-bold text-slate-600 bg-slate-200 px-2 py-0.5 rounded-full">
-                                                    Ca {pIdx + 1}
+                                                    Khuôn Ngày thứ {pIdx + 1}
                                                 </span>
-                                                {rotationConfig.pairs.length > 1 && (
+                                                {(rotationConfig.days || []).length > 1 && (
                                                     <button
                                                         onClick={() => setRotationConfig(prev => ({
-                                                            ...prev, pairs: prev.pairs.filter((_, i) => i !== pIdx)
+                                                            ...prev, days: prev.days.filter((_, i) => i !== pIdx)
                                                         }))}
                                                         className="text-red-400 hover:text-red-600"
                                                     ><X size={14} /></button>
                                                 )}
                                             </div>
-                                            <div className="grid grid-cols-2 gap-2">
-                                                {[0, 1].map(slot => (
-                                                    <select
-                                                        key={slot}
-                                                        className="w-full p-2 border border-slate-300 rounded-lg bg-white text-sm outline-none focus:border-blue-500"
-                                                        value={pair.userCodes[slot] || ''}
-                                                        onChange={e => {
-                                                            const newPairs = rotationConfig.pairs.map((p, i) => {
-                                                                if (i !== pIdx) return p;
-                                                                const codes = [...p.userCodes];
-                                                                codes[slot] = e.target.value;
-                                                                return { ...p, userCodes: codes };
-                                                            });
-                                                            setRotationConfig(prev => ({ ...prev, pairs: newPairs }));
-                                                        }}
-                                                    >
-                                                        <option value="">-- NV {slot + 1} --</option>
-                                                        {users.map(u => (
-                                                            <option key={u.id} value={u.code}>{u.name}</option>
-                                                        ))}
-                                                    </select>
-                                                ))}
+
+                                            <div className="space-y-2">
+                                                <div className="text-[10px] font-bold uppercase text-amber-500">Ca Ngày (07:00 - 19:00)</div>
+                                                <div className="grid grid-cols-2 gap-2">
+                                                    {[0, 1].map(slot => (
+                                                        <select
+                                                            key={`d${slot}`}
+                                                            className="w-full p-2 border border-slate-300 rounded-lg bg-white text-sm outline-none focus:border-amber-500"
+                                                            value={dayPair.dayCodes[slot] || ''}
+                                                            onChange={e => {
+                                                                const newDays = rotationConfig.days.map((p, i) => {
+                                                                    if (i !== pIdx) return p;
+                                                                    const codes = [...p.dayCodes];
+                                                                    codes[slot] = e.target.value;
+                                                                    return { ...p, dayCodes: codes };
+                                                                });
+                                                                setRotationConfig(prev => ({ ...prev, days: newDays }));
+                                                            }}
+                                                        >
+                                                            <option value="">-- NV {slot + 1} --</option>
+                                                            {users.map(u => (
+                                                                <option key={u.id} value={u.code}>{u.name}</option>
+                                                            ))}
+                                                        </select>
+                                                    ))}
+                                                </div>
+
+                                                <div className="text-[10px] font-bold uppercase text-indigo-500 pt-1">Ca Đêm (19:00 - 07:00)</div>
+                                                <div className="grid grid-cols-2 gap-2">
+                                                    {[0, 1].map(slot => (
+                                                        <select
+                                                            key={`n${slot}`}
+                                                            className="w-full p-2 border border-slate-300 rounded-lg bg-white text-sm outline-none focus:border-indigo-500"
+                                                            value={dayPair.nightCodes[slot] || ''}
+                                                            onChange={e => {
+                                                                const newDays = rotationConfig.days.map((p, i) => {
+                                                                    if (i !== pIdx) return p;
+                                                                    const codes = [...p.nightCodes];
+                                                                    codes[slot] = e.target.value;
+                                                                    return { ...p, nightCodes: codes };
+                                                                });
+                                                                setRotationConfig(prev => ({ ...prev, days: newDays }));
+                                                            }}
+                                                        >
+                                                            <option value="">-- NV {slot + 1} --</option>
+                                                            {users.map(u => (
+                                                                <option key={u.id} value={u.code}>{u.name}</option>
+                                                            ))}
+                                                        </select>
+                                                    ))}
+                                                </div>
                                             </div>
                                         </div>
                                     ))}
@@ -456,29 +520,47 @@ export default function DutiesPage() {
                             )}
                         </p>
 
-                        <div className="space-y-3 mb-4">
-                            {[0, 1].map(slot => (
-                                <div key={slot}>
-                                    <label className="text-xs font-bold text-slate-400 uppercase block mb-1">
-                                        <span className={clsx('inline-block w-2 h-2 rounded-full mr-1.5 mb-0.5', slot === 0 ? 'bg-blue-500' : 'bg-emerald-500')} />
-                                        Nhân viên {slot + 1}
-                                    </label>
-                                    <select
-                                        className="w-full p-2.5 border border-slate-300 rounded-lg bg-white text-sm outline-none focus:border-blue-500"
-                                        value={editCodes[slot] || ''}
-                                        onChange={e => {
-                                            const next = [...editCodes];
-                                            next[slot] = e.target.value;
-                                            setEditCodes(next);
-                                        }}
-                                    >
-                                        <option value="">-- Chọn nhân viên --</option>
-                                        {users.map(u => (
-                                            <option key={u.id} value={u.code}>{u.name}</option>
-                                        ))}
-                                    </select>
+                        <div className="space-y-4 mb-4">
+                            <div className="p-3 bg-amber-50 rounded-lg border border-amber-200">
+                                <div className="text-xs font-bold text-amber-700 uppercase mb-2">Ca Ngày (07:00 - 19:00)</div>
+                                <div className="space-y-2">
+                                    {[0, 1].map(slot => (
+                                        <select
+                                            key={`eday${slot}`}
+                                            className="w-full p-2 border border-slate-300 rounded bg-white text-sm outline-none focus:border-amber-500"
+                                            value={editDayCodes[slot] || ''}
+                                            onChange={e => {
+                                                const next = [...editDayCodes];
+                                                next[slot] = e.target.value;
+                                                setEditDayCodes(next);
+                                            }}
+                                        >
+                                            <option value="">-- Chọn NV --</option>
+                                            {users.map(u => <option key={u.id} value={u.code}>{u.name}</option>)}
+                                        </select>
+                                    ))}
                                 </div>
-                            ))}
+                            </div>
+                            <div className="p-3 bg-indigo-50 rounded-lg border border-indigo-200">
+                                <div className="text-xs font-bold text-indigo-700 uppercase mb-2">Ca Đêm (19:00 - 07:00)</div>
+                                <div className="space-y-2">
+                                    {[0, 1].map(slot => (
+                                        <select
+                                            key={`enight${slot}`}
+                                            className="w-full p-2 border border-slate-300 rounded bg-white text-sm outline-none focus:border-indigo-500"
+                                            value={editNightCodes[slot] || ''}
+                                            onChange={e => {
+                                                const next = [...editNightCodes];
+                                                next[slot] = e.target.value;
+                                                setEditNightCodes(next);
+                                            }}
+                                        >
+                                            <option value="">-- Chọn NV --</option>
+                                            {users.map(u => <option key={u.id} value={u.code}>{u.name}</option>)}
+                                        </select>
+                                    ))}
+                                </div>
+                            </div>
                         </div>
 
                         <p className="text-[11px] text-slate-400 mb-5 bg-slate-50 p-2 rounded-lg">
@@ -492,7 +574,7 @@ export default function DutiesPage() {
                             <button
                                 onClick={() => {
                                     if (editDay) {
-                                        setMonthAssignments(prev => ({ ...prev, [editDay]: editCodes }));
+                                        setMonthAssignments(prev => ({ ...prev, [editDay]: { day: editDayCodes, night: editNightCodes } }));
                                     }
                                     setEditDay(null);
                                 }}

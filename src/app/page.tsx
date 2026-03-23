@@ -75,6 +75,7 @@ export default function Home() {
   const [tasks, setTasks] = useState<MaintenanceTask[]>([]);
   const [isLoaded, setIsLoaded] = useState(false);
   const [errors, setErrors] = useState<Set<string>>(new Set());
+  const [sessionInteractedNokIds, setSessionInteractedNokIds] = useState<Set<string>>(new Set());
   const [isEditMode, setIsEditMode] = useState(false);
   const [isSearchOpen, setIsSearchOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
@@ -120,19 +121,23 @@ export default function Home() {
   }, []);
 
   const nowD = new Date();
+  const currentHour = nowD.getHours();
   const shiftD = new Date(nowD);
-  if (shiftD.getHours() < 7) {
+  if (currentHour < 7) {
     shiftD.setDate(shiftD.getDate() - 1);
   }
+  const currentShiftType = (currentHour >= 7 && currentHour < 19) ? 'DAY' : 'NIGHT';
   const shiftDateStr = `${shiftD.getFullYear()}-${String(shiftD.getMonth() + 1).padStart(2, '0')}-${String(shiftD.getDate()).padStart(2, '0')}`;
   const dayDuty = duties.find(d => d.date === shiftDateStr);
-  const isUserOnDuty = dayDuty?.assignments?.some((a: any) => a.userCode === user?.code);
+
+  const currentShiftAssignments = dayDuty?.assignments?.filter((a: any) => a.shift === currentShiftType) || [];
+  const isUserOnDuty = currentShiftAssignments.some((a: any) => a.userCode === user?.code) || user?.role === 'ADMIN';
 
   // Collective categories for the whole team today
-  const teamCategoryIds = dayDuty?.assignments?.reduce((acc: string[], a: any) => {
+  const teamCategoryIds = currentShiftAssignments.reduce((acc: string[], a: any) => {
     const ids = a.categoryIds || [];
     return [...acc, ...ids];
-  }, []) || [];
+  }, []);
 
   const teamAssignedCategories = categories.filter(c => teamCategoryIds.includes(c.id));
 
@@ -146,6 +151,16 @@ export default function Home() {
     if (target) {
       const updated = { ...target, status, timestamp: now, inspectorName: user?.name, inspectorCode: user?.code };
       await saveSystem(id, updated);
+
+      if (status === 'NOK') {
+        setSessionInteractedNokIds(prev => new Set(prev).add(id));
+      } else {
+        setSessionInteractedNokIds(prev => {
+          const next = new Set(prev);
+          next.delete(id);
+          return next;
+        });
+      }
 
       // Clear error
       if (status === 'OK') {
@@ -165,6 +180,11 @@ export default function Home() {
     if (target) {
       const updated = { ...target, note, timestamp: now, inspectorName: user?.name, inspectorCode: user?.code };
       await saveSystem(id, updated);
+
+      if (target.status === 'NOK') {
+        setSessionInteractedNokIds(prev => new Set(prev).add(id));
+      }
+
       if (note.trim()) {
         setErrors(prev => {
           const next = new Set(prev);
@@ -285,7 +305,7 @@ export default function Home() {
 
   const handleStartNewShift = async () => {
     if (!isUserOnDuty) {
-      alert('Chỉ nhân viên được phân công trong ca trực (07:00 hôm nay - 07:00 hôm sau) mới được phép Bắt đầu ca trực!');
+      alert('Chỉ nhân viên được phân công trong ca trực hiện tại mới được phép Bắt đầu ca trực!');
       return;
     }
     if (confirm('Bắt đầu ca trực mới? Thao tác này sẽ reset các trạng thái OK về NA, nhưng GIỮ NGUYÊN các lỗi chưa sửa và MỞ KHÓA để ca sau có thể tiếp tục làm việc.')) {
@@ -327,25 +347,10 @@ export default function Home() {
 
     // 1.5 Validate that ALL systems in a CATEGORY are checked if the category was started
     const uncheckedCategories: string[] = [];
-    const checkedCountTotal = systems.filter(s => s.status && s.status !== 'NA').length;
+    const checkedCountTotal = systems.filter(s => s.status && s.status !== 'NA' && !!s.inspectorCode).length;
 
     if (checkedCountTotal === 0) {
       alert('Vui lòng thực hiện kiểm tra ít nhất một hệ thống trước khi Lưu!');
-      return;
-    }
-
-    categories.forEach(cat => {
-      const catSystems = systems.filter(s => s.categoryId === cat.id);
-      const isAnyChecked = catSystems.some(s => s.status && s.status !== 'NA');
-      const allChecked = catSystems.every(s => s.status && s.status !== 'NA');
-
-      if (isAnyChecked && !allChecked) {
-        uncheckedCategories.push(cat.name);
-      }
-    });
-
-    if (uncheckedCategories.length > 0) {
-      alert(`Bạn đang kiểm tra dở dang các nhóm sau:\n${uncheckedCategories.map(name => `• ${name}`).join('\n')}\n\nVui lòng hoàn thành tất cả hệ thống trong nhóm đã chọn để Lưu!`);
       return;
     }
 
@@ -353,12 +358,19 @@ export default function Home() {
 
     // 3. Redirect logic: Link to first NOK reported by CURRENT USER
     const myNokItems = systems.filter(s => s.status === 'NOK' && s.inspectorCode === user?.code);
+    const newlyInteractedNokItems = myNokItems.filter(s => sessionInteractedNokIds.has(s.id));
 
-    if (myNokItems.length > 0) {
-      // Go to the first NOK system reported by this user
+    if (newlyInteractedNokItems.length > 0) {
+      // Go to the first newly interacted NOK system
+      sessionStorage.setItem('pendingNokChecks', JSON.stringify(newlyInteractedNokItems.map(s => s.id)));
+      router.push(`/check/${newlyInteractedNokItems[0].id}`);
+    } else if (myNokItems.length > 0) {
+      // Fallback: Go to the first NOK system reported by this user
+      sessionStorage.setItem('pendingNokChecks', JSON.stringify([myNokItems[0].id]));
       router.push(`/check/${myNokItems[0].id}`);
     } else {
       // All of my systems are OK or I checked nothing -> Summary
+      sessionStorage.removeItem('pendingNokChecks');
       router.push('/summary');
     }
   };
@@ -557,18 +569,20 @@ export default function Home() {
             >
               <HistoryIcon size={16} /> Lịch sử
             </button>
-            <button
-              onClick={() => setIsEditMode(!isEditMode)}
-              className={clsx(
-                "p-2 rounded text-sm font-normal flex items-center gap-1 transition",
-                isEditMode ? "bg-yellow-500 hover:bg-yellow-600 text-slate-900" : "bg-slate-700 hover:bg-slate-600 text-slate-200"
-              )}
-              title={isEditMode ? "Tắt chế độ chỉnh sửa" : "Bật chế độ chỉnh sửa"}
-            >
-              {isEditMode ? <Check size={16} /> : <Edit2 size={16} />}
-              {isEditMode ? "Xong" : "Sửa"}
-            </button>
-            {isEditMode && (
+            {user?.role === 'ADMIN' && (
+              <button
+                onClick={() => setIsEditMode(!isEditMode)}
+                className={clsx(
+                  "p-2 rounded text-sm font-normal flex items-center gap-1 transition",
+                  isEditMode ? "bg-yellow-500 hover:bg-yellow-600 text-slate-900" : "bg-slate-700 hover:bg-slate-600 text-slate-200"
+                )}
+                title={isEditMode ? "Tắt chế độ chỉnh sửa" : "Bật chế độ chỉnh sửa"}
+              >
+                {isEditMode ? <Check size={16} /> : <Edit2 size={16} />}
+                {isEditMode ? "Xong" : "Sửa"}
+              </button>
+            )}
+            {isEditMode && user?.role === 'ADMIN' && (
               <button
                 onClick={handleResetDefaults}
                 className="p-2 rounded text-sm font-normal flex items-center gap-1 bg-red-600 hover:bg-red-700 text-white transition"
@@ -622,7 +636,7 @@ export default function Home() {
           {!isUserOnDuty && (
             <div className="mb-4 flex justify-end">
               <button
-                onClick={() => alert('Chỉ nhân viên được phân công trong ca trực (07:00 hôm nay - 07:00 hôm sau) mới được phép Bắt đầu ca trực!')}
+                onClick={() => alert('Chỉ nhân viên được phân công trong ca trực hiện tại mới được phép thao tác!')}
                 className="bg-slate-200 text-slate-400 px-4 py-2 rounded-xl text-sm font-bold flex items-center gap-2 shadow-sm border border-slate-300 cursor-not-allowed"
                 title="Bạn không được phân công trong ca trực này"
               >
@@ -824,6 +838,7 @@ export default function Home() {
                         <div className={clsx(
                           "grid grid-cols-3 gap-2 mb-3",
                           (!isUserOnDuty || isEditMode ||
+                            (sys.status === 'NOK' && !sys.inspectorCode) ||
                             (sys.status !== 'NA' && sys.inspectorCode && sys.inspectorCode !== user?.code) ||
                             (sys.status === 'NA' && systems.some(s => s.categoryId === sys.categoryId && s.status !== 'NA' && s.inspectorCode && s.inspectorCode !== user?.code))
                           ) && "opacity-50 pointer-events-none"
@@ -851,6 +866,7 @@ export default function Home() {
                           {(() => {
                             const isLocked = !!(!isUserOnDuty || isEditMode ||
                               sys.status === 'OK' ||
+                              (sys.status === 'NOK' && !sys.inspectorCode) ||
                               (sys.status !== 'NA' && sys.inspectorCode && sys.inspectorCode !== user?.code) ||
                               (sys.status === 'NA' && systems.some(s => s.categoryId === sys.categoryId && s.status !== 'NA' && s.inspectorCode && s.inspectorCode !== user?.code)));
                             return (
@@ -948,7 +964,7 @@ export default function Home() {
                                   )}
                                   <div className={clsx(
                                     "flex gap-1 justify-center",
-                                    (!isUserOnDuty || isEditMode || isCategoryLocked || (sys.status !== 'NA' && sys.inspectorCode && sys.inspectorCode !== user?.code)) && "opacity-50 pointer-events-none"
+                                    (!isUserOnDuty || isEditMode || isCategoryLocked || (sys.status === 'NOK' && !sys.inspectorCode) || (sys.status !== 'NA' && sys.inspectorCode && sys.inspectorCode !== user?.code)) && "opacity-50 pointer-events-none"
                                   )}>
                                     {(['OK', 'NOK', 'NA'] as Status[]).map(st => (
                                       <button
@@ -975,6 +991,7 @@ export default function Home() {
                             {(() => {
                               const isLocked = !!(!isUserOnDuty || isEditMode ||
                                 sys.status === 'OK' ||
+                                (sys.status === 'NOK' && !sys.inspectorCode) ||
                                 (sys.status !== 'NA' && sys.inspectorCode && sys.inspectorCode !== user?.code) ||
                                 (sys.status === 'NA' && systems.some(s => s.categoryId === sys.categoryId && s.status !== 'NA' && s.inspectorCode && s.inspectorCode !== user?.code)));
                               return (

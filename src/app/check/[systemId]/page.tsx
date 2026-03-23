@@ -268,18 +268,24 @@ export default function CheckPage() {
 
             // --- NAVIGATION ---
             // Find next NOK system
-            const currentSystemIndex = systems.findIndex(s => s.id === systemId);
             let nextNokSystemId = null;
+            try {
+                const pendingStr = sessionStorage.getItem('pendingNokChecks');
+                if (pendingStr) {
+                    let pending: string[] = JSON.parse(pendingStr);
+                    // Remove current system from queue
+                    pending = pending.filter(id => id !== systemId);
 
-            if (currentSystemIndex !== -1) {
-                // Search for the NEXT system ensuring we don't loop back to current
-                for (let i = currentSystemIndex + 1; i < systems.length; i++) {
-                    // Check if there is another NOK system ahead that BELONGS to this user
-                    if (systems[i].status === 'NOK' && systems[i].inspectorCode === user?.code) {
-                        nextNokSystemId = systems[i].id;
-                        break;
+                    if (pending.length > 0) {
+                        nextNokSystemId = pending[0];
+                        sessionStorage.setItem('pendingNokChecks', JSON.stringify(pending));
+                    } else {
+                        sessionStorage.removeItem('pendingNokChecks');
                     }
                 }
+            } catch (e) {
+                console.error("Session storage tracking error:", e);
+                sessionStorage.removeItem('pendingNokChecks');
             }
 
             if (nextNokSystemId) {
@@ -306,13 +312,17 @@ export default function CheckPage() {
     };
 
     const nowD = new Date();
+    const currentHour = nowD.getHours();
     const shiftD = new Date(nowD);
-    if (shiftD.getHours() < 7) {
+    if (currentHour < 7) {
         shiftD.setDate(shiftD.getDate() - 1);
     }
+    const currentShiftType = (currentHour >= 7 && currentHour < 19) ? 'DAY' : 'NIGHT';
     const shiftDateStr = `${shiftD.getFullYear()}-${String(shiftD.getMonth() + 1).padStart(2, '0')}-${String(shiftD.getDate()).padStart(2, '0')}`;
     const dayDuty = duties.find(d => d.date === shiftDateStr);
-    const isUserOnDuty = dayDuty?.assignments?.some((a: any) => a.userCode === user?.code);
+
+    const currentShiftAssignments = dayDuty?.assignments?.filter((a: any) => a.shift === currentShiftType) || [];
+    const isUserOnDuty = currentShiftAssignments.some((a: any) => a.userCode === user?.code) || user?.role === 'ADMIN';
 
     const currentSystem = systems.find(s => s.id === systemId);
     const isLockedByOther = !isUserOnDuty || !!(currentSystem && systems.some(s =>
@@ -338,15 +348,17 @@ export default function CheckPage() {
                             <h1 className="font-bold text-lg uppercase">Bảng Kiểm Tra Chi Tiết: {systemName}</h1>
                         </div>
                     </div>
-                    <button
-                        onClick={() => setIsEditing(!isEditing)}
-                        className={clsx(
-                            "px-3 py-1 rounded flex items-center gap-2 text-sm font-medium transition",
-                            isEditing ? "bg-yellow-500 text-slate-900 hover:bg-yellow-400" : "bg-white/10 hover:bg-white/20 text-white"
-                        )}
-                    >
-                        {isEditing ? <><X size={18} /> Đóng Cấu hình</> : <><Settings size={18} /> Cấu hình</>}
-                    </button>
+                    {user?.role === 'ADMIN' && (
+                        <button
+                            onClick={() => setIsEditing(!isEditing)}
+                            className={clsx(
+                                "px-3 py-1 rounded flex items-center gap-2 text-sm font-medium transition",
+                                isEditing ? "bg-yellow-500 text-slate-900 hover:bg-yellow-400" : "bg-white/10 hover:bg-white/20 text-white"
+                            )}
+                        >
+                            {isEditing ? <><X size={18} /> Đóng Cấu hình</> : <><Settings size={18} /> Cấu hình</>}
+                        </button>
+                    )}
                 </div>
 
                 {/* TABLE */}
