@@ -193,50 +193,65 @@ export default function CheckPage() {
                 // --- SAVE TO FIREBASE ---
                 const now = new Date().toLocaleString('vi-VN', { hour: '2-digit', minute: '2-digit', day: '2-digit', month: '2-digit', year: 'numeric' });
 
-                // 1. Save Details
-                await saveChecklist(systemId, items);
-
-                // 2. Update System Status in the main list
+                // --- PREPARE DATA FOR DB & ZALO ---
+                const durationSeconds = Math.round((Date.now() - startTime) / 1000);
                 const hasNOK = items.some(i => i.status === 'NOK');
                 const summaryStatus = hasNOK ? 'NOK' : 'OK';
                 const newNote = hasNOK ? 'Có lỗi chi tiết' : '';
+                const nokItems = items.filter(i => i.status === 'NOK');
+                const errorDetails = nokItems.map(i => i.content).join(', ');
 
-                await saveSystem(systemId, {
+                // Prepare Zalo message
+                let zaloMessage = '';
+                if (hasNOK) {
+                    zaloMessage = `⚠️ [BÁO LỖI HỆ THỐNG]\n` +
+                        `- Hệ thống: ${systemName}\n` +
+                        `- Mã ID: ${systemId}\n` +
+                        `- Chi tiết lỗi:\n${nokItems.map((item, idx) => `  ${idx + 1}. ${item.content}: ${item.note || 'Chưa có ghi chú'}`).join('\n')}\n` +
+                        `- Người báo: ${user?.name || 'Nhân viên'}\n` +
+                        `- Thời gian: ${now}`;
+                }
+
+                // 4. ATTEMPT CLIPBOARD COPY AS EARLY AS POSSIBLE (to stay within user gesture window)
+                let copySuccess = false;
+                if (hasNOK) {
+                    try {
+                        await navigator.clipboard.writeText(zaloMessage);
+                        copySuccess = true;
+                    } catch (e) {
+                        console.error("Initial copy failed, will try fallback later if needed", e);
+                    }
+                }
+
+                // 5. PERFORM DB WRITES IN PARALLEL
+                const dbPromises = [];
+                // 1. Save Details
+                dbPromises.push(saveChecklist(systemId, items));
+                // 2. Update System Status
+                dbPromises.push(saveSystem(systemId, {
                     status: summaryStatus,
                     note: newNote,
                     timestamp: now,
                     inspectorName: user?.name || 'Unknown',
                     inspectorCode: user?.code || 'UNKNOWN'
-                });
-
-                // 3. Log Inspection
-                const durationSeconds = Math.round((Date.now() - startTime) / 1000);
-
-                // Aggregate error details for the note
-                const errorDetails = items
-                    .filter(i => i.status === 'NOK')
-                    .map(i => i.content)
-                    .join(', ');
-
-                // Sync NOK items to History (Error Summary)
-                const nokItems = items.filter(i => i.status === 'NOK');
+                }));
+                // 3. Sync to History
                 for (const item of nokItems) {
-                    await saveHistoryItem(`${systemId}_${item.id}`, {
-                        id: `${systemId}_${item.id}`, // Unique history ID
+                    dbPromises.push(saveHistoryItem(`${systemId}_${item.id}`, {
+                        id: `${systemId}_${item.id}`,
                         systemId: systemId,
                         systemName: systemName,
                         issueContent: item.content,
                         itemId: item.id,
-                        timestamp: new Date().toLocaleString('vi-VN', { hour: '2-digit', minute: '2-digit', day: '2-digit', month: '2-digit', year: 'numeric' }),
+                        timestamp: now,
                         inspectorName: item.inspectorName || user?.name,
                         inspectorCode: user?.code,
-                        // Leave resolved fields empty
-                    });
+                    }));
                 }
-
-                const logEntry = {
+                // 4. Add Log
+                dbPromises.push(addLog({
                     id: Date.now().toString(),
-                    timestamp: new Date().toLocaleString('vi-VN', { hour: '2-digit', minute: '2-digit', day: '2-digit', month: '2-digit', year: 'numeric' }),
+                    timestamp: now,
                     inspectorName: user?.name || 'Unknown',
                     inspectorCode: user?.code || 'UNKNOWN',
                     systemId: systemId,
@@ -244,22 +259,22 @@ export default function CheckPage() {
                     result: summaryStatus,
                     note: hasNOK ? `Lỗi: ${errorDetails}` : `Hệ thống bình thường. ${items.find(i => i.note)?.note || ''}`,
                     duration: durationSeconds
-                };
-                await addLog(logEntry);
+                }));
 
-                // Zalo Integration
+                await Promise.all(dbPromises);
+
+                // --- FEEDBACK ---
                 if (hasNOK) {
-                    const message = `⚠️ [BÁO LỖI HỆ THỐNG]\n` +
-                        `- Hệ thống: ${systemName}\n` +
-                        `- Mã ID: ${systemId}\n` +
-                        `- Chi tiết lỗi:\n${nokItems.map((item, idx) => `  ${idx + 1}. ${item.content}: ${item.note || 'Chưa có ghi chú'}`).join('\n')}\n` +
-                        `- Người báo: ${user?.name || 'Nhân viên'}\n` +
-                        `- Thời gian: ${now}`;
-                    try {
-                        await navigator.clipboard.writeText(message);
+                    if (copySuccess) {
                         alert('Đã lưu hệ thống và ĐÃ SAO CHÉP báo cáo lỗi!\nBạn có thể Dán (Ctrl+V) vào Zalo để gửi.');
-                    } catch (e) {
-                        alert('Đã lưu thành công nhưng sao chép Zalo tự động thất bại.');
+                    } else {
+                        // If it failed above, try one more time now (maybe slightly different timing helps)
+                        try {
+                            await navigator.clipboard.writeText(zaloMessage);
+                            alert('Đã lưu hệ thống và ĐÃ SAO CHÉP báo cáo lỗi!\nBạn có thể Dán (Ctrl+V) vào Zalo để gửi.');
+                        } catch (e2) {
+                            alert('Đã lưu thành công nhưng sao chép Zalo tự động thất bại.\nVui lòng chụp màn hình hoặc copy thủ công.');
+                        }
                     }
                 } else {
                     alert('Đã lưu kết quả kiểm tra thành công!');
