@@ -164,11 +164,22 @@ export default function Home() {
   const { user, logout } = useUser();
 
   // Determine Current Shift Type (Day: 07:00-19:00, Night: 19:00-07:00)
-  const currentHour = new Date().getHours();
+  const nowD = new Date();
+  const currentHour = nowD.getHours();
   const currentShiftType = (currentHour >= 7 && currentHour < 19) ? 'DAY' : 'NIGHT';
 
-  // Filter duties for the CURRENT shifts only
-  const currentShiftAssignments = duties.filter(d => d.shiftType === currentShiftType);
+  // Handle shift date (Night shift 19:00 - 07:00 spans two calendar days)
+  // If hour is 00-06, we are still on the duty of the previous calendar day's NIGHT shift
+  const shiftD = new Date(nowD);
+  if (currentHour < 7) {
+    shiftD.setDate(shiftD.getDate() - 1);
+  }
+  const shiftDateStr = `${shiftD.getFullYear()}-${String(shiftD.getMonth() + 1).padStart(2, '0')}-${String(shiftD.getDate()).padStart(2, '0')}`;
+
+  const todayDuty = duties.find(d => d.date === shiftDateStr);
+
+  // Filter assignments for the CURRENT shift of the determined duty date
+  const currentShiftAssignments = todayDuty?.assignments?.filter((a: any) => a.shift === currentShiftType) || [];
 
   const isUserOnDuty = currentShiftAssignments.some((a: any) => a.userCode === user?.code) || user?.role === 'ADMIN';
 
@@ -631,9 +642,15 @@ export default function Home() {
                     <UserCheck size={24} />
                   </div>
                   <div className="flex-1">
-                    <div className="text-xs font-bold uppercase tracking-widest opacity-80">Đội trực hôm nay</div>
-                    <div className="text-lg font-bold">
-                      Nhóm hệ thống cần kiểm tra:
+                    <div className="text-xs font-bold uppercase tracking-widest opacity-80 flex justify-between items-center">
+                      <span>Đội trực: {currentShiftType === 'DAY' ? 'Ca Ngày (07:00 - 19:00)' : 'Ca Đêm (19:00 - 07:00)'}</span>
+                      <span className="bg-white/20 px-2 py-0.5 rounded text-[10px]">Ngày: {shiftDateStr.split('-').reverse().join('/')}</span>
+                    </div>
+                    <div className="text-lg font-bold mb-1">
+                      {currentShiftAssignments.map((a: any) => a.userName).join(' & ') || 'Chưa trực'}
+                    </div>
+                    <div className="text-[10px] font-medium opacity-90 border-t border-white/10 pt-1">
+                      Phân công kiểm tra các nhóm:
                       <div className="flex flex-wrap gap-2 mt-1">
                         {teamAssignedCategories.map(cat => (
                           <span

@@ -264,8 +264,8 @@ export default function ExportReportPage() {
                                         onChange={(e) => setShift(e.target.value)}
                                     >
                                         <option value="Hành chính">Hành chính (08h00 - 17h00)</option>
-                                        <option value="Ca ngày">Ca ngày (06h00 - 18h00)</option>
-                                        <option value="Ca đêm">Ca đêm (18h00 - 06h00)</option>
+                                        <option value="Ca ngày">Ca ngày (07h00 - 19h00)</option>
+                                        <option value="Ca đêm">Ca đêm (19h00 - 07h00)</option>
                                         <option value="Khác">Ca tùy chọn</option>
                                     </select>
                                 </div>
