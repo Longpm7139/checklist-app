@@ -144,13 +144,11 @@ export default function CheckPage() {
         }
         setErrorMessage('');
         try {
-            const uncheckedItems = items.filter(i => i.status === 'NA');
-            if (uncheckedItems.length > 0) {
-                const missingIndices = items
-                    .map((item, index) => item.status === 'NA' ? (index + 1) : null)
-                    .filter(val => val !== null)
-                    .join(', ');
-                setErrorMessage(`Chưa chọn trạng thái các mục: ${missingIndices}`);
+            // REVISED: Allow partial save.
+            // We only show a warning if NO items are checked at all.
+            const checkedItems = items.filter(i => i.status && i.status !== 'NA');
+            if (checkedItems.length === 0 && !isEditing) {
+                setErrorMessage("Bạn chưa kiểm tra mục nào. Vui lòng kiểm tra ít nhất 1 mục để lưu tiến độ.");
                 return;
             }
 
@@ -180,14 +178,28 @@ export default function CheckPage() {
             } else {
                 const now = new Date().toLocaleString('vi-VN', { hour: '2-digit', minute: '2-digit', day: '2-digit', month: '2-digit', year: 'numeric' });
                 const durationSeconds = Math.round((Date.now() - startTime) / 1000);
-                const hasNOK = items.some(i => i.status === 'NOK');
-                const summaryStatus = hasNOK ? 'NOK' : 'OK';
-                const newNote = hasNOK ? 'Có lỗi chi tiết' : '';
+
+                const uncheckedCount = items.filter(i => i.status === 'NA').length;
                 const nokItems = items.filter(i => i.status === 'NOK');
+                const hasNOK = nokItems.length > 0;
+
+                // Determine Summary Status
+                let summaryStatus: Status = 'NA';
+                let isFullyComplete = false;
+
+                if (uncheckedCount === 0) {
+                    summaryStatus = hasNOK ? 'NOK' : 'OK';
+                    isFullyComplete = true;
+                } else {
+                    summaryStatus = 'IN_PROGRESS';
+                }
+
+                const newNote = isFullyComplete ? (hasNOK ? 'Có lỗi chi tiết' : '') : `Đang kiểm tra (${items.length - uncheckedCount}/${items.length})`;
                 const errorDetails = nokItems.map(i => i.content).join(', ');
 
                 let zaloMessage = '';
-                if (hasNOK) {
+                // Only send Zalo report if FULLY completed and has NOK
+                if (isFullyComplete && hasNOK) {
                     zaloMessage = `⚠️ [BÁO LỖI HỆ THỐNG]\n` +
                         `- Hệ thống: ${systemName}\n` +
                         `- Mã ID: ${systemId}\n` +
@@ -197,7 +209,7 @@ export default function CheckPage() {
                 }
 
                 let copySuccess = false;
-                if (hasNOK) {
+                if (isFullyComplete && hasNOK) {
                     try {
                         await navigator.clipboard.writeText(zaloMessage);
                         copySuccess = true;
@@ -241,19 +253,21 @@ export default function CheckPage() {
 
                 await Promise.all(dbPromises);
 
-                if (hasNOK) {
+                if (isFullyComplete && hasNOK) {
                     if (copySuccess) {
-                        alert('Đã lưu hệ thống và ĐÃ SAO CHÉP báo cáo lỗi!\nBạn có thể Dán (Ctrl+V) vào Zalo để gửi.');
+                        alert('Đã hoàn tất hệ thống và ĐÃ SAO CHÉP báo cáo lỗi!\nBạn có thể Dán (Ctrl+V) vào Zalo để gửi.');
                     } else {
                         try {
                             await navigator.clipboard.writeText(zaloMessage);
-                            alert('Đã lưu hệ thống và ĐÃ SAO CHÉP báo cáo lỗi!\nBạn có thể Dán (Ctrl+V) vào Zalo để gửi.');
+                            alert('Đã hoàn tất hệ thống và ĐÃ SAO CHÉP báo cáo lỗi!\nBạn có thể Dán (Ctrl+V) vào Zalo để gửi.');
                         } catch (e2) {
-                            alert('Đã lưu thành công nhưng sao chép Zalo tự động thất bại.\nVui lòng chụp màn hình hoặc copy thủ công.');
+                            alert('Đã hoàn tất thành công nhưng sao chép Zalo tự động thất bại.\nVui lòng chụp màn hình hoặc copy thủ công.');
                         }
                     }
+                } else if (isFullyComplete) {
+                    alert('Đã hoàn tất kết quả kiểm tra thành công!');
                 } else {
-                    alert('Đã lưu kết quả kiểm tra thành công!');
+                    alert('Đã lưu tiến độ kiểm tra (Dở dang).\nBạn có thể quay lại hoàn thiện sau.');
                 }
             }
 
@@ -312,12 +326,14 @@ export default function CheckPage() {
     const isUserOnDuty = currentShiftAssignments.some((a: any) => a.userCode === user?.code) || user?.role === 'ADMIN';
 
     const currentSystem = systems.find(s => s.id === systemId);
-    const isLockedByOther = !isUserOnDuty || !!(currentSystem && systems.some(s =>
-        s.categoryId === currentSystem.categoryId &&
-        s.status !== 'NA' &&
-        s.inspectorCode &&
-        s.inspectorCode !== user?.code
-    ));
+
+    // REVISED LOCKING: Lock ONLY if this specific system is IN_PROGRESS by someone else.
+    // Also block if current user is NOT on duty (unless Admin)
+    const isLockedByOther = (!isUserOnDuty && user?.role !== 'ADMIN') ||
+        (!!currentSystem?.inspectorCode &&
+            currentSystem.status === 'IN_PROGRESS' &&
+            currentSystem.inspectorCode !== user?.code &&
+            user?.role !== 'ADMIN');
 
     if (!isLoaded) return <div className="p-8 text-center">Đang tải dữ liệu...</div>;
 
@@ -345,6 +361,16 @@ export default function CheckPage() {
                         </button>
                     )}
                 </div>
+
+                {isLockedByOther && (
+                    <div className="bg-amber-100 border-b border-amber-200 p-4 flex items-center gap-3 text-amber-800 animate-pulse">
+                        <Clock size={24} className="flex-shrink-0" />
+                        <div>
+                            <p className="font-black text-sm uppercase">Hệ thống đang được kiểm tra dở dang</p>
+                            <p className="text-xs">Bởi nhân viên: <b>{currentSystem?.inspectorName || 'Nối tiếp'}</b>. Bạn chỉ được xem, không được thay đổi dữ liệu của họ.</p>
+                        </div>
+                    </div>
+                )}
 
                 <div className="overflow-x-auto w-full">
                     <div className="w-full">

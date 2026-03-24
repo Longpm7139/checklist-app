@@ -3,7 +3,7 @@ $timestamp = Get-Date -Format "yyyy-MM-dd_HH-mm-ss"
 $projectName = "ChecklistApp_Backup"
 $backupFileName = "$projectName`_$timestamp.zip"
 $sourceDir = "c:\Users\thais\OneDrive\Desktop\Checklist\checklist-app"
-$artifactDir = "C:\Users\thais\.gemini\antigravity\brain\b66da12b-2997-459a-8415-6e13699488ff"
+$artifactDir = "C:\Users\thais\.gemini\antigravity\brain\813d5658-a114-4821-ace0-0e60bb25463b"
 $destinationDir = "c:\Users\thais\OneDrive\Desktop\Checklist\_Backups"
 
 # Ensure backup directory exists
@@ -24,6 +24,8 @@ Get-ChildItem -Path $sourceDir -Recurse | Where-Object {
     foreach ($pattern in $excludePatterns) {
         if ($path -like "*\$pattern*") { $skip = $true; break }
     }
+    # Keep the actual backup script itself
+    if ($_.Name -eq "CREATE_PROJECT_BACKUP.ps1") { $skip = $false }
     -not $skip
 } | Copy-Item -Destination {
     $relPath = $_.FullName.Substring($sourceDir.Length + 1)

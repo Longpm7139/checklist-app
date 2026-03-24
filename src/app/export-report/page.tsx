@@ -94,7 +94,7 @@ function ExportReportContent() {
                         }),
                         new Paragraph({
                             children: [
-                                new TextRun({ text: "BÁO CÁO CÔNG TÁC ĐỘI KỸ THUẬT", bold: true, size: 32 }),
+                                new TextRun({ text: "BÁO CÁO CÔNG TÁC ĐỘI CƠ KHÍ ĐIỆN TỬ", bold: true, size: 32 }),
                             ],
                             alignment: AlignmentType.CENTER,
                             spacing: { after: 400 }
@@ -196,7 +196,7 @@ function ExportReportContent() {
 
             // Generate and save
             Packer.toBlob(doc).then((blob) => {
-                saveAs(blob, `BaoCao_DoiKyThuat_${formattedDateString.replace(/\//g, '')}.docx`);
+                saveAs(blob, `BaoCao_DoiCoKhiDienTu_${formattedDateString.replace(/\//g, '')}.docx`);
                 setIsGenerating(false);
             });
         } catch (error) {

@@ -551,20 +551,27 @@ export default function ReportsPage() {
                             Trước
                         </button>
                         <div className="flex items-center gap-1">
-                            {Array.from({ length: totalPages }, (_, i) => i + 1).map(page => (
-                                <button
-                                    key={page}
-                                    onClick={() => setCurrentPage(page)}
-                                    className={clsx(
-                                        "w-10 h-10 rounded-lg text-sm font-bold transition",
-                                        currentPage === page
-                                            ? "bg-blue-600 text-white shadow-md shadow-blue-200"
-                                            : "bg-white border border-slate-200 text-slate-600 hover:bg-slate-50"
-                                    )}
-                                >
-                                    {page}
-                                </button>
-                            ))}
+                            {/* Desktop: Show all pages */}
+                            <div className="hidden sm:flex items-center gap-1">
+                                {Array.from({ length: totalPages }, (_, i) => i + 1).map(page => (
+                                    <button
+                                        key={page}
+                                        onClick={() => setCurrentPage(page)}
+                                        className={clsx(
+                                            "w-10 h-10 rounded-lg text-sm font-bold transition",
+                                            currentPage === page
+                                                ? "bg-blue-600 text-white shadow-md shadow-blue-200"
+                                                : "bg-white border border-slate-200 text-slate-600 hover:bg-slate-50"
+                                        )}
+                                    >
+                                        {page}
+                                    </button>
+                                ))}
+                            </div>
+                            {/* Mobile: Show current/total */}
+                            <div className="flex sm:hidden px-4 text-sm font-bold text-slate-500">
+                                {currentPage} / {totalPages}
+                            </div>
                         </div>
                         <button
                             onClick={() => setCurrentPage(prev => Math.min(totalPages, prev + 1))}

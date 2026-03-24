@@ -1,4 +1,4 @@
-export type Status = 'OK' | 'NOK' | 'NA';
+export type Status = 'OK' | 'NOK' | 'NA' | 'IN_PROGRESS';
 
 export interface User {
   id?: string;
