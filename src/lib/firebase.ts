@@ -10,13 +10,13 @@ import { getFirestore, collection, getDocs, doc, setDoc, updateDoc, deleteDoc, q
 // 3. Vào Project Settings -> General -> Your apps -> chọn Web (</>)
 // 4. Copy toàn bộ đoạn firebaseConfig dán vào bên dưới
 const firebaseConfig = {
-    apiKey: "AIzaSyDVqP30dU9dglVTHEC2n3EU6d51DSAXFFc",
-    authDomain: "checklistapp-38948.firebaseapp.com",
-    projectId: "checklistapp-38948",
-    storageBucket: "checklistapp-38948.firebasestorage.app",
-    messagingSenderId: "477232659978",
-    appId: "1:477232659978:web:02975e29d1a57b941929f3",
-    measurementId: "G-G514YP3WLP"
+    apiKey: process.env.NEXT_PUBLIC_FIREBASE_API_KEY,
+    authDomain: process.env.NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN,
+    projectId: process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID,
+    storageBucket: process.env.NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET,
+    messagingSenderId: process.env.NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID,
+    appId: process.env.NEXT_PUBLIC_FIREBASE_APP_ID,
+    measurementId: process.env.NEXT_PUBLIC_FIREBASE_MEASUREMENT_ID
 };
 
 // Initialize Firebase

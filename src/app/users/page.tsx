@@ -65,7 +65,10 @@ export default function UsersPage() {
         try {
             const res = await fetch('/api/users', {
                 method: 'DELETE',
-                headers: { 'Content-Type': 'application/json' },
+                headers: {
+                    'Content-Type': 'application/json',
+                    'x-user-role': currentUser?.role || ''
+                },
                 body: JSON.stringify({ id }),
             });
             const data = await res.json();
@@ -87,7 +90,10 @@ export default function UsersPage() {
             const res = await fetch('/api/users', {
                 method: 'POST',
                 body: JSON.stringify(newUser),
-                headers: { 'Content-Type': 'application/json' }
+                headers: {
+                    'Content-Type': 'application/json',
+                    'x-user-role': currentUser?.role || ''
+                }
             });
             const data = await res.json();
 

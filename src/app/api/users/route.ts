@@ -14,13 +14,18 @@ export async function GET() {
 
 export async function POST(request: Request) {
     try {
-        const { code, name, role } = await request.json();
+        const role = request.headers.get('x-user-role');
+        if (role !== 'ADMIN') {
+            return NextResponse.json({ error: 'Không có quyền thực hiện hành động này' }, { status: 403 });
+        }
+
+        const { code, name, role: userRole } = await request.json();
 
         if (!code || !name) {
             return NextResponse.json({ error: 'Mã nhân viên và tên không được để trống' }, { status: 400 });
         }
 
-        await addUser({ code, name, role: role || 'USER' });
+        await addUser({ code, name, role: userRole || 'USER' });
 
         return NextResponse.json({ success: true });
     } catch (error: any) {
@@ -34,22 +39,18 @@ export async function POST(request: Request) {
 
 export async function DELETE(request: Request) {
     try {
+        const role = request.headers.get('x-user-role');
+        if (role !== 'ADMIN') {
+            return NextResponse.json({ error: 'Không có quyền thực hiện hành động này' }, { status: 403 });
+        }
+
         const { id } = await request.json();
 
         if (!id) {
             return NextResponse.json({ error: 'Thiếu ID người dùng' }, { status: 400 });
         }
 
-        // We should probably check if it's ADMIN here too, but for now relying on frontend or id check
-        try {
-            // In firestore deleteUser expects ID.
-            // We can check if it is admin before deleting if needed, but let's keep it simple for migration.
-            // The only "ADMIN" hardcoding was in seed.
-            await deleteUser(id);
-        } catch (e) {
-            console.error("Error deleting user", e);
-            throw e;
-        }
+        await deleteUser(id);
 
         return NextResponse.json({ success: true });
     } catch (error) {

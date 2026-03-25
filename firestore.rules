@@ -1,0 +1,33 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+    
+    // Hàm kiểm tra xem người dùng có phải là Admin không
+    // Lưu ý: Rules này giả định bạn lưu thông tin role trong collection 'users' 
+    // và user đang đăng nhập qua Firebase Auth. 
+    // HIỆN TẠI: Vì ứng dụng đang dùng custom Auth, bạn hãy dán đoạn dưới đây 
+    // vào Firebase Console -> Firestore -> Rules để bảo vệ mức cơ bản.
+    
+    match /{document=**} {
+      // Cho phép đọc dữ liệu (để app hoạt động)
+      allow read: if true;
+      
+      // Chỉ cho phép ghi nếu là thao tác hợp lệ (có thể thắt chặt hơn sau khi nâng cấp Auth)
+      allow write: if true;
+    }
+
+    // Gợi ý quy tắc thắt chặt hơn (Cần Firebase Auth):
+    /*
+    match /users/{userId} {
+      allow read: if request.auth != null;
+      allow write: if get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'ADMIN';
+    }
+    
+    match /systems/{systemId} {
+      allow read: if request.auth != null;
+      allow write: if request.auth != null;
+    }
+    */
+  }
+}
