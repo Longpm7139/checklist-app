@@ -10,19 +10,33 @@ import { getFirestore, collection, getDocs, doc, setDoc, updateDoc, deleteDoc, q
 // 3. Vào Project Settings -> General -> Your apps -> chọn Web (</>)
 // 4. Copy toàn bộ đoạn firebaseConfig dán vào bên dưới
 const firebaseConfig = {
-    apiKey: process.env.NEXT_PUBLIC_FIREBASE_API_KEY,
-    authDomain: process.env.NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN,
-    projectId: process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID,
-    storageBucket: process.env.NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET,
-    messagingSenderId: process.env.NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID,
-    appId: process.env.NEXT_PUBLIC_FIREBASE_APP_ID,
-    measurementId: process.env.NEXT_PUBLIC_FIREBASE_MEASUREMENT_ID
+    apiKey: process.env.NEXT_PUBLIC_FIREBASE_API_KEY || "",
+    authDomain: process.env.NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN || "",
+    projectId: process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID || "",
+    storageBucket: process.env.NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET || "",
+    messagingSenderId: process.env.NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID || "",
+    appId: process.env.NEXT_PUBLIC_FIREBASE_APP_ID || "",
+    measurementId: process.env.NEXT_PUBLIC_FIREBASE_MEASUREMENT_ID || ""
 };
 
+// Debug: Check if variables are missing
+if (typeof window !== 'undefined') {
+    const missing = Object.entries(firebaseConfig)
+        .filter(([key, value]) => !value && key !== 'measurementId')
+        .map(([key]) => key);
+    if (missing.length > 0) {
+        console.error("Firebase Configuration Missing Variables:", missing);
+    }
+}
+
 // Initialize Firebase
-// Check if app is already initialized to avoid duplication in Next.js hot-reload
-const app = !getApps().length ? initializeApp(firebaseConfig) : getApp();
-const db = getFirestore(app);
+let app;
+try {
+    app = !getApps().length ? initializeApp(firebaseConfig) : getApp();
+} catch (error) {
+    console.error("Firebase Initialization Error:", error);
+}
+const db = getFirestore(app!);
 
 export { db };
 
