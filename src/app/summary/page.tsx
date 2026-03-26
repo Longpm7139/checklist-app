@@ -88,7 +88,7 @@ export default function SummaryPage() {
                                 systemId: sys.id,
                                 detailId: item.id,
                                 executorNames: (item.materialRequest || item.status === 'Fixed') ? (item.executorNames || (item.executorName ? [item.executorName] : [])) : [],
-                                imageUrl: item.imageUrl
+                                imageUrl: item.imageUrl || sys.imageUrl
                             });
                         }
                     });
@@ -188,7 +188,8 @@ export default function SummaryPage() {
                 // Merging resolution data into existing document (identified by r.id)
                 resolvedAt: new Date().toLocaleString('vi-VN', { hour: '2-digit', minute: '2-digit', day: '2-digit', month: '2-digit', year: 'numeric' }),
                 actionNote: r.actionDescription || '',
-                resolverName: r.executorNames.join(', ') || 'Unknown'
+                resolverName: r.executorNames.join(', ') || 'Unknown',
+                imageUrl: r.imageUrl || ''
             }));
             await Promise.all(historyPromises);
 
