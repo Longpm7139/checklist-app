@@ -553,31 +553,6 @@ export default function Home() {
 
   return (
     <div className="min-h-screen bg-slate-50 p-4 font-sans text-slate-900">
-      {/* NUCLEAR DEBUG V5 - ABSOLUTE TOP */}
-      <div className="bg-red-700 text-white p-8 text-center font-bold mb-4 rounded-xl border-4 border-yellow-400">
-        <h2 className="text-2xl mb-2 underline tracking-widest font-black uppercase">🚨 PHÂN TÍCH LỖI [VERSION 5] 🚨</h2>
-        <p className="mb-4 font-bold text-lg">Nếu bạn thấy ô này, hãy bấm nút dưới để thử mở Camera:</p>
-        <label className="block w-full">
-          <input 
-             type="file" 
-             accept="image/*" 
-             capture="environment" 
-             className="hidden"
-             onChange={(e) => alert(`ĐÃ NHẬN DIỆN CAMERA!\nFile: ${e.target.files?.[0]?.name}`)}
-          />
-          <div className="bg-white text-red-600 p-6 rounded-2xl w-full font-black shadow-2xl active:scale-95 transition-all text-xl cursor-pointer flex flex-col items-center gap-2">
-            <Camera size={48} />
-            BẤM ĐÂY ĐỂ MỞ CAMERA
-          </div>
-        </label>
-        <p className="mt-4 text-xs font-mono opacity-80">Timestamp: {new Date().getTime()}</p>
-        <button 
-           onClick={() => router.push('/test-camera')}
-           className="mt-6 text-sm underline text-white/90 hover:text-white"
-        >
-           Hoặc vào trang Thử Nghiệm riêng biệt tại đây
-        </button>
-      </div>
       <div className="max-w-4xl mx-auto bg-white border border-slate-300 shadow-sm relative pb-28">
         <h1 className="text-xl font-bold bg-slate-800 text-white p-4 text-center uppercase flex justify-between items-center relative">
           <div className="flex flex-col items-start gap-1">
@@ -1001,9 +976,6 @@ export default function Home() {
         )}
 
         <div className="p-4 md:hidden">
-          <div className="bg-pink-600 text-white p-4 font-black text-center mb-4 rounded-lg shadow-xl animate-pulse">
-            📢 ĐÂY LÀ GIAO DIỆN DI ĐỘNG (MOBILE VIEW)
-          </div>
           {categories.map(cat => {
             const catSystems = systems.filter(s => {
               const matchesCategory = s.categoryId === cat.id;
@@ -1127,7 +1099,7 @@ export default function Home() {
                                 errors.has(sys.id) ? "border-red-500 bg-red-50 ring-2 ring-red-200" : "border-slate-200 focus:border-blue-500 bg-slate-50/50",
                                 isLocked && "bg-slate-100 text-slate-400 cursor-not-allowed opacity-60"
                               )}
-                              placeholder={errors.has(sys.id) ? "⚠️ Bắt buộc nhập ghi chú!" : (sys.status === 'OK' ? "✅ OK - Không ghi chú" : "📝 [PHÂN TÍCH LỖI V4] Ghi chú & Chụp ảnh...")}
+                              placeholder={errors.has(sys.id) ? "⚠️ Bắt buộc nhập ghi chú!" : (sys.status === 'OK' ? "✅ OK - Không ghi chú" : "📝 Ghi chú...")}
                               value={sys.note}
                               onChangeValue={(val: string) => handleNoteChange(sys.id, val)}
                             />
@@ -1135,35 +1107,18 @@ export default function Home() {
                         })()}
                       </div>
                       {sys.status === 'NOK' && (
-                        <div className="mt-4 p-4 border-4 border-double border-red-600 bg-white rounded-xl">
-                           <p className="text-red-600 font-black text-sm mb-2 text-center">👇 NÚT CHỤP ẢNH TEST V4 👇</p>
-                           <input 
-                              type="file" 
-                              accept="image/*" 
-                              capture="environment" 
-                              id={`raw-camera-${sys.id}`}
-                              className="hidden"
-                              onChange={async (e) => {
-                                 const file = e.target.files?.[0];
-                                 if (!file) return;
-                                 const url = await uploadImage(file, `systems/${sys.id}_${Date.now()}.jpg`);
-                                 const target = systems.find(s => s.id === sys.id);
-                                 if (target) await saveSystem(sys.id, { ...target, imageUrl: url });
-                              }}
-                           />
-                           <button
-                             type="button"
-                             onClick={() => document.getElementById(`raw-camera-${sys.id}`)?.click()}
-                             style={{ background: 'red', color: 'white', padding: '20px', borderRadius: '12px', fontWeight: 'bold', width: '100%', fontSize: '18px', boxShadow: '0 4px 15px rgba(255,0,0,0.3)' }}
-                           >
-                              Bấm Đây Để Mở Camera
-                           </button>
-                           {sys.imageUrl && (
-                             <div className="mt-4 flex flex-col items-center">
-                               <p className="text-[10px] text-green-600 font-bold mb-1">ẢNH ĐÃ TẢI LÊN:</p>
-                               <img src={sys.imageUrl} className="w-24 h-24 object-cover rounded-lg border-2 border-green-500" />
-                             </div>
-                           )}
+                        <div className="mt-3 flex justify-center border-t border-slate-100 pt-3">
+                           <ImageUpload 
+                            value={sys.imageUrl}
+                            onChange={async (url) => {
+                               const target = systems.find(s => s.id === sys.id);
+                               if (target) {
+                                 await saveSystem(sys.id, { ...target, imageUrl: url });
+                               }
+                            }}
+                            path={`systems/${sys.id}_${Date.now()}.jpg`}
+                            disabled={!isUserOnDuty || isEditMode}
+                          />
                         </div>
                       )}
                     </div>
@@ -1191,9 +1146,6 @@ export default function Home() {
         </div>
 
         <div className="hidden md:block overflow-x-auto">
-          <div className="bg-cyan-600 text-white p-4 font-black text-center mb-4 rounded-lg shadow-xl">
-            📢 ĐÂY LÀ GIAO DIỆN BẢNG MÁY TÍNH (DESKTOP TABLE)
-          </div>
           <table className="w-full text-left border-collapse min-w-[600px]">
             <thead className="bg-slate-200 text-slate-700 font-bold uppercase text-sm">
               <tr>
