@@ -231,65 +231,71 @@ export const updateUserPassword = async (id: string, password: string) => {
 
 // Client-side image compression to speed up mobile uploads
 const compressImage = async (file: File): Promise<Blob | File> => {
-    // Return early if not an image or very small
-    if (!file.type.startsWith('image/') || file.size < 250 * 1024) {
+    if (!file.type.startsWith('image/') || file.size < 200 * 1024) {
         return file;
     }
 
     return new Promise((resolve, reject) => {
-        const reader = new FileReader();
-        reader.readAsDataURL(file);
-        reader.onload = (event) => {
-            const img = new Image();
-            img.src = event.target?.result as string;
-            img.onload = () => {
-                const canvas = document.createElement('canvas');
-                let width = img.width;
-                let height = img.height;
+        const url = URL.createObjectURL(file);
+        const img = new Image();
+        img.onload = () => {
+            URL.revokeObjectURL(url);
+            const canvas = document.createElement('canvas');
+            let width = img.width;
+            let height = img.height;
+            const MAX_DIM = 1000;
 
-                // Max dimension 1200px
-                const MAX_DIM = 1200;
-                if (width > height) {
-                    if (width > MAX_DIM) {
-                        height = Math.round((height * MAX_DIM) / width);
-                        width = MAX_DIM;
-                    }
-                } else {
-                    if (height > MAX_DIM) {
-                        width = Math.round((width * MAX_DIM) / height);
-                        height = MAX_DIM;
-                    }
+            if (width > height) {
+                if (width > MAX_DIM) {
+                    height = Math.round((height * MAX_DIM) / width);
+                    width = MAX_DIM;
                 }
+            } else {
+                if (height > MAX_DIM) {
+                    width = Math.round((width * MAX_DIM) / height);
+                    height = MAX_DIM;
+                }
+            }
 
-                canvas.width = width;
-                canvas.height = height;
-                const ctx = canvas.getContext('2d');
-                ctx?.drawImage(img, 0, 0, width, height);
+            canvas.width = width;
+            canvas.height = height;
+            const ctx = canvas.getContext('2d');
+            ctx?.drawImage(img, 0, 0, width, height);
 
-                canvas.toBlob(
-                    (blob) => {
-                        if (blob) resolve(blob);
-                        else resolve(file);
-                    },
-                    'image/jpeg',
-                    0.7 // High quality compression
-                );
-            };
-            img.onerror = (e) => reject(e);
+            canvas.toBlob(
+                (blob) => {
+                    if (blob) resolve(blob);
+                    else resolve(file);
+                },
+                'image/jpeg',
+                0.6
+            );
         };
-        reader.onerror = (e) => reject(e);
+        img.onerror = (e) => {
+            URL.revokeObjectURL(url);
+            reject(e);
+        };
+        img.src = url;
     });
 };
 
 // Storage
 export const uploadImage = async (file: File, path: string) => {
-    const compressedFile = await compressImage(file).catch(err => {
-        console.warn("Compression failed, using original file:", err);
-        return file;
-    });
-    const storageRef = ref(storage, path);
-    const snapshot = await uploadBytes(storageRef, compressedFile);
-    return getDownloadURL(snapshot.ref);
+    try {
+        const compressedFile = await compressImage(file).catch(err => {
+            console.warn("Compression failed, using original:", err);
+            return file;
+        });
+
+        const storageRef = ref(storage, path);
+        const snapshot = await uploadBytes(storageRef, compressedFile);
+        const downloadUrl = await getDownloadURL(snapshot.ref);
+        return downloadUrl;
+    } catch (error: any) {
+        console.error("Firebase Storage Error:", error);
+        alert("LỖI TẢI ẢNH: " + (error?.code || error?.message || "Không xác định"));
+        throw error;
+    }
 };
 
 // Seeding
