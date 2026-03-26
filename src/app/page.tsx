@@ -1312,11 +1312,7 @@ export default function Home() {
                                 onChange={async (url) => {
                                   const target = systems.find(s => s.id === sys.id);
                                   if (target) {
-                                     try {
-                                       await saveSystem(sys.id, { ...target, imageUrl: url });
-                                     } catch (dbErr: any) {
-                                       alert("Lỗi khi lưu link ảnh vào hệ thống: " + dbErr.message);
-                                     }
+                                     await saveSystem(sys.id, { ...target, imageUrl: url });
                                   }
                                 }}
                                 path={`systems/${sys.id}_${Date.now()}.jpg`}
