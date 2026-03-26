@@ -12,6 +12,7 @@ import clsx from 'clsx';
 import { useUser } from '@/providers/UserProvider';
 import ChangePasswordModal from '@/components/ChangePasswordModal';
 import { IMESafeInput } from '@/components/IMESafeInput';
+import { ImageUpload } from '@/components/ImageUpload';
 import {
   Document, Packer, Paragraph, TextRun, Table, TableRow, TableCell,
   AlignmentType, WidthType, BorderStyle, HeadingLevel, VerticalAlign
@@ -202,7 +203,14 @@ export default function Home() {
     const now = new Date().toLocaleString('vi-VN', { hour: '2-digit', minute: '2-digit', day: '2-digit', month: '2-digit', year: 'numeric' });
     const target = systems.find(s => s.id === id);
     if (target) {
-      const updated = { ...target, status, timestamp: now, inspectorName: user?.name, inspectorCode: user?.code };
+      const updated = { 
+        ...target, 
+        status, 
+        timestamp: now, 
+        inspectorName: user?.name, 
+        inspectorCode: user?.code,
+        imageUrl: status === 'OK' ? '' : target.imageUrl
+      };
       await saveSystem(id, updated);
 
       if (status === 'NOK') {
@@ -967,6 +975,9 @@ export default function Home() {
         )}
 
         <div className="p-4 md:hidden">
+          <div className="bg-pink-600 text-white p-4 font-black text-center mb-4 rounded-lg shadow-xl animate-pulse">
+            📢 ĐÂY LÀ GIAO DIỆN DI ĐỘNG (MOBILE VIEW)
+          </div>
           {categories.map(cat => {
             const catSystems = systems.filter(s => {
               const matchesCategory = s.categoryId === cat.id;
@@ -1046,10 +1057,12 @@ export default function Home() {
                       <div className={clsx(
                         "grid grid-cols-3 gap-2 mb-3",
                         (!isUserOnDuty || isEditMode ||
-                          (sys.status === 'NOK' && !sys.inspectorCode) ||
-                          (sys.status === 'IN_PROGRESS' && sys.inspectorCode !== user?.code && user?.role !== 'ADMIN') ||
-                          (sys.status !== 'NA' && sys.status !== 'IN_PROGRESS' && sys.inspectorCode && sys.inspectorCode !== user?.code) ||
-                          (sys.status === 'NA' && systems.some(s => s.categoryId === sys.categoryId && s.status === 'IN_PROGRESS' && s.inspectorCode && s.inspectorCode !== user?.code))
+                          (user?.role !== 'ADMIN' && (
+                            (sys.status === 'NOK' && !sys.inspectorCode) ||
+                            (sys.status === 'IN_PROGRESS' && sys.inspectorCode !== user?.code) ||
+                            (sys.status !== 'NA' && sys.status !== 'IN_PROGRESS' && sys.inspectorCode && sys.inspectorCode !== user?.code) ||
+                            (sys.status === 'NA' && systems.some(s => s.categoryId === sys.categoryId && s.status === 'IN_PROGRESS' && s.inspectorCode && s.inspectorCode !== user?.code))
+                          ))
                         ) && "opacity-50 pointer-events-none"
                       )}>
                         {(['OK', 'NOK', 'NA'] as Status[]).map(st => (
@@ -1073,11 +1086,13 @@ export default function Home() {
                       <div className="relative">
                         {(() => {
                           const isLocked = !!(!isUserOnDuty || isEditMode ||
-                            sys.status === 'OK' ||
-                            (sys.status === 'NOK' && !sys.inspectorCode) ||
-                            (sys.status === 'IN_PROGRESS' && sys.inspectorCode !== user?.code && user?.role !== 'ADMIN') ||
-                            (sys.status !== 'NA' && sys.status !== 'IN_PROGRESS' && sys.inspectorCode && sys.inspectorCode !== user?.code) ||
-                            (sys.status === 'NA' && systems.some(s => s.categoryId === sys.categoryId && s.status === 'IN_PROGRESS' && s.inspectorCode && s.inspectorCode !== user?.code)));
+                            (user?.role !== 'ADMIN' && (
+                              sys.status === 'OK' ||
+                              (sys.status === 'NOK' && !sys.inspectorCode) ||
+                              (sys.status === 'IN_PROGRESS' && sys.inspectorCode !== user?.code) ||
+                              (sys.status !== 'NA' && sys.status !== 'IN_PROGRESS' && sys.inspectorCode && sys.inspectorCode !== user?.code) ||
+                              (sys.status === 'NA' && systems.some(s => s.categoryId === sys.categoryId && s.status === 'IN_PROGRESS' && s.inspectorCode && s.inspectorCode !== user?.code))
+                            )));
                           return (
                             <IMESafeInput
                               disabled={isLocked}
@@ -1086,13 +1101,45 @@ export default function Home() {
                                 errors.has(sys.id) ? "border-red-500 bg-red-50 ring-2 ring-red-200" : "border-slate-200 focus:border-blue-500 bg-slate-50/50",
                                 isLocked && "bg-slate-100 text-slate-400 cursor-not-allowed opacity-60"
                               )}
-                              placeholder={errors.has(sys.id) ? "⚠️ Bắt buộc nhập ghi chú!" : (sys.status === 'OK' ? "✅ OK - Không ghi chú" : "📝 Ghi chú...")}
+                              placeholder={errors.has(sys.id) ? "⚠️ Bắt buộc nhập ghi chú!" : (sys.status === 'OK' ? "✅ OK - Không ghi chú" : "📝 [PHÂN TÍCH LỖI V4] Ghi chú & Chụp ảnh...")}
                               value={sys.note}
                               onChangeValue={(val: string) => handleNoteChange(sys.id, val)}
                             />
                           );
                         })()}
                       </div>
+                      {sys.status === 'NOK' && (
+                        <div className="mt-4 p-4 border-4 border-double border-red-600 bg-white rounded-xl">
+                           <p className="text-red-600 font-black text-sm mb-2 text-center">👇 NÚT CHỤP ẢNH TEST V4 👇</p>
+                           <input 
+                              type="file" 
+                              accept="image/*" 
+                              capture="environment" 
+                              id={`raw-camera-${sys.id}`}
+                              className="hidden"
+                              onChange={async (e) => {
+                                 const file = e.target.files?.[0];
+                                 if (!file) return;
+                                 const url = await uploadImage(file, `systems/${sys.id}_${Date.now()}.jpg`);
+                                 const target = systems.find(s => s.id === sys.id);
+                                 if (target) await saveSystem(sys.id, { ...target, imageUrl: url });
+                              }}
+                           />
+                           <button
+                             type="button"
+                             onClick={() => document.getElementById(`raw-camera-${sys.id}`)?.click()}
+                             style={{ background: 'red', color: 'white', padding: '20px', borderRadius: '12px', fontWeight: 'bold', width: '100%', fontSize: '18px', boxShadow: '0 4px 15px rgba(255,0,0,0.3)' }}
+                           >
+                              Bấm Đây Để Mở Camera
+                           </button>
+                           {sys.imageUrl && (
+                             <div className="mt-4 flex flex-col items-center">
+                               <p className="text-[10px] text-green-600 font-bold mb-1">ẢNH ĐÃ TẢI LÊN:</p>
+                               <img src={sys.imageUrl} className="w-24 h-24 object-cover rounded-lg border-2 border-green-500" />
+                             </div>
+                           )}
+                        </div>
+                      )}
                     </div>
                   ))}
                   {isEditMode && (
@@ -1118,12 +1165,16 @@ export default function Home() {
         </div>
 
         <div className="hidden md:block overflow-x-auto">
+          <div className="bg-cyan-600 text-white p-4 font-black text-center mb-4 rounded-lg shadow-xl">
+            📢 ĐÂY LÀ GIAO DIỆN BẢNG MÁY TÍNH (DESKTOP TABLE)
+          </div>
           <table className="w-full text-left border-collapse min-w-[600px]">
             <thead className="bg-slate-200 text-slate-700 font-bold uppercase text-sm">
               <tr>
                 <th className="p-3 border border-slate-300 w-1/3">Hệ thống</th>
-                <th className="p-3 border border-slate-300 text-center w-1/3">Status</th>
-                <th className="p-3 border border-slate-300 w-1/3">Note</th>
+                <th className="p-3 border border-slate-300 text-center w-48">Status</th>
+                <th className="p-3 border border-slate-300">Note</th>
+                <th className="p-3 border border-slate-300 w-24">Ảnh</th>
               </tr>
             </thead>
             <tbody>
@@ -1146,7 +1197,7 @@ export default function Home() {
                 return (
                   <React.Fragment key={cat.id}>
                     <tr id={`category-${cat.id}`} className="bg-blue-50 group scroll-mt-20">
-                      <td colSpan={3} className="p-3 border border-slate-300 font-bold text-blue-800">
+                      <td colSpan={4} className="p-3 border border-slate-300 font-bold text-blue-800">
                         <div className="flex justify-between items-center">
                           {isEditMode ? (
                             <div className="flex items-center gap-2 w-full">
@@ -1192,7 +1243,7 @@ export default function Home() {
                         <td className="p-3 border border-slate-300 text-center">
                           {(() => {
                             const otherInspector = systems.find(s => s.categoryId === sys.categoryId && s.status !== 'NA' && s.inspectorCode && s.inspectorCode !== user?.code)?.inspectorName;
-                            const isCategoryLocked = !!otherInspector;
+                            const isCategoryLocked = !!otherInspector && user?.role !== 'ADMIN';
 
                             return (
                               <>
@@ -1201,7 +1252,7 @@ export default function Home() {
                                 )}
                                 <div className={clsx(
                                   "flex gap-1 justify-center",
-                                  (!isUserOnDuty || isEditMode || isCategoryLocked || (sys.status === 'NOK' && !sys.inspectorCode) || (sys.status !== 'NA' && sys.inspectorCode && sys.inspectorCode !== user?.code)) && "opacity-50 pointer-events-none"
+                                  (!isUserOnDuty || isEditMode || isCategoryLocked || (user?.role !== 'ADMIN' && ((sys.status === 'NOK' && !sys.inspectorCode) || (sys.status !== 'NA' && sys.inspectorCode && sys.inspectorCode !== user?.code)))) && "opacity-50 pointer-events-none"
                                 )}>
                                   {(['OK', 'NOK', 'NA'] as Status[]).map(st => (
                                     <button
@@ -1227,11 +1278,13 @@ export default function Home() {
                         <td className="p-3 border border-slate-300">
                           {(() => {
                             const isLocked = !!(!isUserOnDuty || isEditMode ||
-                              sys.status === 'OK' ||
-                              (sys.status === 'NOK' && !sys.inspectorCode) ||
-                              (sys.status === 'IN_PROGRESS' && sys.inspectorCode !== user?.code && user?.role !== 'ADMIN') ||
-                              (sys.status !== 'NA' && sys.status !== 'IN_PROGRESS' && sys.inspectorCode && sys.inspectorCode !== user?.code) ||
-                              (sys.status === 'NA' && systems.some(s => s.categoryId === sys.categoryId && s.status === 'IN_PROGRESS' && s.inspectorCode && s.inspectorCode !== user?.code)));
+                              (user?.role !== 'ADMIN' && (
+                                sys.status === 'OK' ||
+                                (sys.status === 'NOK' && !sys.inspectorCode) ||
+                                (sys.status === 'IN_PROGRESS' && sys.inspectorCode !== user?.code) ||
+                                (sys.status !== 'NA' && sys.status !== 'IN_PROGRESS' && sys.inspectorCode && sys.inspectorCode !== user?.code) ||
+                                (sys.status === 'NA' && systems.some(s => s.categoryId === sys.categoryId && s.status === 'IN_PROGRESS' && s.inspectorCode && s.inspectorCode !== user?.code))
+                              )));
                             return (
                               <IMESafeInput
                                 disabled={isLocked}
@@ -1247,11 +1300,26 @@ export default function Home() {
                             );
                           })()}
                         </td>
+                        <td className="p-3 border border-slate-300 text-center">
+                          {sys.status === 'NOK' ? (
+                            <ImageUpload 
+                              value={sys.imageUrl}
+                              onChange={async (url) => {
+                                const target = systems.find(s => s.id === sys.id);
+                                if (target) {
+                                  await saveSystem(sys.id, { ...target, imageUrl: url });
+                                }
+                              }}
+                              path={`systems/${sys.id}_${Date.now()}.jpg`}
+                              disabled={!isUserOnDuty || isEditMode}
+                            />
+                          ) : '-'}
+                        </td>
                       </tr>
                     ))}
-                    {isEditMode && (
+                     {isEditMode && (
                       <tr className="bg-slate-50">
-                        <td colSpan={3} className="p-3 border border-slate-300 pl-8">
+                        <td colSpan={4} className="p-3 border border-slate-300 pl-8">
                           <button
                             onClick={() => handleAddSystem(cat.id)}
                             className="text-blue-600 font-bold text-sm flex items-center gap-2 hover:text-blue-800 transition shadow-sm bg-white border border-blue-200 px-3 py-1 rounded-md"

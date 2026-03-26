@@ -23,6 +23,7 @@ export interface SystemCheck {
   timestamp?: string;
   inspectorName?: string;
   inspectorCode?: string;
+  imageUrl?: string;
 }
 
 export interface ChecklistItem {
@@ -37,6 +38,7 @@ export interface ChecklistItem {
   inspectorCode?: string;
   materialRequest?: string;
   executorNames?: string[];
+  imageUrl?: string;
 }
 
 export interface ErrorReport {

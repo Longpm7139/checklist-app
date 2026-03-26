@@ -39,6 +39,7 @@ interface SummaryRow {
     systemId: string;
     detailId?: string;
     executorNames: string[];
+    imageUrl?: string;
 }
 
 export default function SummaryPage() {
@@ -50,6 +51,7 @@ export default function SummaryPage() {
     const ITEMS_PER_PAGE = 10;
     const [isLoaded, setIsLoaded] = useState(false);
     const [activeRowSelector, setActiveRowSelector] = useState<string | null>(null);
+    const [viewingImage, setViewingImage] = useState<string | null>(null);
 
     useEffect(() => {
         const fetchUsers = async () => {
@@ -86,6 +88,7 @@ export default function SummaryPage() {
                                 systemId: sys.id,
                                 detailId: item.id,
                                 executorNames: (item.materialRequest || item.status === 'Fixed') ? (item.executorNames || (item.executorName ? [item.executorName] : [])) : [],
+                                imageUrl: item.imageUrl
                             });
                         }
                     });
@@ -294,7 +297,17 @@ export default function SummaryPage() {
                                             <span className="text-[10px] font-mono text-slate-400">{row.timestamp}</span>
                                         </div>
                                         <div className="font-bold text-blue-800 leading-snug">{row.systemName}</div>
-                                        <div className="text-red-600 text-sm mt-1 italic font-medium">{row.issueContent}</div>
+                                        <div className="flex items-start gap-2 mt-1">
+                                            <div className="flex-1 text-red-600 text-sm italic font-medium">{row.issueContent}</div>
+                                            {row.imageUrl && (
+                                                <img
+                                                    src={row.imageUrl}
+                                                    alt="Lỗi"
+                                                    className="w-12 h-12 object-cover rounded shadow-sm border border-slate-200"
+                                                    onClick={() => setViewingImage(row.imageUrl || null)}
+                                                />
+                                            )}
+                                        </div>
                                     </div>
 
                                     <div className="p-4 space-y-4">
@@ -418,8 +431,20 @@ export default function SummaryPage() {
                                     <tr key={row.id} className="hover:bg-slate-50">
                                         <td className="p-3 border border-slate-300 text-center font-bold text-slate-500">{indexOfFirstItem + idx + 1}</td>
                                         <td className="p-3 border border-slate-300 font-medium">
-                                            <div className="text-blue-800">{row.systemName}</div>
-                                            <div className="text-red-600 text-sm mt-1 italic">{row.issueContent}</div>
+                                            <div className="flex items-start gap-3">
+                                                <div className="flex-1">
+                                                    <div className="text-blue-800">{row.systemName}</div>
+                                                    <div className="text-red-600 text-sm mt-1 italic">{row.issueContent}</div>
+                                                </div>
+                                                {row.imageUrl && (
+                                                    <img
+                                                        src={row.imageUrl}
+                                                        alt="Lỗi"
+                                                        className="w-12 h-12 object-cover rounded shadow-sm border border-slate-200 hover:scale-110 transition cursor-pointer"
+                                                        onClick={() => setViewingImage(row.imageUrl || null)}
+                                                    />
+                                                )}
+                                            </div>
                                         </td>
                                         <td className="p-3 border border-slate-300 text-center">
                                             <div className="flex gap-1 justify-center flex-wrap">
@@ -547,6 +572,28 @@ export default function SummaryPage() {
                     </button>
                 </div>
             </div>
+
+            {/* Image Modal */}
+            {viewingImage && (
+                <div 
+                    className="fixed inset-0 z-[100] bg-black/80 flex items-center justify-center p-4"
+                    onClick={() => setViewingImage(null)}
+                >
+                    <div className="relative max-w-4xl max-h-full">
+                        <button 
+                            className="absolute -top-12 right-0 text-white hover:text-slate-300 flex items-center gap-2 font-bold"
+                            onClick={() => setViewingImage(null)}
+                        >
+                            <span className="text-sm">ĐÓNG</span> <span className="text-2xl">&times;</span>
+                        </button>
+                        <img 
+                            src={viewingImage} 
+                            alt="Full view" 
+                            className="max-w-full max-h-[85vh] object-contain rounded shadow-2xl"
+                        />
+                    </div>
+                </div>
+            )}
         </div>
     );
 }

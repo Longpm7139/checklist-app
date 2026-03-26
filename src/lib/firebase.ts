@@ -3,6 +3,7 @@
 // Import the functions you need from the SDKs you need
 import { initializeApp, getApps, getApp } from "firebase/app";
 import { getFirestore, collection, getDocs, doc, setDoc, updateDoc, deleteDoc, query, where, onSnapshot, getDoc, addDoc, limit } from "firebase/firestore";
+import { getStorage, ref, uploadBytes, getDownloadURL } from "firebase/storage";
 
 // TODO: Thay thế phần bên dưới bằng Config từ Firebase Console
 // 1. Vào console.firebase.google.com
@@ -37,8 +38,8 @@ try {
     console.error("Firebase Initialization Error:", error);
 }
 const db = getFirestore(app!);
-
-export { db };
+const storage = getStorage(app!);
+export { db, storage };
 
 // --- HELPER FUNCTIONS FOR MIGRATION ---
 
@@ -226,6 +227,13 @@ export const deleteUser = async (id: string) => {
 
 export const updateUserPassword = async (id: string, password: string) => {
     await updateDoc(doc(db, "users", id), { password });
+};
+
+// Storage
+export const uploadImage = async (file: File, path: string) => {
+    const storageRef = ref(storage, path);
+    const snapshot = await uploadBytes(storageRef, file);
+    return getDownloadURL(snapshot.ref);
 };
 
 // Seeding

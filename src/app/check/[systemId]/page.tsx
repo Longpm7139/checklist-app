@@ -8,6 +8,7 @@ import clsx from 'clsx';
 import { subscribeToSystems, subscribeToChecklist, saveChecklist, saveSystem, addLog, saveHistoryItem, subscribeToDuties } from '@/lib/firebase';
 import { useUser } from '@/providers/UserProvider';
 import { IMESafeInput, IMESafeTextArea } from '@/components/IMESafeInput';
+import { ImageUpload } from '@/components/ImageUpload';
 
 // --- HELPER COMPONENTS FOR IME-SAFE DEBOUNCED INPUT ---
 // (Moved to shared components/IMESafeInput.tsx)
@@ -97,11 +98,17 @@ export default function CheckPage() {
                     timestamp: now,
                     inspectorName: i.inspectorName || user?.name,
                     inspectorCode: i.inspectorCode || user?.code,
-                    note: val === 'OK' ? '' : i.note
+                    note: val === 'OK' ? '' : i.note,
+                    imageUrl: val === 'OK' ? '' : i.imageUrl
                 };
             }
             return i;
         }));
+        setIsDirty(true);
+    };
+
+    const handleImageChange = (id: string, url: string) => {
+        setItems(prev => prev.map(i => i.id === id ? { ...i, imageUrl: url } : i));
         setIsDirty(true);
     };
 
@@ -203,7 +210,7 @@ export default function CheckPage() {
                     zaloMessage = `⚠️ [BÁO LỖI HỆ THỐNG]\n` +
                         `- Hệ thống: ${systemName}\n` +
                         `- Mã ID: ${systemId}\n` +
-                        `- Chi tiết lỗi:\n${nokItems.map((item, idx) => `  ${idx + 1}. ${item.content}: ${item.note || 'Chưa có ghi chú'}`).join('\n')}\n` +
+                        `- Chi tiết lỗi:\n${nokItems.map((item, idx) => `  ${idx + 1}. ${item.content}: ${item.note || 'Chưa có ghi chú'}${item.imageUrl ? ' (Có ảnh đính kèm)' : ''}`).join('\n')}\n` +
                         `- Người báo: ${user?.name || 'Nhân viên'}\n` +
                         `- Thời gian: ${now}`;
                 }
@@ -237,6 +244,7 @@ export default function CheckPage() {
                         timestamp: now,
                         inspectorName: item.inspectorName || user?.name,
                         inspectorCode: user?.code,
+                        imageUrl: item.imageUrl || ''
                     }));
                 }
                 dbPromises.push(addLog({
@@ -423,18 +431,40 @@ export default function CheckPage() {
                                         )}
 
                                         {!isEditing && (
-                                            <div className="relative">
-                                                <IMESafeInput
-                                                    disabled={item.status === 'OK' || isLockedByOther}
-                                                    className={clsx(
-                                                        "w-full p-4 border rounded-xl text-sm outline-none transition-all pr-12",
-                                                        (item.status === 'OK' || isLockedByOther) && "bg-slate-100 text-slate-400 cursor-not-allowed opacity-60",
-                                                        (item.status === 'NOK' && !item.note.trim()) ? "border-red-500 bg-red-50 ring-2 ring-red-200" : "border-slate-200 focus:border-blue-500 bg-slate-50/50"
-                                                    )}
-                                                    placeholder={item.status === 'OK' ? "✅ OK - Không ghi chú" : "📝 Nhập ghi chú tại đây..."}
-                                                    value={item.note}
-                                                    onChangeValue={(val: string) => handleNoteChange(item.id, val)}
-                                                />
+                                            <div className="flex flex-col gap-3">
+                                                <div className="relative">
+                                                    <IMESafeInput
+                                                        disabled={item.status === 'OK' || isLockedByOther}
+                                                        className={clsx(
+                                                            "w-full p-4 border rounded-xl text-sm outline-none transition-all pr-12",
+                                                            (item.status === 'OK' || isLockedByOther) && "bg-slate-100 text-slate-400 cursor-not-allowed opacity-60",
+                                                            (item.status === 'NOK' && !item.note.trim()) ? "border-red-500 bg-red-50 ring-2 ring-red-200" : "border-slate-200 focus:border-blue-500 bg-slate-50/50"
+                                                        )}
+                                                        placeholder={item.status === 'OK' ? "✅ OK - Không ghi chú" : "📝 Nhập ghi chú tại đây..."}
+                                                        value={item.note}
+                                                        onChangeValue={(val: string) => handleNoteChange(item.id, val)}
+                                                    />
+                                                </div>
+                                                {item.status === 'NOK' && !isLockedByOther && (
+                                                    <div className="flex justify-end">
+                                                        <ImageUpload
+                                                            value={item.imageUrl}
+                                                            onChange={(url) => handleImageChange(item.id, url)}
+                                                            path={`checklists/${systemId}/${item.id}_${Date.now()}.jpg`}
+                                                            disabled={isLockedByOther}
+                                                        />
+                                                    </div>
+                                                )}
+                                                {item.status === 'NOK' && isLockedByOther && item.imageUrl && (
+                                                    <div className="flex justify-end">
+                                                        <img
+                                                            src={item.imageUrl}
+                                                            alt="Lỗi"
+                                                            className="w-16 h-16 object-cover rounded shadow-sm border border-slate-200"
+                                                            onClick={() => window.open(item.imageUrl, '_blank')}
+                                                        />
+                                                    </div>
+                                                )}
                                             </div>
                                         )}
                                     </div>
@@ -457,6 +487,7 @@ export default function CheckPage() {
                                         <th className="p-3 border border-slate-300 w-16 text-center">STT</th>
                                         <th className="p-3 border border-slate-300">Nội dung kiểm tra</th>
                                         <th className="p-3 border border-slate-300 w-48 text-center">{isEditing ? 'Thao tác' : 'Status'}</th>
+                                        {!isEditing && <th className="p-3 border border-slate-300 w-24 text-center">Ảnh</th>}
                                         <th className="p-3 border border-slate-300 w-1/4">Note</th>
                                         <th className="p-3 border border-slate-300 w-32 text-center">Thời gian</th>
                                     </tr>
@@ -510,6 +541,16 @@ export default function CheckPage() {
                                                     </div>
                                                 )}
                                             </td>
+                                            <td className="p-3 border border-slate-300 text-center">
+                                                {item.status === 'NOK' ? (
+                                                    <ImageUpload
+                                                        value={item.imageUrl}
+                                                        onChange={(url) => handleImageChange(item.id, url)}
+                                                        path={`checklists/${systemId}/${item.id}_${Date.now()}.jpg`}
+                                                        disabled={isLockedByOther}
+                                                    />
+                                                ) : '-'}
+                                            </td>
                                             <td className="p-3 border border-slate-300">
                                                 <IMESafeInput
                                                     disabled={item.status === 'OK' || isLockedByOther}
@@ -532,7 +573,7 @@ export default function CheckPage() {
                                 {isEditing && (
                                     <tfoot>
                                         <tr>
-                                            <td colSpan={5} className="p-2 border border-slate-300 bg-slate-50">
+                                            <td colSpan={isEditing ? 5 : 6} className="p-2 border border-slate-300 bg-slate-50">
                                                 <button
                                                     onClick={handleAddItem}
                                                     className="w-full py-2 border-2 border-dashed border-slate-300 text-slate-500 rounded hover:border-blue-400 hover:text-blue-500 flex justify-center items-center gap-2 font-medium transition-colors"

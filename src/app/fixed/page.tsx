@@ -16,6 +16,7 @@ interface HistoryItem {
     actionNote?: string;
     inspectorName?: string;
     resolverName?: string;
+    imageUrl?: string;
 }
 
 export default function FixedPage() {
@@ -23,6 +24,7 @@ export default function FixedPage() {
     const { user } = useUser();
     const [history, setHistory] = useState<HistoryItem[]>([]);
     const [searchQuery, setSearchQuery] = useState('');
+    const [viewingImage, setViewingImage] = useState<string | null>(null);
     const [currentPage, setCurrentPage] = useState(1);
     const ITEMS_PER_PAGE = 10;
 
@@ -165,6 +167,7 @@ export default function FixedPage() {
                                 <tr>
                                     <th className="p-4 w-16 text-center">STT</th>
                                     <th className="p-4">Hệ thống</th>
+                                    <th className="p-4">Ảnh lỗi</th>
                                     <th className="p-4">Lỗi</th>
                                     <th className="p-4">Thời gian</th>
                                     <th className="p-4">Người phát hiện</th>
@@ -180,6 +183,16 @@ export default function FixedPage() {
                                             {indexOfFirstItem + idx + 1}
                                         </td>
                                         <td className="p-4 font-medium">{highlightText(item.systemName, searchQuery)}</td>
+                                        <td className="p-4 text-center">
+                                            {item.imageUrl && (
+                                                <img 
+                                                    src={item.imageUrl} 
+                                                    alt="Bug" 
+                                                    className="w-10 h-10 object-cover rounded shadow-sm border border-slate-200 hover:scale-110 transition cursor-pointer mx-auto"
+                                                    onClick={() => setViewingImage(item.imageUrl || null)}
+                                                />
+                                            )}
+                                        </td>
                                         <td className="p-4 text-red-600">{highlightText(item.issueContent, searchQuery)}</td>
                                         <td className="p-4 text-slate-500">
                                             <div>Err: {item.timestamp}</div>
@@ -262,6 +275,28 @@ export default function FixedPage() {
                     </div>
                 )}
             </div>
+
+            {/* Image Modal */}
+            {viewingImage && (
+                <div 
+                    className="fixed inset-0 z-[100] bg-black/80 flex items-center justify-center p-4"
+                    onClick={() => setViewingImage(null)}
+                >
+                    <div className="relative max-w-4xl max-h-full">
+                        <button 
+                            className="absolute -top-12 right-0 text-white hover:text-slate-300 flex items-center gap-2 font-bold"
+                            onClick={() => setViewingImage(null)}
+                        >
+                            <span className="text-sm">ĐÓNG</span> <span className="text-2xl">&times;</span>
+                        </button>
+                        <img 
+                            src={viewingImage} 
+                            alt="Full view" 
+                            className="max-w-full max-h-[85vh] object-contain rounded shadow-2xl"
+                        />
+                    </div>
+                </div>
+            )}
         </div >
     );
 }
