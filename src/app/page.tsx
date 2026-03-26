@@ -552,6 +552,31 @@ export default function Home() {
 
   return (
     <div className="min-h-screen bg-slate-50 p-4 font-sans text-slate-900">
+      {/* NUCLEAR DEBUG V5 - ABSOLUTE TOP */}
+      <div className="bg-red-700 text-white p-8 text-center font-bold mb-4 rounded-xl border-4 border-yellow-400">
+        <h2 className="text-2xl mb-2 underline tracking-widest font-black uppercase">🚨 PHÂN TÍCH LỖI [VERSION 5] 🚨</h2>
+        <p className="mb-4 font-bold text-lg">Nếu bạn thấy ô này, hãy bấm nút dưới để thử mở Camera:</p>
+        <label className="block w-full">
+          <input 
+             type="file" 
+             accept="image/*" 
+             capture="environment" 
+             className="hidden"
+             onChange={(e) => alert(`ĐÃ NHẬN DIỆN CAMERA!\nFile: ${e.target.files?.[0]?.name}`)}
+          />
+          <div className="bg-white text-red-600 p-6 rounded-2xl w-full font-black shadow-2xl active:scale-95 transition-all text-xl cursor-pointer flex flex-col items-center gap-2">
+            <Camera size={48} />
+            BẤM ĐÂY ĐỂ MỞ CAMERA
+          </div>
+        </label>
+        <p className="mt-4 text-xs font-mono opacity-80">Timestamp: {new Date().getTime()}</p>
+        <button 
+           onClick={() => router.push('/test-camera')}
+           className="mt-6 text-sm underline text-white/90 hover:text-white"
+        >
+           Hoặc vào trang Thử Nghiệm riêng biệt tại đây
+        </button>
+      </div>
       <div className="max-w-4xl mx-auto bg-white border border-slate-300 shadow-sm relative pb-28">
         <h1 className="text-xl font-bold bg-slate-800 text-white p-4 text-center uppercase flex justify-between items-center relative">
           <div className="flex flex-col items-start gap-1">
