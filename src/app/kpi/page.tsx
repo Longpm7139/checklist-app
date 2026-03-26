@@ -114,96 +114,44 @@ export default function KPIPage() {
                 };
 
                 // Filter by Month
-                const [year, month] = monthFilter.split('-');
+                const [filterYear, filterMonth] = monthFilter.split('-');
+                const targetM = Number(filterMonth);
+                const targetY = Number(filterYear);
 
-                const filteredLogs = logs.filter((l: any) => {
-                    if (!l.timestamp) return false;
-                    
-                    // Improved date extraction using regex
-                    const dateMatch = l.timestamp.match(/(\d{1,2})[\/\-\.](\d{1,2})[\/\-\.](\d{2,4})/);
-                    const isoMatch = l.timestamp.match(/(\d{4})[\/\-\.](\d{1,2})[\/\-\.](\d{1,2})/);
-                    
-                    let d, m, y;
+                // Improved date extraction using regex (handles '.', '/', and '-' delimiters)
+                const isMonthYearMatch = (timestamp: string, targetMonth: number, targetYear: number) => {
+                    if (!timestamp) return false;
+                    const dateMatch = timestamp.match(/(\d{1,2})[\/\-\.](\d{1,2})[\/\-\.](\d{2,4})/);
+                    const isoMatch = timestamp.match(/(\d{4})[\/\-\.](\d{1,2})[\/\-\.](\d{1,2})/);
+
+                    let m, y;
                     if (dateMatch) {
-                        [, d, m, y] = dateMatch;
+                        [, , m, y] = dateMatch;
                     } else if (isoMatch) {
-                        [, y, m, d] = isoMatch;
+                        [, y, m] = isoMatch;
                     } else {
-                        return false;
+                        return false; 
                     }
 
-                    // Convert to 4-digit year if 2-digit
                     let yearNum = Number(y);
                     if (yearNum < 100) yearNum += 2000;
-                    
-                    return Number(m) === Number(month) && yearNum === Number(year);
-                });
+                    return Number(m) === targetMonth && yearNum === targetYear;
+                };
 
-                const filteredHistory = history.filter((h: any) => {
-                    if (!h.resolvedAt) return false;
-                    const parts = h.resolvedAt.split(' ');
-                    const datePart = parts.find((p: string) => p.includes('/') || p.includes('-'));
-                    if (!datePart) return false;
+                // (Filtering logic moved above using isMonthYearMatch helper for consistency)
 
-                    let d, m, y;
-                    const cleanDatePart = datePart.replace(/[^\d\/\-]/g, '');
-                    if (cleanDatePart.includes('/')) {
-                        [d, m, y] = cleanDatePart.split('/');
-                    } else {
-                        [y, m, d] = cleanDatePart.split('-');
-                    }
-                    return Number(m) === Number(month) && Number(y) === Number(year);
-                });
+                const filteredLogs = logs.filter((l: any) => isMonthYearMatch(l.timestamp, targetM, targetY));
+                
+                const filteredHistory = history.filter((h: any) => h.resolvedAt && isMonthYearMatch(h.resolvedAt, targetM, targetY));
+                
+                const filteredHistoryCreated = history.filter((h: any) => isMonthYearMatch(h.timestamp, targetM, targetY));
 
-                const filteredHistoryCreated = history.filter((h: any) => {
-                    if (!h.timestamp) return false;
-                    const parts = h.timestamp.split(' ');
-                    const datePart = parts.find((p: string) => p.includes('/') || p.includes('-'));
-                    if (!datePart) return false;
+                const filteredIncidents = incidents.filter((i: any) => i.resolvedAt && i.status === 'RESOLVED' && isMonthYearMatch(i.resolvedAt, targetM, targetY));
 
-                    let d, m, y;
-                    const cleanDatePart = datePart.replace(/[^\d\/\-]/g, '');
-                    if (cleanDatePart.includes('/')) {
-                        [d, m, y] = cleanDatePart.split('/');
-                    } else {
-                        [y, m, d] = cleanDatePart.split('-');
-                    }
-                    return Number(m) === Number(month) && Number(y) === Number(year);
-                });
+                const filteredTasks = tasks.filter((t: any) => t.completedAt && t.status === 'COMPLETED' && isMonthYearMatch(t.completedAt, targetM, targetY));
 
-                const filteredIncidents = incidents.filter((i: any) => {
-                    if (!i.resolvedAt || i.status !== 'RESOLVED') return false;
-                    const parts = i.resolvedAt.split(' ');
-                    const datePart = parts.find((p: string) => p.includes('/') || p.includes('-'));
-                    if (!datePart) return false;
+                // (Filtering logic moved above using isMonthYearMatch helper for consistency)
 
-                    let d, m, y;
-                    const cleanDatePart = datePart.replace(/[^\d\/\-]/g, '');
-                    if (cleanDatePart.includes('/')) {
-                        [d, m, y] = cleanDatePart.split('/');
-                    } else {
-                        [y, m, d] = cleanDatePart.split('-');
-                    }
-                    return Number(m) === Number(month) && Number(y) === Number(year);
-                });
-
-                const filteredTasks = tasks.filter((t: any) => {
-                    if (!t.completedAt || t.status !== 'COMPLETED') return false;
-                    const parts = t.completedAt.split(' ');
-                    const datePart = parts.find((p: string) => p.includes('/') || p.includes('-'));
-                    if (!datePart) return false;
-
-                    let d, m, y;
-                    const cleanDatePart = datePart.replace(/[^\d\/\-]/g, '');
-                    if (cleanDatePart.includes('/')) {
-                        [d, m, y] = cleanDatePart.split('/');
-                    } else {
-                        [y, m, d] = cleanDatePart.split('-');
-                    }
-                    return Number(m) === Number(month) && Number(y) === Number(year);
-                });
-
-                // Calculate Stats per User
                 // --- Helper to map Log Timestamp string to Duty Date + Shift ---
                 // --- Helper to map Log Timestamp string to candidate Duty Date + Shift pairs ---
                 // We use overlapping windows (+/- 1 hour) because staff often arrive early or stay late.
