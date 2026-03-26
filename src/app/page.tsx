@@ -6,7 +6,7 @@ import { SystemCheck, Status, SystemCategory, MaintenanceTask } from '@/lib/type
 import {
   Save, AlertCircle, Edit2, Trash2, Plus, Check, X, RotateCcw, History as HistoryIcon,
   CheckCheck, Search, LogOut, Users, Lock, ClipboardList, BarChart2, Package,
-  Wrench, QrCode, Key, UserCheck, FileText, ArrowRight, CheckCircle, Filter, AlertTriangle, Send
+  Wrench, QrCode, Key, UserCheck, FileText, ArrowRight, CheckCircle, Filter, AlertTriangle, Send, Camera
 } from 'lucide-react';
 import clsx from 'clsx';
 import { useUser } from '@/providers/UserProvider';
@@ -83,7 +83,8 @@ import {
   subscribeToCategories,
   saveCategory,
   deleteCategory,
-  subscribeToHistory
+  subscribeToHistory,
+  uploadImage
 } from '@/lib/firebase';
 
 // --- HELPER COMPONENT FOR IME-SAFE DEBOUNCED INPUT ---
