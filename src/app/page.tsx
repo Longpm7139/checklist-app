@@ -1108,17 +1108,29 @@ export default function Home() {
                       </div>
                       {sys.status === 'NOK' && (
                         <div className="mt-3 flex justify-center border-t border-slate-100 pt-3">
-                           <ImageUpload 
-                            value={sys.imageUrl}
-                            onChange={async (url) => {
-                               const target = systems.find(s => s.id === sys.id);
-                               if (target) {
-                                 await saveSystem(sys.id, { ...target, imageUrl: url });
-                               }
-                            }}
-                            path={`systems/${sys.id}_${Date.now()}.jpg`}
-                            disabled={!isUserOnDuty || isEditMode}
-                          />
+                           {sys.imageUrl ? (
+                             <div className="flex flex-col items-center gap-1 animate-in fade-in zoom-in duration-300">
+                               <img 
+                                 src={sys.imageUrl} 
+                                 alt="Ảnh lỗi" 
+                                 className="w-20 h-20 object-cover rounded-lg border-2 border-slate-300 shadow-sm cursor-pointer hover:scale-105 transition-transform"
+                                 onClick={() => window.open(sys.imageUrl, '_blank')}
+                               />
+                               <span className="text-[9px] text-slate-500 font-bold uppercase">Bằng chứng lỗi hiện tại</span>
+                             </div>
+                           ) : (
+                             <ImageUpload 
+                              value={sys.imageUrl}
+                              onChange={async (url) => {
+                                 const target = systems.find(s => s.id === sys.id);
+                                 if (target) {
+                                   await saveSystem(sys.id, { ...target, imageUrl: url });
+                                 }
+                              }}
+                              path={`systems/${sys.id}_${Date.now()}.jpg`}
+                              disabled={!isUserOnDuty || isEditMode}
+                            />
+                           )}
                         </div>
                       )}
                     </div>
@@ -1280,17 +1292,29 @@ export default function Home() {
                         </td>
                         <td className="p-3 border border-slate-300 text-center">
                           {sys.status === 'NOK' ? (
-                            <ImageUpload 
-                              value={sys.imageUrl}
-                              onChange={async (url) => {
-                                const target = systems.find(s => s.id === sys.id);
-                                if (target) {
-                                  await saveSystem(sys.id, { ...target, imageUrl: url });
-                                }
-                              }}
-                              path={`systems/${sys.id}_${Date.now()}.jpg`}
-                              disabled={!isUserOnDuty || isEditMode}
-                            />
+                            sys.imageUrl ? (
+                              <div className="flex flex-col items-center gap-1">
+                                <img 
+                                  src={sys.imageUrl} 
+                                  alt="Preview" 
+                                  className="w-10 h-10 object-cover rounded border border-slate-300 cursor-pointer hover:opacity-80"
+                                  onClick={() => window.open(sys.imageUrl, '_blank')}
+                                />
+                                <span className="text-[8px] text-slate-400 uppercase font-bold">LOCKED</span>
+                              </div>
+                            ) : (
+                              <ImageUpload 
+                                value={sys.imageUrl}
+                                onChange={async (url) => {
+                                  const target = systems.find(s => s.id === sys.id);
+                                  if (target) {
+                                    await saveSystem(sys.id, { ...target, imageUrl: url });
+                                  }
+                                }}
+                                path={`systems/${sys.id}_${Date.now()}.jpg`}
+                                disabled={!isUserOnDuty || isEditMode}
+                              />
+                            )
                           ) : '-'}
                         </td>
                       </tr>
