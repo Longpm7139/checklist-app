@@ -325,7 +325,8 @@ export const subscribeToHistory = (callback: (data: any[]) => void) => {
         querySnapshot.forEach((doc) => {
             items.push({ ...doc.data(), id: doc.id });
         });
-        // Sort by timestamp descending (newest appeared issue first)
+        // Sort by resolution time descending (newest fix first)
+        // If not fixed yet, use the initial timestamp
         items.sort((a, b) => {
             const parseDate = (t: string) => {
                 if (!t) return 0;
@@ -339,7 +340,10 @@ export const subscribeToHistory = (callback: (data: any[]) => void) => {
                 }
                 return new Date(t).getTime() || 0;
             };
-            return parseDate(b.timestamp) - parseDate(a.timestamp);
+            
+            const timeA = parseDate(a.resolvedAt || a.timestamp);
+            const timeB = parseDate(b.resolvedAt || b.timestamp);
+            return timeB - timeA;
         });
         callback(items);
     });

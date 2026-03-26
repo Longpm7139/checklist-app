@@ -92,24 +92,51 @@ export default function KPIPage() {
 
         const calculateStats = () => {
             try {
+                const normalize = (val: any) => (val || '').toString().trim().toLowerCase().normalize('NFC');
+                
+                // Helper for ultra-flexible matching (handles leading zeros in codes, partial names, etc.)
+                const isMatch = (val1: any, val2: any) => {
+                    const n1 = normalize(val1);
+                    const n2 = normalize(val2);
+                    if (!n1 || !n2) return false;
+                    if (n1 === n2) return true;
+                    
+                    // Numeric comparison for codes (strips non-digits)
+                    const num1 = n1.replace(/\D/g, '');
+                    const num2 = n2.replace(/\D/g, '');
+                    if (num1 !== '' && num1 === num2) return true;
+
+                    // Fuzzy name matching (one contains the other)
+                    if (n1.length > 5 && n2.length > 5) { // Only for longer strings to avoid too many false positives
+                        if (n1.includes(n2) || n2.includes(n1)) return true;
+                    }
+                    return false;
+                };
+
                 // Filter by Month
                 const [year, month] = monthFilter.split('-');
 
                 const filteredLogs = logs.filter((l: any) => {
                     if (!l.timestamp) return false;
-                    // Try to find parts looking like date dd/MM/yyyy or yyyy-MM-dd
-                    const parts = l.timestamp.split(' ');
-                    const datePart = parts.find((p: string) => p.includes('/') || p.includes('-'));
-                    if (!datePart) return false;
-
+                    
+                    // Improved date extraction using regex
+                    const dateMatch = l.timestamp.match(/(\d{1,2})[\/\-\.](\d{1,2})[\/\-\.](\d{2,4})/);
+                    const isoMatch = l.timestamp.match(/(\d{4})[\/\-\.](\d{1,2})[\/\-\.](\d{1,2})/);
+                    
                     let d, m, y;
-                    const cleanDatePart = datePart.replace(/[^\d\/\-]/g, '');
-                    if (cleanDatePart.includes('/')) {
-                        [d, m, y] = cleanDatePart.split('/');
+                    if (dateMatch) {
+                        [, d, m, y] = dateMatch;
+                    } else if (isoMatch) {
+                        [, y, m, d] = isoMatch;
                     } else {
-                        [y, m, d] = cleanDatePart.split('-');
+                        return false;
                     }
-                    return Number(m) === Number(month) && Number(y) === Number(year);
+
+                    // Convert to 4-digit year if 2-digit
+                    let yearNum = Number(y);
+                    if (yearNum < 100) yearNum += 2000;
+                    
+                    return Number(m) === Number(month) && yearNum === Number(year);
                 });
 
                 const filteredHistory = history.filter((h: any) => {
@@ -178,49 +205,78 @@ export default function KPIPage() {
 
                 // Calculate Stats per User
                 // --- Helper to map Log Timestamp string to Duty Date + Shift ---
-                const getLogDutyInfo = (timestamp: string) => {
-                    if (!timestamp) return null;
-                    const parts = timestamp.split(' ');
-                    const datePart = parts.find(p => p.includes('/') || p.includes('-'));
-                    const timePart = parts.find(p => p.includes(':'));
-                    if (!datePart || !timePart) return null;
-
+                // --- Helper to map Log Timestamp string to candidate Duty Date + Shift pairs ---
+                // We use overlapping windows (+/- 1 hour) because staff often arrive early or stay late.
+                const getLogDutyCandidates = (timestamp: string) => {
+                    if (!timestamp) return [];
+                    
+                    const dateMatch = timestamp.match(/(\d{1,2})[\/\-\.](\d{1,2})[\/\-\.](\d{2,4})/);
+                    const isoMatch = timestamp.match(/(\d{4})[\/\-\.](\d{1,2})[\/\-\.](\d{1,2})/);
+                    const timeMatch = timestamp.match(/(\d{1,2}):(\d{1,2})/);
+                    
                     let d, m, y;
-                    const cleanDatePart = datePart.replace(/[^\d\/\-]/g, '');
-                    if (cleanDatePart.includes('/')) {
-                        [d, m, y] = cleanDatePart.split('/');
-                    } else {
-                        [y, m, d] = cleanDatePart.split('-');
+                    if (dateMatch) [, d, m, y] = dateMatch;
+                    else if (isoMatch) [, y, m, d] = isoMatch;
+                    else return [];
+
+                    // Convert to 4-digit year if 2-digit
+                    let yearNum = Number(y);
+                    if (yearNum < 100) yearNum += 2000;
+                    
+                    if (!timeMatch) return [];
+                    const [, hh, min] = timeMatch.map(Number);
+                    
+                    const candidates: { dutyDateStr: string, shift: 'DAY' | 'NIGHT' }[] = [];
+                    const logDate = new Date(yearNum, Number(m) - 1, Number(d));
+
+                    // Day Shift Window: 06:00 - 20:00 (Official 07:00 - 19:00)
+                    if (hh >= 6 && hh < 20) {
+                        const dateStr = `${logDate.getFullYear()}-${String(logDate.getMonth() + 1).padStart(2, '0')}-${String(logDate.getDate()).padStart(2, '0')}`;
+                        candidates.push({ dutyDateStr: dateStr, shift: 'DAY' });
                     }
 
-                    const [hh, min] = timePart.split(':').map(Number);
-                    const logDate = new Date(Number(y), Number(m) - 1, Number(d));
-
-                    let dutyDate = new Date(logDate);
-                    let shift: 'DAY' | 'NIGHT' = 'DAY';
-
-                    if (hh < 7) {
+                    // Night Shift Window: 18:00 (Day X) - 08:00 (Day X+1)
+                    // case 1: evening of the day (18:00 - 23:59)
+                    if (hh >= 18) {
+                        const dateStr = `${logDate.getFullYear()}-${String(logDate.getMonth() + 1).padStart(2, '0')}-${String(logDate.getDate()).padStart(2, '0')}`;
+                        candidates.push({ dutyDateStr: dateStr, shift: 'NIGHT' });
+                    }
+                    // case 2: early morning (00:00 - 08:00) -> belongs to previous day's night duty
+                    if (hh < 8) {
+                        const dutyDate = new Date(logDate);
                         dutyDate.setDate(dutyDate.getDate() - 1);
-                        shift = 'NIGHT';
-                    } else if (hh >= 19) {
-                        shift = 'NIGHT';
-                    } else {
-                        shift = 'DAY';
+                        const dateStr = `${dutyDate.getFullYear()}-${String(dutyDate.getMonth() + 1).padStart(2, '0')}-${String(dutyDate.getDate()).padStart(2, '0')}`;
+                        candidates.push({ dutyDateStr: dateStr, shift: 'NIGHT' });
                     }
 
-                    const dutyDateStr = `${dutyDate.getFullYear()}-${String(dutyDate.getMonth() + 1).padStart(2, '0')}-${String(dutyDate.getDate()).padStart(2, '0')}`;
-                    return { dutyDateStr, shift };
+                    return candidates;
                 };
 
-                // 1. Group ALL filtered logs by Duty Date and Shift
+                // 1. Group ALL filtered records by Duty Date and Shift (Supporting multiple candidates)
                 const logsByDuty: { [key: string]: any[] } = {};
                 filteredLogs.forEach((l: any) => {
-                    const info = getLogDutyInfo(l.timestamp);
-                    if (!info) return;
-                    const key = `${info.dutyDateStr}_${info.shift}`;
-                    if (!logsByDuty[key]) logsByDuty[key] = [];
-                    logsByDuty[key].push(l);
+                    const candidates = getLogDutyCandidates(l.timestamp);
+                    candidates.forEach(info => {
+                        const key = `${info.dutyDateStr}_${info.shift}`;
+                        if (!logsByDuty[key]) logsByDuty[key] = [];
+                        logsByDuty[key].push(l);
+                    });
                 });
+
+                const historyByDuty: { [key: string]: any[] } = {};
+                filteredHistoryCreated.forEach((h: any) => {
+                    const candidates = getLogDutyCandidates(h.timestamp);
+                    candidates.forEach(info => {
+                        const key = `${info.dutyDateStr}_${info.shift}`;
+                        if (!historyByDuty[key]) historyByDuty[key] = [];
+                        historyByDuty[key].push(h);
+                    });
+                });
+
+                console.log(`KPI Data Stats - Month: ${monthFilter}, Users: ${allUsers.length}, Logs (Filtered): ${filteredLogs.length}, Raw: ${logs.length}, Duties: ${duties.length}`);
+                if (logs.length > 0) {
+                    console.log("Raw Timestamp Examples:", logs.slice(0, 5).map(l => (l as any).timestamp));
+                }
 
                 // 2. Calculate Stats per User
                 const calculatedStats = allUsers.map(u => {
@@ -231,20 +287,45 @@ export default function KPIPage() {
                     duties.forEach(dayDuty => {
                         const dateStr = dayDuty.date;
                         ['DAY', 'NIGHT'].forEach(shiftType => {
-                            const shiftAssignments = dayDuty.assignments?.filter((a: any) => a.shift === shiftType && a.userCode === u.code) || [];
+                            const shiftAssignments = dayDuty.assignments?.filter((a: any) => {
+                                return a.shift === shiftType && (
+                                    isMatch(a.userCode, u.code) || 
+                                    isMatch(a.userName, u.name)
+                                );
+                            }) || [];
+                            
                             if (shiftAssignments.length === 0) return;
 
-                            const shiftTeamMembers = dayDuty.assignments?.filter((a: any) => a.shift === shiftType).map((a: any) => a.userCode) || [];
+                            const shiftTeamMembers = dayDuty.assignments?.filter((a: any) => a.shift === shiftType).map((a: any) => normalize(a.userCode)) || [];
+                            const shiftTeamNames = dayDuty.assignments?.filter((a: any) => a.shift === shiftType).map((a: any) => normalize(a.userName)) || [];
+                            
                             const key = `${dateStr}_${shiftType}`;
                             const shiftLogs = logsByDuty[key] || [];
+                            const shiftHistory = historyByDuty[key] || [];
 
-                            const teamLogs = shiftLogs.filter((l: any) => shiftTeamMembers.includes(l.inspectorCode));
-                            if (teamLogs.length > 0) {
+                            const teamLogs = shiftLogs.filter((l: any) => {
+                                return shiftTeamMembers.some((m: string) => isMatch(m, l.inspectorCode)) || 
+                                       shiftTeamNames.some((m: string) => isMatch(m, l.inspectorName));
+                            });
+                            
+                            const teamHistory = shiftHistory.filter((h: any) => {
+                                return shiftTeamMembers.some((m: string) => isMatch(m, h.inspectorCode)) || 
+                                       shiftTeamNames.some((m: string) => isMatch(m, h.inspectorName));
+                            });
+
+                            if (teamLogs.length > 0 || teamHistory.length > 0) {
                                 userInspections += 11;
+                                if (normalize(u.name).includes('nguyên') || normalize(u.name).includes('quỳnh') || normalize(u.name).includes('phúc') || normalize(u.name).includes('tuấn')) {
+                                    console.log(`Matching KPI Success for ${u.name}: Date: ${dateStr}, Shift: ${shiftType}, HasActivity: ${teamLogs.length > 0 ? 'Log' : 'History'}, PointsEarned: 11`);
+                                }
+                            } else {
+                                if (normalize(u.name).includes('nguyên') || normalize(u.name).includes('quỳnh') || normalize(u.name).includes('phúc') || normalize(u.name).includes('tuấn')) {
+                                    console.log(`Matching KPI Failed for ${u.name}: Date: ${dateStr}, Shift: ${shiftType}, No logs or history found for team.`);
+                                }
                             }
-
+                            
                             const userLogs = shiftLogs.filter((l: any) =>
-                                ((l.inspectorCode === u.code) || (l.inspectorName === u.name))
+                                isMatch(l.inspectorCode, u.code) || isMatch(l.inspectorName, u.name)
                             );
                             userLogs.forEach((l: any) => {
                                 if (l.duration && l.duration < 30) {
@@ -256,16 +337,12 @@ export default function KPIPage() {
 
                     // Faults Found
                     const userFaultsFound = filteredHistoryCreated.filter((h: any) => {
-                        const codes = h.inspectorCode ? (Array.isArray(h.inspectorCode) ? h.inspectorCode : h.inspectorCode.split(',').map((s: string) => s.trim())) : [];
-                        const names = h.inspectorName ? (Array.isArray(h.inspectorName) ? h.inspectorName : h.inspectorName.split(',').map((s: string) => s.trim())) : [];
-                        return codes.includes(u.code) || names.includes(u.name) || h.inspectorCode === u.code || h.inspectorName === u.name;
+                        return isMatch(h.inspectorCode, u.code) || isMatch(h.inspectorName, u.name);
                     }).length;
 
                     // Fixes
                     const userFixes = filteredHistory.filter((h: any) => {
-                        const codes = h.resolverCode ? (Array.isArray(h.resolverCode) ? h.resolverCode : h.resolverCode.split(',').map((s: string) => s.trim())) : [];
-                        const names = h.resolverName ? (Array.isArray(h.resolverName) ? h.resolverName : h.resolverName.split(',').map((s: string) => s.trim())) : [];
-                        return codes.includes(u.code) || names.includes(u.name) || h.resolverCode === u.code || h.resolverName === u.name;
+                        return isMatch(h.resolverCode, u.code) || isMatch(h.resolverName, u.name);
                     }).length;
 
                     // Incidents
@@ -334,10 +411,16 @@ export default function KPIPage() {
                     const dayDuty = duties.find(d => d.date === dateStr);
                     if (!dayDuty) return;
 
-                    const shiftTeamMembers = dayDuty.assignments?.filter((a: any) => a.shift === shiftType).map((a: any) => a.userCode) || [];
+                    const shiftTeamMembers = dayDuty.assignments?.filter((a: any) => a.shift === shiftType).map((a: any) => normalize(a.userCode)) || [];
+                    const shiftTeamNames = dayDuty.assignments?.filter((a: any) => a.shift === shiftType).map((a: any) => normalize(a.userName)) || [];
                     const shiftLogs = logsByDuty[key];
 
-                    const teamLogs = shiftLogs.filter((l: any) => shiftTeamMembers.includes(l.inspectorCode));
+                    const teamLogs = shiftLogs.filter((l: any) => {
+                        const lCode = normalize(l.inspectorCode);
+                        const lName = normalize(l.inspectorName);
+                        return (lCode !== '' && shiftTeamMembers.includes(lCode)) || (lName !== '' && shiftTeamNames.includes(lName));
+                    });
+                    
                     if (teamLogs.length > 0) {
                         globalInspections += 11;
                     }

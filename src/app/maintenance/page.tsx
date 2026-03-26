@@ -2,12 +2,12 @@
 
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { ArrowLeft, Wrench, Calendar, CheckSquare, Plus, User as UserIcon, Clock, AlertTriangle } from 'lucide-react';
+import { ArrowLeft, Wrench, Calendar, CheckSquare, Plus, User as UserIcon, Clock, AlertTriangle, Camera, X, Image as ImageIcon, Loader2 } from 'lucide-react';
 import { useUser } from '@/providers/UserProvider';
 import { IMESafeInput, IMESafeTextArea } from '@/components/IMESafeInput';
 import { MaintenanceTask, User } from '@/lib/types';
 import clsx from 'clsx';
-import { subscribeToMaintenance, saveMaintenance } from '@/lib/firebase';
+import { subscribeToMaintenance, saveMaintenance, uploadImage } from '@/lib/firebase';
 
 export default function MaintenancePage() {
     const router = useRouter();
@@ -21,6 +21,9 @@ export default function MaintenancePage() {
     const [taskType, setTaskType] = useState<'MAINTENANCE' | 'PROJECT'>('MAINTENANCE');
     const [desc, setDesc] = useState('');
     const [deadline, setDeadline] = useState('');
+    const [beforeImageFile, setBeforeImageFile] = useState<File | null>(null);
+    const [beforeImagePreview, setBeforeImagePreview] = useState<string | null>(null);
+    const [isUploading, setIsUploading] = useState(false);
 
     // New: Multi-select state
     const [selectedUserCodes, setSelectedUserCodes] = useState<string[]>([]);
@@ -31,6 +34,10 @@ export default function MaintenancePage() {
     const [selectedTaskId, setSelectedTaskId] = useState<string | null>(null);
     const [completeNote, setCompleteNote] = useState('');
     const [remainingIssues, setRemainingIssues] = useState('');
+    const [afterImageFile, setAfterImageFile] = useState<File | null>(null);
+    const [afterImagePreview, setAfterImagePreview] = useState<string | null>(null);
+    const [isCompleting, setIsCompleting] = useState(false);
+    const [viewingImage, setViewingImage] = useState<string | null>(null);
 
     useEffect(() => {
         const unsub = subscribeToMaintenance((data) => {
@@ -70,6 +77,36 @@ export default function MaintenancePage() {
         return () => unsub();
     }, []);
 
+    const handleBeforeImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+        const file = e.target.files?.[0];
+        if (file) {
+            setBeforeImageFile(file);
+            const reader = new FileReader();
+            reader.onloadend = () => setBeforeImagePreview(reader.result as string);
+            reader.readAsDataURL(file);
+        }
+    };
+
+    const removeBeforeImage = () => {
+        setBeforeImageFile(null);
+        setBeforeImagePreview(null);
+    };
+
+    const handleAfterImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+        const file = e.target.files?.[0];
+        if (file) {
+            setAfterImageFile(file);
+            const reader = new FileReader();
+            reader.onloadend = () => setAfterImagePreview(reader.result as string);
+            reader.readAsDataURL(file);
+        }
+    };
+
+    const removeAfterImage = () => {
+        setAfterImageFile(null);
+        setAfterImagePreview(null);
+    };
+
     const toggleUserSelection = (code: string) => {
         setSelectedUserCodes(prev =>
             prev.includes(code) ? prev.filter(c => c !== code) : [...prev, code]
@@ -82,7 +119,7 @@ export default function MaintenancePage() {
         );
     };
 
-    const handleCreate = () => {
+    const handleCreate = async () => {
         if (!title || (selectedUserCodes.length === 0 && selectedSupervisorCodes.length === 0) || !deadline) {
             alert("Vui lòng nhập Tên, chọn ít nhất 1 Người (Thực hiện hoặc Giám sát) và Hạn chót!");
             return;
@@ -97,33 +134,51 @@ export default function MaintenancePage() {
             availableUsers.find(u => u.code === code)?.name || code
         );
 
-        const newTask: MaintenanceTask = {
-            id: Date.now().toString(),
-            title,
-            type: taskType,
-            description: desc,
-            deadline,
-            assignees: selectedUserCodes, // New field
-            assigneeNames: selectedNames, // New field
-            supervisors: selectedSupervisorCodes,
-            supervisorNames: selectedSupervisorNames,
-            assignedByName: currentUser?.name || 'Admin',
-            status: 'PENDING',
-            createdAt: new Date().toLocaleString('vi-VN', { hour: '2-digit', minute: '2-digit', day: '2-digit', month: '2-digit', year: 'numeric' }),
-        };
+        setIsUploading(true);
+        let uploadedBeforeUrl = '';
 
-        // Save to Firebase
-        saveMaintenance(newTask);
+        try {
+            if (beforeImageFile) {
+                const path = `maintenance/before/${Date.now()}_${beforeImageFile.name}`;
+                uploadedBeforeUrl = await uploadImage(beforeImageFile, path);
+            }
 
-        // Reset
-        setTitle('');
-        setTaskType('MAINTENANCE');
-        setDesc('');
-        setDeadline('');
-        setSelectedUserCodes([]);
-        setSelectedSupervisorCodes([]);
-        setViewMode('LIST');
-        alert("Đã giao việc bảo trì thành công!");
+            const newTask: MaintenanceTask = {
+                id: Date.now().toString(),
+                title,
+                type: taskType,
+                description: desc,
+                deadline,
+                assignees: selectedUserCodes, 
+                assigneeNames: selectedNames, 
+                supervisors: selectedSupervisorCodes,
+                supervisorNames: selectedSupervisorNames,
+                assignedByName: currentUser?.name || 'Admin',
+                status: 'PENDING',
+                createdAt: new Date().toLocaleString('vi-VN', { hour: '2-digit', minute: '2-digit', day: '2-digit', month: '2-digit', year: 'numeric' }),
+                beforeImageUrl: uploadedBeforeUrl
+            };
+
+            // Save to Firebase
+            await saveMaintenance(newTask);
+
+            // Reset
+            setTitle('');
+            setTaskType('MAINTENANCE');
+            setDesc('');
+            setDeadline('');
+            setSelectedUserCodes([]);
+            setSelectedSupervisorCodes([]);
+            setBeforeImageFile(null);
+            setBeforeImagePreview(null);
+            setViewMode('LIST');
+            alert("Đã giao việc bảo trì thành công!");
+        } catch (error) {
+            console.error("Failed to create maintenance task", error);
+            alert("Lỗi khi lập kế hoạch. Vui lòng thử lại!");
+        } finally {
+            setIsUploading(false);
+        }
     };
 
     const openCompleteModal = (taskId: string) => {
@@ -133,25 +188,43 @@ export default function MaintenancePage() {
         setIsCompleteModalOpen(true);
     };
 
-    const handleConfirmComplete = () => {
+    const handleConfirmComplete = async () => {
         if (!selectedTaskId || !completeNote.trim()) {
             alert("Vui lòng nhập Ghi chú hoàn thành!");
             return;
         }
 
-        const taskToUpdate = tasks.find(t => t.id === selectedTaskId);
-        if (taskToUpdate) {
-            const updatedTask: MaintenanceTask = {
-                ...taskToUpdate,
-                status: 'COMPLETED',
-                completedAt: new Date().toLocaleString('vi-VN', { hour: '2-digit', minute: '2-digit', day: '2-digit', month: '2-digit', year: 'numeric' }),
-                completedNote: completeNote,
-                remainingIssues: remainingIssues // Save remaining issues
-            };
-            saveMaintenance(updatedTask);
-            alert("Đã báo cáo hoàn thành bảo dưỡng!");
-            setIsCompleteModalOpen(false);
-            setSelectedTaskId(null);
+        setIsCompleting(true);
+        let uploadedAfterUrl = '';
+
+        try {
+            if (afterImageFile) {
+                const path = `maintenance/after/${Date.now()}_${afterImageFile.name}`;
+                uploadedAfterUrl = await uploadImage(afterImageFile, path);
+            }
+
+            const taskToUpdate = tasks.find(t => t.id === selectedTaskId);
+            if (taskToUpdate) {
+                const updatedTask: MaintenanceTask = {
+                    ...taskToUpdate,
+                    status: 'COMPLETED',
+                    completedAt: new Date().toLocaleString('vi-VN', { hour: '2-digit', minute: '2-digit', day: '2-digit', month: '2-digit', year: 'numeric' }),
+                    completedNote: completeNote,
+                    remainingIssues: remainingIssues,
+                    afterImageUrl: uploadedAfterUrl
+                };
+                await saveMaintenance(updatedTask);
+                alert("Đã báo cáo hoàn thành bảo dưỡng!");
+                setIsCompleteModalOpen(false);
+                setSelectedTaskId(null);
+                setAfterImageFile(null);
+                setAfterImagePreview(null);
+            }
+        } catch (error) {
+            console.error("Failed to complete task", error);
+            alert("Lỗi khi báo cáo hoàn thành. Vui lòng thử lại!");
+        } finally {
+            setIsCompleting(false);
         }
     };
 
@@ -299,19 +372,55 @@ export default function MaintenancePage() {
                                         </ul>
                                     </div>
                                 </div>
+                                <div className="col-span-1 md:col-span-2 pt-2 border-t border-slate-100">
+                                    <label className="block text-sm font-bold text-slate-700 mb-2 flex items-center gap-2 uppercase tracking-wider">
+                                        <Camera size={18} className="text-blue-600" /> Ảnh hiện trạng thiết bị (Trước khi bảo trì)
+                                    </label>
+                                    <div className="flex flex-wrap gap-4 items-center">
+                                        {!beforeImagePreview ? (
+                                            <label className="flex flex-col items-center justify-center w-32 h-32 rounded-xl border-2 border-dashed border-slate-300 bg-slate-50 cursor-pointer hover:bg-blue-50 transition group">
+                                                <Camera size={28} className="text-slate-400 group-hover:text-blue-600 mb-1" />
+                                                <span className="text-[10px] font-bold text-slate-500 uppercase">Chụp ảnh</span>
+                                                <input 
+                                                    type="file" 
+                                                    className="hidden" 
+                                                    accept="image/*" 
+                                                    capture="environment"
+                                                    onChange={handleBeforeImageChange}
+                                                />
+                                            </label>
+                                        ) : (
+                                            <div className="relative w-32 h-32 rounded-xl border border-slate-200 overflow-hidden shadow-sm">
+                                                <img src={beforeImagePreview} alt="Before" className="w-full h-full object-cover" />
+                                                <button onClick={removeBeforeImage} className="absolute top-1 right-1 bg-red-600 text-white rounded-full p-1 shadow-md">
+                                                    <X size={14} />
+                                                </button>
+                                            </div>
+                                        )}
+                                        <p className="text-xs text-slate-500 italic max-w-sm">
+                                            Chụp ảnh hiện trạng thiết bị trước khi tiến hành bảo trì để lưu làm bằng chứng báo cáo sau này.
+                                        </p>
+                                    </div>
+                                </div>
                             </div>
                             <div className="flex justify-end gap-3 mt-4">
                                 <button
                                     onClick={() => setViewMode('LIST')}
                                     className="px-4 py-2 text-slate-600 hover:bg-slate-100 rounded"
+                                    disabled={isUploading}
                                 >
                                     Hủy
                                 </button>
                                 <button
                                     onClick={handleCreate}
-                                    className="px-6 py-2 bg-blue-600 text-white font-bold rounded shadow hover:bg-blue-700"
+                                    className="px-6 py-2 bg-blue-600 text-white font-bold rounded shadow hover:bg-blue-700 flex items-center gap-2"
+                                    disabled={isUploading}
                                 >
-                                    Giao Việc
+                                    {isUploading ? <Loader2 className="animate-spin" size={18} /> : (
+                                        <>
+                                            <Plus size={20} /> Giao Việc
+                                        </>
+                                    )}
                                 </button>
                             </div>
                         </div>
@@ -372,9 +481,21 @@ export default function MaintenancePage() {
                                         )}
                                 </div>
 
-                                <div className="bg-slate-50/80 p-3 rounded-lg text-slate-700 text-sm mb-0 border border-slate-100 italic leading-relaxed">
-                                    <span className="font-black block text-[10px] text-slate-400 uppercase mb-1 tracking-widest">Nội dung kế hoạch:</span>
-                                    {task.description || 'Không có mô tả chi tiết.'}
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                    <div className="bg-slate-50/80 p-3 rounded-lg text-slate-700 text-sm border border-slate-100 italic leading-relaxed">
+                                        <span className="font-black block text-[10px] text-slate-400 uppercase mb-1 tracking-widest">Nội dung kế hoạch:</span>
+                                        {task.description || 'Không có mô tả chi tiết.'}
+                                    </div>
+                                    {task.beforeImageUrl && (
+                                        <div className="relative aspect-[16/6] rounded-lg overflow-hidden border border-slate-300 shadow-sm cursor-pointer hover:opacity-90 group"
+                                             onClick={() => setViewingImage(task.beforeImageUrl || null)}>
+                                            <img src={task.beforeImageUrl} alt="Trước bảo trì" className="w-full h-full object-cover" />
+                                            <div className="absolute inset-0 bg-black/20 flex items-center justify-center opacity-0 group-hover:opacity-100 transition">
+                                                <Camera size={20} className="text-white" />
+                                            </div>
+                                            <div className="absolute top-1 left-2 text-[10px] text-white font-bold bg-blue-600 px-2 py-0.5 rounded shadow">ẢNH TRƯỚC</div>
+                                        </div>
+                                    )}
                                 </div>
 
                                 {task.status === 'COMPLETED' && (
@@ -387,12 +508,22 @@ export default function MaintenancePage() {
                                                 "Kết quả: {task.completedNote}"
                                             </div>
                                             {task.remainingIssues && (
-                                                <div className="p-3 bg-white border border-yellow-200 rounded-lg shadow-sm">
+                                                <div className="p-3 bg-white border border-yellow-200 rounded-lg shadow-sm mb-3">
                                                     <div className="flex items-center gap-1.5 text-yellow-700 font-black text-[10px] uppercase mb-1.5">
                                                         <AlertTriangle size={12} /> Tồn tại sau bảo dưỡng
                                                     </div>
                                                     <div className="text-xs text-slate-600 font-medium">
                                                         {task.remainingIssues}
+                                                    </div>
+                                                </div>
+                                            )}
+
+                                            {task.afterImageUrl && (
+                                                <div className="relative aspect-video rounded-xl overflow-hidden border-2 border-green-200 shadow-md cursor-pointer hover:opacity-90 group"
+                                                     onClick={() => setViewingImage(task.afterImageUrl || null)}>
+                                                    <img src={task.afterImageUrl} alt="Sau bảo trì" className="w-full h-full object-cover" />
+                                                    <div className="absolute inset-x-0 bottom-0 bg-black/40 text-white p-2 text-center text-xs font-bold flex items-center justify-center gap-2">
+                                                        <Camera size={14} /> XEM ẢNH KẾT QUẢ (SAU BẢO TRÌ)
                                                     </div>
                                                 </div>
                                             )}
@@ -431,12 +562,42 @@ export default function MaintenancePage() {
                                 </label>
                                 <IMESafeTextArea
                                     className="w-full border border-yellow-300 bg-yellow-50 rounded p-2 focus:border-yellow-500 outline-none"
-                                    rows={3}
+                                    rows={2}
                                     placeholder="Nhập các vấn đề còn tồn tại sau bảo dưỡng..."
                                     value={remainingIssues}
                                     onChangeValue={(val: string) => setRemainingIssues(val)}
                                 />
-                                <p className="text-xs text-slate-500 mt-1">Cần nêu rõ các hư hỏng hoặc vấn đề chưa xử lý được.</p>
+                            </div>
+
+                            <div className="pt-2">
+                                <label className="block text-sm font-bold text-slate-700 mb-2 flex items-center gap-2">
+                                    <Camera size={18} className="text-green-600" /> Ảnh kết quả (Sau khi bảo trì)
+                                </label>
+                                <div className="flex items-center gap-4">
+                                    {!afterImagePreview ? (
+                                        <label className="flex flex-col items-center justify-center w-28 h-28 rounded-lg border-2 border-dashed border-slate-300 bg-slate-50 cursor-pointer hover:bg-green-50 transition group">
+                                            <Camera size={26} className="text-slate-400 group-hover:text-green-600 mb-1" />
+                                            <span className="text-[10px] font-bold text-slate-500 uppercase">Chụp ảnh</span>
+                                            <input 
+                                                type="file" 
+                                                className="hidden" 
+                                                accept="image/*" 
+                                                capture="environment"
+                                                onChange={handleAfterImageChange}
+                                            />
+                                        </label>
+                                    ) : (
+                                        <div className="relative w-28 h-28 rounded-lg border border-slate-200 overflow-hidden shadow-sm">
+                                            <img src={afterImagePreview} alt="After" className="w-full h-full object-cover" />
+                                            <button onClick={removeAfterImage} className="absolute top-1 right-1 bg-red-600 text-white rounded-full p-1 shadow-md">
+                                                <X size={12} />
+                                            </button>
+                                        </div>
+                                    )}
+                                    <p className="text-[10px] text-slate-500 italic flex-1">
+                                        Chụp ảnh bằng chứng thiết bị đã được bảo trì sạch sẽ, đúng kỹ thuật.
+                                    </p>
+                                </div>
                             </div>
                         </div>
 
@@ -444,17 +605,35 @@ export default function MaintenancePage() {
                             <button
                                 onClick={() => setIsCompleteModalOpen(false)}
                                 className="px-4 py-2 text-slate-600 hover:bg-slate-100 rounded"
+                                disabled={isCompleting}
                             >
                                 Hủy bỏ
                             </button>
                             <button
                                 onClick={handleConfirmComplete}
-                                className="px-6 py-2 bg-blue-600 text-white font-bold rounded shadow hover:bg-blue-700"
+                                className="px-6 py-2 bg-blue-600 text-white font-bold rounded shadow hover:bg-blue-700 flex items-center gap-2"
+                                disabled={isCompleting}
                             >
-                                Xác nhận Hoàn thành
+                                {isCompleting ? <Loader2 className="animate-spin" size={18} /> : 'Xác nhận Hoàn thành'}
                             </button>
                         </div>
                     </div>
+                </div>
+            )}
+            {/* Image Viewer Overlay */}
+            {viewingImage && (
+                <div 
+                    className="fixed inset-0 bg-black/95 backdrop-blur-md z-[100] flex items-center justify-center p-4 cursor-pointer"
+                    onClick={() => setViewingImage(null)}
+                >
+                    <button className="absolute top-6 right-6 text-white bg-white/10 p-2 rounded-full hover:bg-white/20 transition">
+                        <X size={32} />
+                    </button>
+                    <img 
+                        src={viewingImage} 
+                        alt="Full view" 
+                        className="max-w-full max-h-full object-contain rounded shadow-2xl animate-scale-in"
+                    />
                 </div>
             )}
         </div >

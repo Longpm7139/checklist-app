@@ -62,6 +62,8 @@ export interface Incident {
   resolvedBy?: string; // User who fixed it
   resolutionNote?: string;
   participants?: string[]; // List of names who participated in fixing
+  imageUrl?: string;
+  resolutionImageUrl?: string;
 }
 
 export interface MaintenanceTask {
@@ -78,6 +80,8 @@ export interface MaintenanceTask {
   status: 'PENDING' | 'COMPLETED';
   completedAt?: string;
   completedNote?: string;
-  remainingIssues?: string; // Tồn tại sau bảo dưỡng
+  remainingIssues?: string; // New field for issues after maintenance
+  beforeImageUrl?: string;
+  afterImageUrl?: string;
   createdAt: string;
 }

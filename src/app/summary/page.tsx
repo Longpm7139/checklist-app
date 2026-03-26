@@ -184,14 +184,34 @@ export default function SummaryPage() {
         }
 
         try {
-            const historyPromises = fixedRows.map(r => saveHistoryItem(r.id, {
-                // Merging resolution data into existing document (identified by r.id)
-                resolvedAt: new Date().toLocaleString('vi-VN', { hour: '2-digit', minute: '2-digit', day: '2-digit', month: '2-digit', year: 'numeric' }),
-                actionNote: r.actionDescription || '',
-                resolverName: r.executorNames.join(', ') || 'Unknown',
-                imageUrl: r.imageUrl || ''
-            }));
+            if (fixedRows.length > 0) {
+                alert(`Đang bắt đầu lưu ${fixedRows.length} mục vào Lịch sử sửa chữa...`);
+            }
+
+            const historyPromises = fixedRows.map(async (r) => {
+                try {
+                    await saveHistoryItem(r.id, {
+                        id: r.id,
+                        systemId: r.systemId,
+                        systemName: r.systemName,
+                        issueContent: r.issueContent,
+                        timestamp: r.timestamp,
+                        inspectorName: r.inspectorName,
+                        resolvedAt: new Date().toLocaleString('vi-VN', { hour: '2-digit', minute: '2-digit', day: '2-digit', month: '2-digit', year: 'numeric' }),
+                        actionNote: r.actionDescription || '',
+                        resolverName: r.executorNames.join(', ') || 'Unknown',
+                        imageUrl: r.imageUrl || ''
+                    });
+                } catch (err: any) {
+                    console.error(`Lỗi khi lưu mục ${r.id}:`, err);
+                    throw new Error(`Không thể lưu mục ${r.systemName}: ${err.message}`);
+                }
+            });
             await Promise.all(historyPromises);
+
+            if (fixedRows.length > 0) {
+                console.log(`${fixedRows.length} history items saved.`);
+            }
 
             // 3. Update Source Data (Firebase)
             // We need to update DETAILS and potentially SYSTEMS status.

@@ -178,11 +178,9 @@ export default function CheckPage() {
                 }
             }
 
-            const isFirstTime = !currentSystem?.status;
-
-            if (!isFirstTime && !isDirty) {
-                console.log("No changes detected. Skipping save and log for already-checked system.");
-            } else {
+            // ALWAYS Save and Log when clicking Save, even if no changes are detected.
+            // This is critical for KPI tracking of routine inspections.
+            if (true) {
                 const now = new Date().toLocaleString('vi-VN', { hour: '2-digit', minute: '2-digit', day: '2-digit', month: '2-digit', year: 'numeric' });
                 const durationSeconds = Math.round((Date.now() - startTime) / 1000);
 
@@ -225,6 +223,8 @@ export default function CheckPage() {
                     }
                 }
 
+                // We no longer call saveHistoryItem here, so NOK items stay only in the Summary table
+                // until they are marked as Fixed in the Summary page.
                 const dbPromises = [];
                 dbPromises.push(saveChecklist(systemId, items));
                 dbPromises.push(saveSystem(systemId, {
@@ -234,21 +234,8 @@ export default function CheckPage() {
                     inspectorName: user?.name || 'Unknown',
                     inspectorCode: user?.code || 'UNKNOWN'
                 }));
-                for (const item of nokItems) {
-                    dbPromises.push(saveHistoryItem(`${systemId}_${item.id}`, {
-                        id: `${systemId}_${item.id}`,
-                        systemId: systemId,
-                        systemName: systemName,
-                        issueContent: item.content,
-                        itemId: item.id,
-                        timestamp: now,
-                        inspectorName: item.inspectorName || user?.name,
-                        inspectorCode: user?.code,
-                        imageUrl: item.imageUrl || ''
-                    }));
-                }
                 dbPromises.push(addLog({
-                    id: Date.now().toString(),
+                    id: `${systemId}_${Date.now()}`,
                     timestamp: now,
                     inspectorName: user?.name || 'Unknown',
                     inspectorCode: user?.code || 'UNKNOWN',
