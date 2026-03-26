@@ -1124,8 +1124,12 @@ export default function Home() {
                               onChange={async (url) => {
                                  const target = systems.find(s => s.id === sys.id);
                                  if (target) {
-                                   await saveSystem(sys.id, { ...target, imageUrl: url });
-                                 }
+                                     try {
+                                       await saveSystem(sys.id, { ...target, imageUrl: url });
+                                     } catch (dbErr: any) {
+                                       alert("Lỗi khi lưu link ảnh vào hệ thống: " + dbErr.message);
+                                     }
+                                  }
                               }}
                               path={`systems/${sys.id}_${Date.now()}.jpg`}
                               disabled={!isUserOnDuty || isEditMode}
@@ -1308,7 +1312,11 @@ export default function Home() {
                                 onChange={async (url) => {
                                   const target = systems.find(s => s.id === sys.id);
                                   if (target) {
-                                    await saveSystem(sys.id, { ...target, imageUrl: url });
+                                     try {
+                                       await saveSystem(sys.id, { ...target, imageUrl: url });
+                                     } catch (dbErr: any) {
+                                       alert("Lỗi khi lưu link ảnh vào hệ thống: " + dbErr.message);
+                                     }
                                   }
                                 }}
                                 path={`systems/${sys.id}_${Date.now()}.jpg`}

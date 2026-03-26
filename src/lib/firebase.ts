@@ -281,6 +281,11 @@ const compressImage = async (file: File): Promise<Blob | File> => {
 
 // Storage
 export const uploadImage = async (file: File, path: string) => {
+    if (!firebaseConfig.storageBucket) {
+        alert("CẢNH BÁO: Hệ thống chưa được cấu hình KHO ẢNH (Storage Bucket). Vui lòng liên hệ Admin để thêm biến môi trường!");
+        throw new Error("Storage bucket missing");
+    }
+
     try {
         const compressedFile = await compressImage(file).catch(err => {
             console.warn("Compression failed, using original:", err);
@@ -288,7 +293,14 @@ export const uploadImage = async (file: File, path: string) => {
         });
 
         const storageRef = ref(storage, path);
-        const snapshot = await uploadBytes(storageRef, compressedFile);
+        
+        // Add a 30-second timeout to the upload
+        const uploadPromise = uploadBytes(storageRef, compressedFile);
+        const timeoutPromise = new Promise((_, reject) => 
+            setTimeout(() => reject(new Error("QUÁ THỜI GIAN: Đường truyền mạng hoặc Kho ảnh đang bị treo (30s timeout)")), 30000)
+        );
+
+        const snapshot = await Promise.race([uploadPromise, timeoutPromise]) as any;
         const downloadUrl = await getDownloadURL(snapshot.ref);
         return downloadUrl;
     } catch (error: any) {
