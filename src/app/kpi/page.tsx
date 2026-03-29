@@ -219,18 +219,15 @@ export default function KPIPage() {
 
                 diag.push(`Data: L:${filteredLogs.length} H:${filteredHistory.length} D:${duties.length}`);
 
-                const calculatedStats = allUsers.map((u: any) => {
+                                const calculatedStats = allUsers.map((u: any) => {
                     let userInspections = 0;
                     let fastChecksCount = 0;
 
                     duties.forEach(dayDuty => {
                         const dateStr = dayDuty.date;
                         ['DAY', 'NIGHT'].forEach(st => {
-                            // Find assignments for this shift - handle different shift names
                             const assignments = dayDuty.assignments?.filter((a: any) => {
                                 const aShift = normalize(a.shift || '');
-                                
-                                // Also handle 'DAY' and 'NIGHT' directly
                                 const isShiftMatch = aShift.includes('ngay') || aShift.includes('dem') || aShift === normalize(st);
                                 if (!isShiftMatch) return false;
                                 return isMatch(a.userCode, u.code) || isMatch(a.userName, u.name);
@@ -239,21 +236,27 @@ export default function KPIPage() {
                             if (assignments.length === 0) return;
 
                             const key = `${dateStr}_${st}`;
-                            const crew = dayDuty.assignments?.filter((a: any) => {
-                                const aS = normalize(a.shift || '');
-                                return aS.includes(st === 'DAY' ? 'ngay' : 'dem') || aS === normalize(st);
-                            }) || [];
-                            
-                                                                                    const teamHasActivity = (logsByDuty[key] || []).length > 0 || 
+                            const teamHasActivity = (logsByDuty[key] || []).length > 0 || 
                                                     (historyByDuty[key] || []).length > 0 || 
                                                     (incidentsByDuty[key] || []).length > 0 ||
                                                     (maintenanceByDuty[key] || []).length > 0;
-                            }) || (historyByDuty[key] || []).some((h: any) => {
-                                return crew.some((m: any) => {
-                                    const mC = m.userCode; const mN = m.userName;
-                                    const hC = h.inspectorCode || h.resolverCode; const hN = h.inspectorName || h.resolverName;
-                                    return isMatch(mC, hC) || isMatch(mN, hN) || isMatch(mC, hN) || isMatch(mN, hC);
-                                });
+
+                            if (teamHasActivity) userInspections += 11;
+                            (logsByDuty[key] || []).filter((l: any) => isMatch(l.inspectorCode, u.code)).forEach((l: any) => { if (l.duration < 30) fastChecksCount++; });
+                        });
+                    });
+
+                    return {
+                        userId: u.id, code: u.code, name: u.name,
+                        inspectionCount: userInspections, 
+                        fixCount: filteredHistory.filter((h: any) => isMatch(h.resolverCode, u.code)).length,
+                        incidentCount: filteredIncidents.filter((i: any) => isMatch(i.resolvedByCode, u.code)).length,
+                        maintenanceCount: filteredTasks.filter((t: any) => (Array.isArray(t.assignees) ? t.assignees : [t.assignees]).some((a: any) => isMatch(a, u.code))).length,
+                        faultFoundCount: history.filter((h: any) => isMatch(h.inspectorCode, u.code)).length,
+                        projectExecCount: 0, projectSupCount: 0, fastCheckCount: fastChecksCount,
+                        score: (userInspections * SCORING_RULES.INSPECTION) + (fastChecksCount * SCORING_RULES.NEGLIGENCE)
+                    };
+                });
                             }) || (incidentsByDuty[key] || []).some(i => {
                                 const wrks = [...(Array.isArray(i.resolvedByCode)?i.resolvedByCode:[i.resolvedByCode]), ...(Array.isArray(i.participants)?i.participants:[i.participants])].filter(Boolean);
                                 return crew.some((m: any) => wrks.some((w: any) => isMatch(m.userCode, w) || isMatch(m.userName, w)));
@@ -274,7 +277,7 @@ export default function KPIPage() {
                         projectExecCount: 0, projectSupCount: 0, fastCheckCount: fastChecksCount,
                         score: (userInspections * SCORING_RULES.INSPECTION) + (fastChecksCount * SCORING_RULES.NEGLIGENCE)
                     };
-                });
+            });
 
                 calculatedStats.sort((a, b) => b.score - a.score);
                 setStats(calculatedStats);
