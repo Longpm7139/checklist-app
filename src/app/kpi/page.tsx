@@ -97,13 +97,18 @@ export default function KPIPage() {
 
         const calculateStats = () => {
             try {
-                const normalize = (val: any) => (val || '').toString().trim().toLowerCase().normalize('NFC');
+                const removeAccents = (str: string) => str.normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/đ/g, 'd').replace(/Đ/g, 'D');
+
+                const normalize = (val: any) => {
+                    const s = (val || '').toString().trim().toLowerCase();
+                    return removeAccents(s).normalize('NFC').replace(/[\s\-_]/g, '');
+                };
                 
                 // Helper for ultra-flexible matching (handles leading zeros in codes, partial names, etc.)
                 const isMatch = (val1: any, val2: any) => {
+                    if (!val1 || !val2) return false;
                     const n1 = normalize(val1);
                     const n2 = normalize(val2);
-                    if (!n1 || !n2) return false;
                     if (n1 === n2) return true;
                     
                     // Numeric comparison for codes (strips non-digits)
@@ -112,8 +117,8 @@ export default function KPIPage() {
                     if (num1 !== '' && num1 === num2) return true;
 
                     // Fuzzy name matching (one contains the other)
-                    if (n1.length > 5 && n2.length > 5) { // Only for longer strings to avoid too many false positives
-                        if (n1.includes(n2) || n2.includes(n1)) return true;
+                    if (n1.length > 3 && n2.length > 3) {
+                        return n1.includes(n2) || n2.includes(n1);
                     }
                     return false;
                 };
@@ -140,48 +145,47 @@ export default function KPIPage() {
                     if (!ts || typeof ts !== 'string') return null;
                     const s = ts.trim();
                     
-                    let d = 0, m = 0, y = 0, hRaw = -1, min = 0;
+                    let d = -1, m = -1, y = -1, h = 0, min = 0;
 
-                    // --- Date parsing ---
-                    // Format A: dd/mm/yyyy or dd-mm-yyyy or dd.mm.yyyy
-                    const fmtA = s.match(/(\d{1,2})[\/\-\.](\d{1,2})[\/\-\.](\d{2,4})/);
-                    // Format B: yyyy-mm-dd (ISO)
-                    const fmtB = s.match(/(\d{4})[\/\-\.](\d{1,2})[\/\-\.](\d{1,2})/);
-                    // Format C: "dd thg m yyyy" or "dd tháng m yyyy" (Vietnamese)
-                    const fmtC = s.match(/(\d{1,2})\s+(?:thg|th[aá]ng)\s+(\d{1,2})[,\s]+(\d{4})/i);
+                    // 1. Identify DATE segment using Regex (DD/MM/YYYY or YYYY-MM-DD or DD tháng MM)
+                    const dateMatch = s.match(/(\d{1,2})[\/.-](\d{1,2})[\/.-](\d{4})/) || // 25/03/2026
+                                      s.match(/(\d{4})[\/.-](\d{1,2})[\/.-](\d{1,2})/) || // 2026-03-25
+                                      s.match(/(\d{1,2})\s+(?:thg|th[aá]ng)\s+(\d{1,2})[,\s]+(\d{4})/i); // 25 tháng 3, 2026
 
-                    if (fmtB && !fmtA) {
-                        y = Number(fmtB[1]); m = Number(fmtB[2]); d = Number(fmtB[3]);
-                    } else if (fmtA) {
-                        d = Number(fmtA[1]); m = Number(fmtA[2]); y = Number(fmtA[3]);
-                    } else if (fmtC) {
-                        d = Number(fmtC[1]); m = Number(fmtC[2]); y = Number(fmtC[3]);
+                    if (dateMatch) {
+                        if (dateMatch[1].length === 4) { // YYYY-MM-DD
+                             y = Number(dateMatch[1]); m = Number(dateMatch[2]); d = Number(dateMatch[3]);
+                        } else { // DD/MM/YYYY
+                             d = Number(dateMatch[1]); m = Number(dateMatch[2]); y = Number(dateMatch[3]);
+                        }
                     } else {
-                        return null; // Cannot parse date
+                        // Fallback: finding all numbers and guessing
+                        const nums = s.match(/\d+/g);
+                        if (nums && nums.length >= 3) {
+                             y = Number(nums[2]); if (y < 100) y += 2000;
+                             d = Number(nums[0]); m = Number(nums[1]);
+                        } else return null;
                     }
-                    if (y < 100) y += 2000;
 
-                    // --- Time parsing ---
-                    const timeMatch = s.match(/(\d{1,2}):(\d{1,2})/);
-                    if (!timeMatch) return null;
-                    hRaw = Number(timeMatch[1]);
-                    min = Number(timeMatch[2]);
+                    // 2. Identify TIME segment using Regex (HH:mm)
+                    const timeMatch = s.match(/(\d{1,2})[:](\d{1,2})/);
+                    if (timeMatch) {
+                        h = Number(timeMatch[1]);
+                        min = Number(timeMatch[2]);
+                    }
 
-                    // --- 12h → 24h conversion ---
-                    // Detect CH (chiều = PM) and SA (sáng = AM) in any position/case/spacing
+                    // 3. AM/PM Adjust
                     const sLow = s.toLowerCase();
-                    // CH detection: standalone "ch" not surrounded by other letters
                     const isPM = /(?<![a-záàảãạăắằẳẵặâấầẩẫậéèẻẽẹêếềểễệíìỉĩịóòỏõọôốồổỗộơớờởỡợúùủũụưứừửữựýỳỷỹỵđ])ch(?![a-záàảãạăắằẳẵặâấầẩẫậéèẻẽẹêếềểễệíìỉĩịóòỏõọôốồổỗộơớờởỡợúùủũụưứừửữựýỳỷỹỵđ])/i.test(s) ||
-                                  sLow.includes('chiều') || 
-                                  /\bp\.?m\.?\b/i.test(s);
+                                  sLow.includes('chiều') || /\bp\.?m\.?\b/i.test(s);
                     const isAM = /(?<![a-záàảãạăắằẳẵặâấầẩẫậéèẻẽẹêếềểễệíìỉĩịóòỏõọôốồổỗộơớờởỡợúùủũụưứừửữựýỳỷỹỵđ])sa(?![a-záàảãạăắằẳẵặâấầẩẫậéèẻẽẹêếềểễệíìỉĩịóòỏõọôốồổỗộơớờởỡợúùủũụưứừửữựýỳỷỹỵđ])/i.test(s) ||
-                                  sLow.includes('sáng') || 
-                                  /\ba\.?m\.?\b/i.test(s);
+                                  sLow.includes('sáng') || /\ba\.?m\.?\b/i.test(s);
+                    
+                    if (isPM && h < 12) h += 12;
+                    else if (isAM && h === 12) h = 0;
 
-                    let h = hRaw;
-                    if (isPM && hRaw < 12) h = hRaw + 12;
-                    else if (isAM && hRaw === 12) h = 0;
-
+                    if (y < 100) y += 2000;
+                    if (d === -1 || m === -1 || y === -1) return null;
                     return { d, m, y, h, min };
                 };
 
@@ -335,17 +339,30 @@ export default function KPIPage() {
                             const teamSystems = systems.filter(s => {
                                 const systemP = parseTimestamp(s.timestamp || '');
                                 if (!systemP) return false;
-                                // Check if system status timestamp belongs to this duty shift
-                                const sDateStr = `${systemP.y}-${String(systemP.m).padStart(2, '0')}-${String(systemP.d).padStart(2, '0')}`;
-                                if (sDateStr !== dateStr) return false;
                                 
-                                // Check hour
+                                // Check if system status timestamp belongs to this duty shift
                                 const sh = systemP.h;
-                                let hourMatch = false;
-                                if (shiftType === 'DAY') hourMatch = (sh >= 4 && sh <= 20);
-                                else hourMatch = (sh >= 16 || sh <= 11);
+                                const sDate = new Date(systemP.y, systemP.m - 1, systemP.d);
+                                const toDateStr = (dt: Date) => `${dt.getFullYear()}-${String(dt.getMonth() + 1).padStart(2, '0')}-${String(dt.getDate()).padStart(2, '0')}`;
+                                
+                                let systemDutyDate = toDateStr(sDate);
+                                let shiftMatch = false;
 
-                                if (!hourMatch) return false;
+                                if (shiftType === 'DAY') {
+                                    shiftMatch = (sh >= 4 && sh <= 20) && systemDutyDate === dateStr;
+                                } else {
+                                    // Night shift morning portion
+                                    if (sh <= 11) {
+                                        const prevDate = new Date(sDate);
+                                        prevDate.setDate(prevDate.getDate() - 1);
+                                        systemDutyDate = toDateStr(prevDate);
+                                        shiftMatch = systemDutyDate === dateStr;
+                                    } else if (sh >= 16) {
+                                        shiftMatch = systemDutyDate === dateStr;
+                                    }
+                                }
+
+                                if (!shiftMatch) return false;
 
                                 // Check user
                                 return shiftTeamMembers.some((m: string) => isMatch(m, s.inspectorCode)) || 

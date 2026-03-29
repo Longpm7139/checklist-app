@@ -106,9 +106,11 @@ export const deleteCategory = async (id: string) => {
 
 // Logs
 export const addLog = async (log: any) => {
-    // Use timestamp as ID or auto-id
-    const logId = log.id || Date.now().toString();
-    await setDoc(doc(db, "logs", logId), removeUndefined(log));
+    // Standard Firestore addDoc generates a unique ID automatically
+    await addDoc(collection(db, "logs"), {
+        ...removeUndefined(log),
+        createdAt: Date.now() // Add a hidden server-sort field
+    });
 };
 
 export const subscribeToLogs = (callback: (data: any[]) => void) => {
