@@ -102,7 +102,15 @@ export default function KPIPage() {
         if (!monthFilter || allUsers.length === 0) return;
 
         const calculateStats = () => {
-            const dataState = JSON.stringify({ monthFilter, u: allUsers.length, l: logs.length, d: duties.length });
+            const dataState = JSON.stringify({ 
+                monthFilter, 
+                u: allUsers.length, 
+                l: logs.length, 
+                d: duties.length,
+                i: incidents.length,
+                t: tasks.length,
+                h: history.length
+            });
             if (lastProcessed.current === dataState) return;
             lastProcessed.current = dataState;
 
@@ -120,8 +128,20 @@ export default function KPIPage() {
                 fLogs.forEach(l => {
                     const p = parseTS(l.timestamp);
                     if (!p) return;
-                    const shift = (p.h >= 6 && p.h < 18) ? 'DAY' : 'NIGHT';
-                    const k = `${p.y}-${String(p.m).padStart(2, '0')}-${String(p.d).padStart(2, '0')}_${shift}`;
+                    
+                    // Logic: Logs between 00:00 and 07:00 (H < 7) belong to the PREVIOUS day's NIGHT shift
+                    const isEarlyMorning = p.h < 7;
+                    const shift = (p.h >= 7 && p.h < 19) ? 'DAY' : 'NIGHT';
+                    
+                    let targetD = p.d, targetM = p.m, targetY = p.y;
+                    if (isEarlyMorning && shift === 'NIGHT') {
+                        const prevDate = new Date(p.y, p.m - 1, p.d - 1);
+                        targetD = prevDate.getDate();
+                        targetM = prevDate.getMonth() + 1;
+                        targetY = prevDate.getFullYear();
+                    }
+
+                    const k = `${targetY}-${String(targetM).padStart(2, '0')}-${String(targetD).padStart(2, '0')}_${shift}`;
                     if (!logsByD[k]) logsByD[k] = [];
                     logsByD[k].push(l);
                 });
@@ -218,6 +238,13 @@ export default function KPIPage() {
                                 onChange={(e) => setMonthFilter(e.target.value)}
                                 className="bg-transparent border-none outline-none px-3 py-2 font-black text-slate-700"
                             />
+                            <button 
+                                onClick={() => lastProcessed.current = ""} 
+                                className="p-2 text-slate-300 hover:text-blue-500 transition-colors"
+                                title="Làm mới dữ liệu"
+                            >
+                                <RotateCcw size={16} />
+                            </button>
                         </div>
                         <button onClick={handleExport} className="bg-green-600 hover:bg-green-700 text-white font-black px-6 py-3 rounded-2xl shadow-xl shadow-green-500/20 transition flex items-center gap-2">
                             <FileText size={20} /> <span className="hidden sm:inline">Xuất Excel</span>
