@@ -5,7 +5,8 @@ import { useRouter } from 'next/navigation';
 import { ArrowLeft, Filter, Download, Calendar, User, Search, CheckCircle, XCircle, AlertTriangle } from 'lucide-react';
 import clsx from 'clsx';
 import * as XLSX from 'xlsx';
-import { subscribeToLogs, subscribeToIncidents, subscribeToMaintenance, subscribeToHistory, getUsers } from '@/lib/firebase'; // Added imports
+import { subscribeToLogs, subscribeToIncidents, subscribeToMaintenance, subscribeToHistory, getUsers, subscribeToDuties } from '@/lib/firebase';
+import { isMatch, normalize } from '@/lib/utils';
 
 interface LogEntry {
     id: string;
@@ -26,6 +27,7 @@ export default function ReportsPage() {
     const [incidents, setIncidents] = useState<any[]>([]);
     const [maintenance, setMaintenance] = useState<any[]>([]);
     const [history, setHistory] = useState<any[]>([]);
+    const [duties, setDuties] = useState<any[]>([]);
     const [users, setUsers] = useState<any[]>([]);
 
     // Filter State
@@ -51,12 +53,14 @@ export default function ReportsPage() {
         const unsubIncidents = subscribeToIncidents((data) => setIncidents(data));
         const unsubMaintenance = subscribeToMaintenance((data) => setMaintenance(data));
         const unsubHistory = subscribeToHistory((data) => setHistory(data));
+        const unsubDuties = subscribeToDuties((data) => setDuties(data));
 
         return () => {
             unsubLogs();
             unsubIncidents();
             unsubMaintenance();
             unsubHistory();
+            unsubDuties();
         };
     }, []);
 
@@ -105,15 +109,39 @@ export default function ReportsPage() {
     useEffect(() => {
         if (!logs.length && !incidents.length && !maintenance.length && !history.length) return;
 
+        // Group duties by date for easy lookup
+        const dutiesByD: Record<string, any> = {};
+        duties.forEach(d => { dutiesByD[d.date] = d; });
+
         const allEntries: UnifiedLogEntry[] = [];
 
-        // 1. Map Inspections
+        // 1. Map Inspections (with Crew Attribution)
         logs.forEach(l => {
+            // Determine shift from timestamp "HH:mm dd/MM/yyyy"
+            let crewStr = l.inspectorName || 'Unknown';
+            const parts = l.timestamp.split(' ');
+            const datePart = parts.find((p: string) => p.includes('/'));
+            if (datePart) {
+                const [d, m, y] = datePart.split('/');
+                const key = `${y}-${m}-${d}`;
+                const dailyDuty = dutiesByD[key];
+                if (dailyDuty) {
+                    const timePart = parts.find((p: string) => p.includes(':')) || '00:00';
+                    const hour = parseInt(timePart.split(':')[0]);
+                    const shift = (hour >= 6 && hour < 18) ? 'DAY' : 'NIGHT';
+                    const crew = dailyDuty.assignments?.filter((a: any) => {
+                        const aS = normalize(a.shift || '');
+                        return aS.includes('ngay') || aS.includes('dem') || aS === normalize(shift);
+                    }).map((a: any) => a.userName) || [];
+                    if (crew.length > 0) crewStr = crew.join(', ');
+                }
+            }
+
             allEntries.push({
                 id: `log_${l.id}`,
                 timestamp: l.timestamp,
                 type: 'INSPECTION',
-                inspectorName: l.inspectorName,
+                inspectorName: crewStr, // Show entire crew for inspections
                 resolverName: '-',
                 inspectorCode: l.inspectorCode,
                 systemName: l.systemName,
@@ -124,7 +152,6 @@ export default function ReportsPage() {
 
         // 2. Map Incidents (Report & Resolve)
         incidents.forEach(inc => {
-            // Event 1: Reported
             allEntries.push({
                 id: `inc_report_${inc.id}`,
                 timestamp: inc.createdAt,
@@ -137,17 +164,12 @@ export default function ReportsPage() {
                 note: `Báo cáo: ${inc.description}`
             });
 
-            // Event 2: Resolved
             if (inc.status === 'RESOLVED' && inc.resolvedAt) {
-                // Combine resolvedBy and participants for full credit
-                let performers = inc.resolvedBy;
-                if (inc.participants && inc.participants.length > 0) {
-                    // Avoid duplicating resolvedBy if they are in participants
-                    const parts = inc.participants.filter((p: string) => p !== inc.resolvedBy);
-                    if (parts.length > 0) {
-                        performers += `, ${parts.join(', ')}`;
-                    }
+                let performersList = [inc.resolvedBy];
+                if (inc.participants && Array.isArray(inc.participants)) {
+                    performersList = Array.from(new Set([...performersList, ...inc.participants]));
                 }
+                const performers = performersList.filter(Boolean).join(', ') || 'Unknown';
 
                 allEntries.push({
                     id: `inc_resolve_${inc.id}`,
@@ -165,7 +187,6 @@ export default function ReportsPage() {
 
         // 3. Map Maintenance
         maintenance.forEach(task => {
-            // Add Created Entry
             allEntries.push({
                 id: `maint_create_${task.id}`,
                 timestamp: task.createdAt,
@@ -178,13 +199,7 @@ export default function ReportsPage() {
                 note: 'Giao việc bảo trì'
             });
 
-            // Add Completed Entry if done
             if (task.status === 'COMPLETED' && task.completedAt) {
-                // Completed entries might have multiple assignees.
-                // For simplicity, we list the first one or "Team"
-                // But ideally we want to see WHO completed it. 
-                // The current data model doesn't explicitly store "who clicked complete" separately from assignees list easily,
-                // but usually any assignee can click. We'll use the assignee names.
                 allEntries.push({
                     id: `maint_done_${task.id}`,
                     timestamp: task.completedAt,
@@ -199,9 +214,8 @@ export default function ReportsPage() {
             }
         });
 
-        // 4. Map History (Fixes only, no separate ISSUE entries)
+        // 4. Map History
         history.forEach(h => {
-            // Only create entry when the issue is resolved (FIX action)
             if (h.resolvedAt) {
                 allEntries.push({
                     id: `fix_${h.id}`,
@@ -219,7 +233,7 @@ export default function ReportsPage() {
 
         setUnifiedLogs(allEntries);
 
-    }, [logs, incidents, maintenance, history]);
+    }, [logs, incidents, maintenance, history, duties]);
 
 
     // Filter Logic Refined for Unified Logs
@@ -247,8 +261,8 @@ export default function ReportsPage() {
 
         if (inspectorFilter) {
             result = result.filter(l =>
-                l.inspectorName.includes(inspectorFilter) ||
-                l.resolverName.includes(inspectorFilter)
+                isMatch(l.inspectorName, inspectorFilter) ||
+                isMatch(l.resolverName, inspectorFilter)
             );
         }
 
