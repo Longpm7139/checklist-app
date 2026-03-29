@@ -7,6 +7,7 @@ import { Save, ArrowLeft, Clock, Settings, Plus, Trash2, X, MessageSquare, Send 
 import clsx from 'clsx';
 import { subscribeToSystems, subscribeToChecklist, saveChecklist, saveSystem, addLog, saveHistoryItem, subscribeToDuties } from '@/lib/firebase';
 import { useUser } from '@/providers/UserProvider';
+import { isMatch } from '@/lib/utils';
 import { IMESafeInput, IMESafeTextArea } from '@/components/IMESafeInput';
 import { ImageUpload } from '@/components/ImageUpload';
 
@@ -318,7 +319,7 @@ export default function CheckPage() {
     const dayDuty = duties.find(d => d.date === shiftDateStr);
 
     const currentShiftAssignments = dayDuty?.assignments?.filter((a: any) => a.shift === currentShiftType) || [];
-    const isUserOnDuty = currentShiftAssignments.some((a: any) => a.userCode === user?.code) || user?.role === 'ADMIN';
+    const isUserOnDuty = currentShiftAssignments.some((a: any) => isMatch(a.userCode, user?.code) || isMatch(a.userName, user?.name)) || user?.role === 'ADMIN';
 
     const currentSystem = systems.find(s => s.id === systemId);
 
@@ -327,7 +328,7 @@ export default function CheckPage() {
     const isLockedByOther = (!isUserOnDuty && user?.role !== 'ADMIN') ||
         (!!currentSystem?.inspectorCode &&
             currentSystem.status === 'IN_PROGRESS' &&
-            currentSystem.inspectorCode !== user?.code &&
+            !isMatch(currentSystem.inspectorCode, user?.code) &&
             user?.role !== 'ADMIN');
 
     if (!isLoaded) return <div className="p-8 text-center">Đang tải dữ liệu...</div>;

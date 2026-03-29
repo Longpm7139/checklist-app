@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import { ArrowLeft, BarChart2, Medal, TrendingUp, UserCheck, Calendar, AlertTriangle, RotateCcw, Settings } from 'lucide-react';
 import clsx from 'clsx';
 import { useUser } from '@/providers/UserProvider';
+import { isMatch, normalize } from '@/lib/utils';
 import { subscribeToLogs, subscribeToHistory, subscribeToIncidents, subscribeToMaintenance, getUsers, resetKPIData, subscribeToDuties, subscribeToSystems } from '@/lib/firebase';
 import { SystemCheck } from '@/lib/types';
 
@@ -32,6 +33,17 @@ const SCORING_RULES = {
     PROJECT_EXEC: 10,
     PROJECT_SUP: 6,
     NEGLIGENCE: -10
+};
+
+const RULE_LABELS: Record<string, string> = {
+    INSPECTION: 'Kiểm tra',
+    FAULT_FOUND: 'Tìm thấy lỗi',
+    FIX: 'Khắc phục',
+    INCIDENT: 'Xử lý sự cố',
+    MAINTENANCE: 'Bảo trì',
+    PROJECT_EXEC: 'Thi công',
+    PROJECT_SUP: 'Giám sát',
+    NEGLIGENCE: 'Kiểm tra ẩu'
 };
 
 export default function KPIPage() {
@@ -72,16 +84,6 @@ export default function KPIPage() {
             lastProcessed.current = dataState;
 
             try {
-                const removeAccents = (str: string) => (str || '').toString().normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/đ/g, 'd').replace(/Đ/g, 'D');
-                const normalize = (val: any) => removeAccents((val || '').toString().trim().toLowerCase()).normalize('NFC').replace(/[\s\-_]/g, '');
-                const isMatch = (v1: any, v2: any) => {
-                    if (!v1 || !v2) return false;
-                    const n1 = normalize(v1); const n2 = normalize(v2);
-                    if (n1 === n2 || n1.includes(n2) || n2.includes(n1)) return true;
-                    const num1 = n1.replace(/\D/g, ''); const num2 = n2.replace(/\D/g, '');
-                    return num1 !== '' && num1 === num2;
-                };
-
                 const [fY, fM] = monthFilter.split('-');
                 const targetM = Number(fM), targetY = Number(fY);
 
@@ -146,7 +148,7 @@ export default function KPIPage() {
                         userId: u.id, code: u.code, name: u.name, inspectionCount: uIn,
                         fixCount: fHis.filter(h => isMatch(h.resolverCode, u.code)).length,
                         incidentCount: fInc.filter(i => isMatch(i.resolvedByCode, u.code)).length,
-                        maintenanceCount: fTks.filter(t => (Array.isArray(t.assignees) ? t.assignees : [t.assignees]).some(a => isMatch(a, u.code))).length,
+                        maintenanceCount: fTks.filter(t => (Array.isArray(t.assignees) ? t.assignees : [t.assignees]).some((a: any) => isMatch(a, u.code))).length,
                         faultFoundCount: history.filter(h => isMatch(h.inspectorCode, u.code)).length,
                         projectExecCount: 0, projectSupCount: 0, fastCheckCount: fCC,
                         score: (uIn * SCORING_RULES.INSPECTION) + (fCC * SCORING_RULES.NEGLIGENCE)
@@ -186,7 +188,7 @@ export default function KPIPage() {
                                 <BarChart2 className="text-blue-600 shrink-0" />
                                 <span className="truncate">Dashboard KPI Đội Ngũ</span>
                             </h1>
-                            <p className="text-slate-500 text-xs md:text-sm font-medium">Báo cáo hiệu suất tự động - STABLE</p>
+                            <p className="text-slate-500 text-xs md:text-sm font-medium">Báo cáo hiệu suất tự động</p>
                         </div>
                     </div>
                     <div className="w-full md:w-auto flex flex-col sm:flex-row items-center gap-3">
@@ -224,7 +226,7 @@ export default function KPIPage() {
                     <div className="overflow-x-auto scrollbar-hide"><div className="grid grid-cols-4 lg:grid-cols-8 min-w-[800px] gap-px bg-slate-100">
                         {Object.entries(SCORING_RULES).map(([k, v]) => (
                             <div key={k} className="bg-white p-4 text-center">
-                                <div className="text-[9px] text-slate-400 uppercase font-black mb-1 truncate px-1">{k}</div>
+                                <div className="text-[9px] text-slate-400 uppercase font-black mb-1 truncate px-1">{RULE_LABELS[k] || k}</div>
                                 <div className={clsx("font-black text-xl", v < 0 ? "text-red-500" : "text-blue-600")}>{v > 0 ? `+${v}` : v}</div>
                             </div>
                         ))}

@@ -10,6 +10,7 @@ import {
 } from 'lucide-react';
 import clsx from 'clsx';
 import { useUser } from '@/providers/UserProvider';
+import { isMatch } from '@/lib/utils';
 import ChangePasswordModal from '@/components/ChangePasswordModal';
 import { IMESafeInput } from '@/components/IMESafeInput';
 import HandoffModal from '@/components/dashboard/HandoffModal';
@@ -152,7 +153,7 @@ export default function Home() {
   // Filter assignments for the CURRENT shift of the determined duty date
   const currentShiftAssignments = todayDuty?.assignments?.filter((a: any) => a.shift === currentShiftType) || [];
 
-  const isUserOnDuty = currentShiftAssignments.some((a: any) => a.userCode === user?.code) || user?.role === 'ADMIN';
+  const isUserOnDuty = currentShiftAssignments.some((a: any) => isMatch(a.userCode, user?.code) || isMatch(a.userName, user?.name)) || user?.role === 'ADMIN';
 
   // Identify categories assigned to the user OR their teammates in the SAME current shift
   const teamAssignedCategories = categories.filter(cat =>
@@ -696,7 +697,7 @@ export default function Home() {
                                   Đang kiểm tra: {sys.inspectorName || 'Nối tiếp'}
                                 </span>
                               )}
-                              {sys.status !== 'NA' && sys.status !== 'IN_PROGRESS' && sys.inspectorCode && sys.inspectorCode !== user?.code && (
+                              {sys.status !== 'NA' && sys.status !== 'IN_PROGRESS' && sys.inspectorCode && !isMatch(sys.inspectorCode, user?.code) && (
                                 <span className="text-[10px] bg-amber-100 text-amber-700 font-bold px-2 py-0.5 rounded-full border border-amber-200">
                                   Khóa: {sys.inspectorName}
                                 </span>
@@ -718,9 +719,8 @@ export default function Home() {
                         (!isUserOnDuty || isEditMode ||
                           (user?.role !== 'ADMIN' && (
                             (sys.status === 'NOK' && !sys.inspectorCode) ||
-                            (sys.status === 'IN_PROGRESS' && sys.inspectorCode !== user?.code) ||
-                            (sys.status !== 'NA' && sys.status !== 'IN_PROGRESS' && sys.inspectorCode && sys.inspectorCode !== user?.code) ||
-                            (sys.status === 'NA' && systems.some(s => s.categoryId === sys.categoryId && s.status === 'IN_PROGRESS' && s.inspectorCode && s.inspectorCode !== user?.code))
+                            (sys.status === 'IN_PROGRESS' && !isMatch(sys.inspectorCode, user?.code)) ||
+                            (sys.status !== 'NA' && sys.status !== 'IN_PROGRESS' && sys.inspectorCode && !isMatch(sys.inspectorCode, user?.code))
                           ))
                         ) && "opacity-50 pointer-events-none"
                       )}>
@@ -748,9 +748,8 @@ export default function Home() {
                             (user?.role !== 'ADMIN' && (
                               sys.status === 'OK' ||
                               (sys.status === 'NOK' && !sys.inspectorCode) ||
-                              (sys.status === 'IN_PROGRESS' && sys.inspectorCode !== user?.code) ||
-                              (sys.status !== 'NA' && sys.status !== 'IN_PROGRESS' && sys.inspectorCode && sys.inspectorCode !== user?.code) ||
-                              (sys.status === 'NA' && systems.some(s => s.categoryId === sys.categoryId && s.status === 'IN_PROGRESS' && s.inspectorCode && s.inspectorCode !== user?.code))
+                              (sys.status === 'IN_PROGRESS' && !isMatch(sys.inspectorCode, user?.code)) ||
+                              (sys.status !== 'NA' && sys.status !== 'IN_PROGRESS' && sys.inspectorCode && !isMatch(sys.inspectorCode, user?.code))
                             )));
                           return (
                             <IMESafeInput
