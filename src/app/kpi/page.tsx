@@ -271,7 +271,7 @@ export default function KPIPage() {
                         inspectionCount: userInspections, 
                         fixCount: filteredHistory.filter((h: any) => isMatch(h.resolverCode, u.code)).length,
                         incidentCount: filteredIncidents.filter((i: any) => isMatch(i.resolvedByCode, u.code)).length,
-                        maintenanceCount: filteredTasks.filter((t: any) => (Array.isArray(t.assignees) ? t.assignees : [t.assignees]).some(a => isMatch(a, u.code))).length,
+                        maintenanceCount: filteredTasks.filter((t: any) => (Array.isArray(t.assignees) ? t.assignees : [t.assignees]).some((a: any) => isMatch(a, u.code))).length,
                         faultFoundCount: history.filter((h: any) => isMatch(h.inspectorCode, u.code)).length,
                         projectExecCount: 0, projectSupCount: 0, fastCheckCount: fastChecksCount,
                         score: (userInspections * SCORING_RULES.INSPECTION) + (fastChecksCount * SCORING_RULES.NEGLIGENCE)
