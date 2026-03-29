@@ -258,27 +258,6 @@ export default function KPIPage() {
                     };
                 });
                             }) || (incidentsByDuty[key] || []).some(i => {
-                                const wrks = [...(Array.isArray(i.resolvedByCode)?i.resolvedByCode:[i.resolvedByCode]), ...(Array.isArray(i.participants)?i.participants:[i.participants])].filter(Boolean);
-                                return crew.some((m: any) => wrks.some((w: any) => isMatch(m.userCode, w) || isMatch(m.userName, w)));
-                            });
-
-                            if (teamHasActivity) userInspections += 11;
-                            (logsByDuty[key] || []).filter((l: any) => isMatch(l.inspectorCode, u.code)).forEach(l => { if (l.duration < 30) fastChecksCount++; });
-                        });
-                    });
-
-                    return {
-                        userId: u.id, code: u.code, name: u.name,
-                        inspectionCount: userInspections, 
-                        fixCount: filteredHistory.filter((h: any) => isMatch(h.resolverCode, u.code)).length,
-                        incidentCount: filteredIncidents.filter((i: any) => isMatch(i.resolvedByCode, u.code)).length,
-                        maintenanceCount: filteredTasks.filter((t: any) => (Array.isArray(t.assignees) ? t.assignees : [t.assignees]).some((a: any) => isMatch(a, u.code))).length,
-                        faultFoundCount: history.filter((h: any) => isMatch(h.inspectorCode, u.code)).length,
-                        projectExecCount: 0, projectSupCount: 0, fastCheckCount: fastChecksCount,
-                        score: (userInspections * SCORING_RULES.INSPECTION) + (fastChecksCount * SCORING_RULES.NEGLIGENCE)
-                    };
-            });
-
                 calculatedStats.sort((a, b) => b.score - a.score);
                 setStats(calculatedStats);
                 setDiagInfo(diag);
