@@ -110,7 +110,8 @@ export default function KPIPage() {
                 const fLogs = logs.filter(l => { const p = parseTS(l.timestamp); return p ? (p.m === targetM && p.y === targetY) : false; });
                 const fHis = history.filter(h => h.resolvedAt && (parseTS(h.resolvedAt)?.m === targetM));
                 const fInc = incidents.filter(i => i.resolvedAt && (parseTS(i.resolvedAt)?.m === targetM));
-                const fTks = tasks.filter(t => t.completedAt && (parseTS(t.completedAt)?.m === targetM));
+                const fMaintTasks = tasks.filter(t => t.completedAt && (parseTS(t.completedAt)?.m === targetM) && (!t.type || t.type === 'MAINTENANCE'));
+                const fProjTasks = tasks.filter(t => t.completedAt && (parseTS(t.completedAt)?.m === targetM) && t.type === 'PROJECT');
 
                 const groupAct = (data: any[], f: string) => {
                     const m: any = {};
@@ -144,14 +145,28 @@ export default function KPIPage() {
                             (logsByD[k] || []).filter((l: any) => isMatch(l.inspectorCode, u.code)).forEach((l: any) => { if (l.duration < 30) fCC++; });
                         });
                     });
+
+                    const fixCount = fHis.filter(h => isMatch(h.resolverCode, u.code) || isMatch(h.resolverName, u.name)).length;
+                    const incidentCount = fInc.filter(i => isMatch(i.resolvedBy, u.code) || isMatch(i.resolvedBy, u.name) || (i.participants || []).some((p: string) => isMatch(p, u.code) || isMatch(p, u.name))).length;
+                    const maintenanceCount = fMaintTasks.filter(t => (Array.isArray(t.assignees) ? t.assignees : [t.assignees]).some((a: any) => isMatch(a, u.code) || isMatch(a, u.name))).length;
+                    const faultFoundCount = history.filter(h => isMatch(h.inspectorCode, u.code) || isMatch(h.inspectorName, u.name)).length;
+                    const projectExecCount = fProjTasks.filter(t => (t.assignees || []).some((a: any) => isMatch(a, u.code) || isMatch(a, u.name))).length;
+                    const projectSupCount = fProjTasks.filter(t => (t.supervisors || []).some((s: any) => isMatch(s, u.code) || isMatch(s, u.name))).length;
+
+                    const score = (uIn * SCORING_RULES.INSPECTION) +
+                                 (fixCount * SCORING_RULES.FIX) +
+                                 (incidentCount * SCORING_RULES.INCIDENT) +
+                                 (maintenanceCount * SCORING_RULES.MAINTENANCE) +
+                                 (projectExecCount * SCORING_RULES.PROJECT_EXEC) +
+                                 (projectSupCount * SCORING_RULES.PROJECT_SUP) +
+                                 (faultFoundCount * SCORING_RULES.FAULT_FOUND) +
+                                 (fCC * SCORING_RULES.NEGLIGENCE);
+
                     return {
                         userId: u.id, code: u.code, name: u.name, inspectionCount: uIn,
-                        fixCount: fHis.filter(h => isMatch(h.resolverCode, u.code)).length,
-                        incidentCount: fInc.filter(i => isMatch(i.resolvedByCode, u.code)).length,
-                        maintenanceCount: fTks.filter(t => (Array.isArray(t.assignees) ? t.assignees : [t.assignees]).some((a: any) => isMatch(a, u.code))).length,
-                        faultFoundCount: history.filter(h => isMatch(h.inspectorCode, u.code)).length,
-                        projectExecCount: 0, projectSupCount: 0, fastCheckCount: fCC,
-                        score: (uIn * SCORING_RULES.INSPECTION) + (fCC * SCORING_RULES.NEGLIGENCE)
+                        fixCount, incidentCount, maintenanceCount, faultFoundCount,
+                        projectExecCount, projectSupCount, fastCheckCount: fCC,
+                        score
                     };
                 });
 
