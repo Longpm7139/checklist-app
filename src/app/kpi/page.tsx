@@ -174,15 +174,15 @@ export default function KPIPage() {
 
     const handleExport = () => {
         const wb = XLSX.utils.book_new();
-        const data = [
+        const dataArr: any[][] = [
             ["BẢNG XẾP HẠNG KPI", monthFilter],
             [],
             ["Hạng", "Mã NV", "Họ Tên", "Kiểm tra", "Tìm lỗi", "Sửa lỗi", "Sự cố", "Bảo trì", "Thi công", "Giám sát", "Điểm"]
         ];
         stats.forEach((s, i) => {
-            data.push([i + 1, s.code, s.name, s.inspectionCount, s.faultFoundCount, s.fixCount, s.incidentCount, s.maintenanceCount, s.projectExecCount, s.projectSupCount, s.score]);
+            dataArr.push([i + 1, s.code, s.name, s.inspectionCount, s.faultFoundCount, s.fixCount, s.incidentCount, s.maintenanceCount, s.projectExecCount, s.projectSupCount, s.score]);
         });
-        XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(data), "KPI");
+        XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(dataArr), "KPI");
         XLSX.writeFile(wb, `KPI_${monthFilter}.xlsx`);
     };
 
@@ -272,7 +272,14 @@ export default function KPIPage() {
                     {/* MOBILE CARD VIEW */}
                     <div className="md:hidden space-y-4 pb-12">
                         {stats.map((row, idx) => (
-                            <div key={row.userId} onClick={() => setSelectedUser(row)} className={clsx("bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden transition active:scale-[0.98] cursor-pointer", idx === 0 ? "ring-2 ring-amber-400 border-transparent" : "")}>
+                            <div 
+                                key={row.userId} 
+                                onClick={() => {
+                                    console.log("Selected User (Mobile):", row.name);
+                                    setSelectedUser(row);
+                                }} 
+                                className={clsx("bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden transition active:scale-[0.98] cursor-pointer", idx === 0 ? "ring-2 ring-amber-400 border-transparent" : "")}
+                            >
                                 <div className="p-5 flex items-center justify-between border-b border-slate-50 bg-slate-50/50">
                                     <div className="flex items-center gap-4">
                                         <div className={clsx("w-10 h-10 rounded-full flex items-center justify-center font-black text-white shadow-lg", idx === 0 ? "bg-amber-400 rotate-12" : idx === 1 ? "bg-slate-400" : idx === 2 ? "bg-amber-700" : "bg-slate-200 text-slate-500 shadow-none")}>{idx + 1}</div>
@@ -325,7 +332,14 @@ export default function KPIPage() {
                             </thead>
                             <tbody className="divide-y divide-slate-100">
                                 {stats.map((row, idx) => (
-                                    <tr key={row.userId} onClick={() => setSelectedUser(row)} className={clsx("hover:bg-slate-50/80 transition group cursor-pointer", idx === 0 ? "bg-amber-50/30" : "")}>
+                                    <tr 
+                                        key={row.userId} 
+                                        onClick={() => {
+                                            console.log("Selected User:", row.name);
+                                            setSelectedUser(row);
+                                        }} 
+                                        className={clsx("hover:bg-slate-50/80 transition group cursor-pointer", idx === 0 ? "bg-amber-50/30" : "")}
+                                    >
                                         <td className="p-4 text-center"><div className={clsx("w-9 h-9 rounded-full flex items-center justify-center font-black mx-auto shadow-sm", idx === 0 ? "bg-amber-400 text-white" : idx === 1 ? "bg-slate-300 text-white" : idx === 2 ? "bg-amber-600 text-white" : "bg-slate-100 text-slate-400")}>{idx + 1}</div></td>
                                         <td className="p-4 font-black text-slate-800 text-sm whitespace-nowrap">
                                             <div className="flex items-center gap-2">
@@ -353,8 +367,8 @@ export default function KPIPage() {
 
             {/* STAFF PORTFOLIO MODAL */}
             {selectedUser && (
-                <div className="fixed inset-0 z-[100] bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-2 sm:p-4 animate-in fade-in duration-200" onClick={() => setSelectedUser(null)}>
-                    <div className="bg-white w-full max-w-4xl max-h-[90vh] rounded-3xl shadow-2xl overflow-hidden flex flex-col animate-in zoom-in-95 duration-300 border border-white/20" onClick={e => e.stopPropagation()}>
+                <div className="fixed inset-0 z-[100] bg-slate-900/80 backdrop-blur-sm flex items-center justify-center p-2 sm:p-4 transition-all duration-300" onClick={() => setSelectedUser(null)}>
+                    <div className="bg-white w-full max-w-4xl max-h-[95vh] rounded-3xl shadow-2xl overflow-hidden flex flex-col border border-white/20 transition-all transform scale-100" onClick={e => e.stopPropagation()}>
                         {/* Header */}
                         <div className="p-6 bg-slate-800 text-white flex justify-between items-center bg-gradient-to-r from-slate-900 to-slate-800">
                             <div className="flex items-center gap-4">
@@ -437,7 +451,7 @@ export default function KPIPage() {
                                     const uIncidents = incidents.filter(i => i.resolvedAt?.includes(`/${m}/`) && (isMatch(i.resolvedBy, selectedUser.code) || (i.participants || []).some((p: string) => isMatch(p, selectedUser.code))));
                                     const uTasks = tasks.filter(t => t.completedAt?.includes(`/${m}/`) && (t.assignees || []).some((a: string) => isMatch(a, selectedUser.code)));
                                     
-                                    const dataExp = [
+                                    const dataExp: any[][] = [
                                         ["BÁO CÁO CÁ NHÂN", selectedUser.name],
                                         ["Mã Nhân Viên", selectedUser.code],
                                         ["Tháng", `${m}/${y}`],
