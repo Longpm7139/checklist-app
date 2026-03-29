@@ -407,18 +407,60 @@ export default function KPIPage() {
                             <div className="p-6 space-y-6">
                                 <div>
                                     <h4 className="text-xs font-black uppercase text-slate-500 tracking-[0.2em] mb-4 flex items-center gap-2">
-                                        <Activity size={14} /> Minh chứng công việc (Month Evidence)
+                                        <Activity size={14} /> Minh chứng công việc (Bằng chứng điểm số)
                                     </h4>
                                     <div className="space-y-3">
                                         {(() => {
                                             const [y, m] = monthFilter.split('-');
+                                            const targetM = Number(m), targetY = Number(y);
+                                            
+                                            // 1. Logs by this user directly
                                             const uLogs = logs.filter(l => l.timestamp.includes(`/${m}/`) && isMatch(l.inspectorCode, selectedUser.code));
+                                            
+                                            // 2. Team-based Inspections (From Duties)
+                                            const teamDuties: any[] = [];
+                                            duties.filter(d => {
+                                                const p = d.date.split('-');
+                                                return Number(p[1]) === targetM && Number(p[0]) === targetY;
+                                            }).forEach(dDuty => {
+                                                ['DAY', 'NIGHT'].forEach(st => {
+                                                    const crew = dDuty.assignments?.filter((a: any) => {
+                                                        const aS = normalize(a.shift || '');
+                                                        if (!(aS.includes('ngay') || aS.includes('dem') || aS === normalize(st))) return false;
+                                                        return isMatch(a.userCode, selectedUser.code) || isMatch(a.userName, selectedUser.name);
+                                                    }) || [];
+                                                    if (crew.length === 0) return;
+                                                    
+                                                    // Check if this shift actually happened (has logs)
+                                                    const k = `${dDuty.date}_${st}`;
+                                                    const hasLogs = logs.some(l => {
+                                                        const p = l.timestamp.split(' ')[0].split('/');
+                                                        const lD = `${p[2]}-${p[1].padStart(2,'0')}-${p[0].padStart(2,'0')}`;
+                                                        const timeH = parseInt(l.timestamp.split(' ')[1]?.split(':')[0] || "0");
+                                                        const lShift = (timeH >= 6 && timeH < 18) ? 'DAY' : 'NIGHT';
+                                                        return lD === dDuty.date && lShift === st;
+                                                    });
+
+                                                    if (hasLogs) {
+                                                        const [y, mm, dd] = dDuty.date.split('-');
+                                                        teamDuties.push({
+                                                            t: `${dd}/${mm}/${y} 00:00`,
+                                                            type: 'Trực ca',
+                                                            detail: `Trực ca ${st === 'DAY' ? 'Ngày' : 'Đêm'} (Cùng nhóm)`,
+                                                            pts: '+11',
+                                                            color: 'blue'
+                                                        });
+                                                    }
+                                                });
+                                            });
+
+                                            // 3. Other actions
                                             const uHistory = history.filter(h => h.resolvedAt && h.resolvedAt.includes(`/${m}/`) && (isMatch(h.resolverCode, selectedUser.code) || isMatch(h.inspectorCode, selectedUser.code)));
                                             const uIncidents = incidents.filter(i => i.resolvedAt?.includes(`/${m}/`) && (isMatch(i.resolvedBy, selectedUser.code) || (i.participants || []).some((p: string) => isMatch(p, selectedUser.code))));
                                             const uTasks = tasks.filter(t => t.completedAt?.includes(`/${m}/`) && (t.assignees || []).some((a: string) => isMatch(a, selectedUser.code)));
 
                                             const allActions = [
-                                                ...uLogs.map(l => ({ t: l.timestamp, type: 'Kiểm tra', detail: `Kiểm tra ${l.systemName}`, pts: '+1', color: 'blue' })),
+                                                ...teamDuties,
                                                 ...uHistory.map(h => ({ t: h.resolvedAt || h.timestamp, type: isMatch(h.resolverCode, selectedUser.code) ? 'Sửa lỗi' : 'Báo lỗi', detail: h.systemName, pts: isMatch(h.resolverCode, selectedUser.code) ? '+4' : '+3', color: isMatch(h.resolverCode, selectedUser.code) ? 'green' : 'amber' })),
                                                 ...uIncidents.map(i => ({ t: i.resolvedAt || i.createdAt, type: 'Sự cố', detail: i.systemName, pts: '+5', color: 'red' })),
                                                 ...uTasks.map(t => ({ t: t.completedAt || t.createdAt, type: t.type === 'PROJECT' ? 'Dự án' : 'Bảo trì', detail: t.title, pts: t.type === 'PROJECT' ? '+10' : '+8', color: t.type === 'PROJECT' ? 'indigo' : 'cyan' }))
