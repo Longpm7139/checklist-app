@@ -95,9 +95,10 @@ export default function KPIPage() {
     useEffect(() => {
         if (!monthFilter || allUsers.length === 0) return;
 
-        const calculateStats = () => {
+                const calculateStats = () => {
             try {
-                const removeAccents = (str: string) => str.normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/đ/g, 'd').replace(/Đ/g, 'D');
+                const diag: string[] = [];
+                const removeAccents = (str: string) => (str || '').toString().normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/đ/g, 'd').replace(/Đ/g, 'D');
 
                 const normalize = (val: any) => {
                     const s = (val || '').toString().trim().toLowerCase();
@@ -108,72 +109,55 @@ export default function KPIPage() {
                     if (!val1 || !val2) return false;
                     const n1 = normalize(val1);
                     const n2 = normalize(val2);
+                    if (n1 === '' || n2 === '') return false;
                     if (n1 === n2) return true;
+                    // Partial matching for codes (0585 vs 0585VP)
+                    if (n1.includes(n2) || n2.includes(n1)) return true;
+                    // Numeric only check
                     const num1 = n1.replace(/\D/g, '');
                     const num2 = n2.replace(/\D/g, '');
                     if (num1 !== '' && num1 === num2) return true;
-                    if (n1.length > 3 && n2.length > 3) {
-                        return n1.includes(n2) || n2.includes(n1);
-                    }
                     return false;
                 };
 
-                const [filterYear, filterMonth] = monthFilter.split('-');
-                const targetM = Number(filterMonth);
-                const targetY = Number(filterYear);
-                const diagnostics: string[] = [];
+                const [fY, fM] = monthFilter.split('-');
+                const targetM = Number(fM);
+                const targetY = Number(fY);
 
                 const parseTimestamp = (ts: string): { d: number, m: number, y: number, h: number, min: number } | null => {
                     if (!ts || typeof ts !== 'string') return null;
                     const s = ts.trim();
                     let d = -1, m = -1, y = -1, h = 0, min = 0;
                     const dateMatch = s.match(/(\d{1,2})[\/.-](\d{1,2})[\/.-](\d{4})/) || 
-                                      s.match(/(\d{4})[\/.-](\d{1,2})[\/.-](\d{1,2})/) || 
-                                      s.match(/(\d{1,2})\s+(?:thg|th[aá]ng)\s+(\d{1,2})[,\s]+(\d{4})/i);
+                                      s.match(/(\d{4})[\/.-](\d{1,2})[\/.-](\d{1,2})/);
                     if (dateMatch) {
                         if (dateMatch[1].length === 4) { y = Number(dateMatch[1]); m = Number(dateMatch[2]); d = Number(dateMatch[3]); }
                         else { d = Number(dateMatch[1]); m = Number(dateMatch[2]); y = Number(dateMatch[3]); }
                     } else {
                         const nums = s.match(/\d+/g);
-                        if (nums && nums.length >= 3) {
-                             y = Number(nums[2]); if (y < 100) y += 2000;
-                             d = Number(nums[0]); m = Number(nums[1]);
-                        } else return null;
+                        if (nums && nums.length >= 3) { d = Number(nums[0]); m = Number(nums[1]); y = Number(nums[2]); if (y < 100) y += 2000; }
+                        else return null;
                     }
                     const timeMatch = s.match(/(\d{1,2})[:](\d{1,2})/);
                     if (timeMatch) { h = Number(timeMatch[1]); min = Number(timeMatch[2]); }
                     const sLow = s.toLowerCase();
-                    const isPM = /(?<![a-záàảãạăắằẳẵặâấầẩẫậéèẻẽẹêếềểễệíìỉĩịóòỏõọôốồổỗộơớờởỡợúùủũụưứừửữựýỳỷỹỵđ])ch(?![a-záàảãạăắằẳẵặâấầẩẫậéèẻẽẹêếềểễệíìỉĩịóòỏõọôốồổỗộơớờởỡợúùủũụưứừửữựýỳỷỹỵđ])/i.test(s) || sLow.includes('chiều') || /\bp\.?m\.?\b/i.test(s);
-                    const isAM = /(?<![a-záàảãạăắằẳẵặâấầẩẫậéèẻẽẹêếềểễệíìỉĩịóòỏõọôốồổỗộơớờởỡợúùủũụưứừửữựýỳỷỹỵđ])sa(?![a-záàảãạăắằẳẵặâấầẩẫậéèẻẽẹêếềểễệíìỉĩịóòỏõọôốồổỗộơớờởỡợúùủũụưứừửữựýỳỷỹỵđ])/i.test(s) || sLow.includes('sáng') || /\ba\.?m\.?\b/i.test(s);
+                    const isPM = sLow.includes('ch') || sLow.includes('chiều') || /\bp\.?m\.?\b/i.test(s);
+                    const isAM = sLow.includes('sa') || sLow.includes('sáng') || /\ba\.?m\.?\b/i.test(s);
                     if (isPM && h < 12) h += 12; else if (isAM && h === 12) h = 0;
                     if (y < 100) y += 2000;
                     if (d === -1 || m === -1 || y === -1) return null;
                     return { d, m, y, h, min };
                 };
 
-                const isMonthYearMatch = (timestamp: string, targetMonth: number, targetYear: number): boolean => {
-                    const p = parseTimestamp(timestamp);
-                    return p ? (p.m === targetMonth && p.y === targetYear) : false;
-                };
-
                 const toDateStr = (dt: Date) => `${dt.getFullYear()}-${String(dt.getMonth() + 1).padStart(2, '0')}-${String(dt.getDate()).padStart(2, '0')}`;
                 
-                const nextMonthDate = new Date(targetY, targetM, 1);
-                const nextM = nextMonthDate.getMonth() + 1;
-                const nextY = nextMonthDate.getFullYear();
-
-                const filteredLogs = logs.filter((l: any) => {
+                const filteredLogs = logs.filter(l => {
                     const p = parseTimestamp(l.timestamp);
-                    if (!p) return false;
-                    if (p.m === targetM && p.y === targetY) return true;
-                    if (p.m === nextM && p.y === nextY && p.d === 1 && p.h >= 0 && p.h <= 9) return true;
-                    return false;
+                    return p ? (p.m === targetM && p.y === targetY) : false;
                 });
-
-                const filteredHistory = history.filter((h: any) => h.resolvedAt && isMonthYearMatch(h.resolvedAt, targetM, targetY));
-                const filteredHistoryCreated = history.filter((h: any) => isMonthYearMatch(h.timestamp, targetM, targetY));
-                const filteredIncidents = incidents.filter((i: any) => i.resolvedAt && i.status === 'RESOLVED' && isMonthYearMatch(i.resolvedAt, targetM, targetY));
-                const filteredTasks = tasks.filter((t: any) => t.completedAt && t.status === 'COMPLETED' && isMonthYearMatch(t.completedAt, targetM, targetY));
+                const filteredHistory = history.filter(h => h.resolvedAt && (parseTimestamp(h.resolvedAt)?.m === targetM));
+                const filteredIncidents = incidents.filter(i => i.resolvedAt && (parseTimestamp(i.resolvedAt)?.m === targetM));
+                const filteredTasks = tasks.filter(t => t.completedAt && (parseTimestamp(t.completedAt)?.m === targetM));
 
                 const getLogDutyCandidates = (timestamp: string) => {
                     const p = parseTimestamp(timestamp);
@@ -181,9 +165,11 @@ export default function KPIPage() {
                     const hh = p.h;
                     const candidates: { dutyDateStr: string, shift: 'DAY' | 'NIGHT' }[] = [];
                     const logDate = new Date(p.y, p.m - 1, p.d);
-                    if (hh >= 4 && hh <= 20) candidates.push({ dutyDateStr: toDateStr(logDate), shift: 'DAY' });
-                    if (hh >= 16) candidates.push({ dutyDateStr: toDateStr(logDate), shift: 'NIGHT' });
-                    if (hh <= 11) {
+                    const ds = toDateStr(logDate);
+                    // Broad window 
+                    if (hh >= 4 && hh <= 22) candidates.push({ dutyDateStr: ds, shift: 'DAY' });
+                    if (hh >= 16) candidates.push({ dutyDateStr: ds, shift: 'NIGHT' });
+                    if (hh <= 12) {
                         const prev = new Date(logDate);
                         prev.setDate(prev.getDate() - 1);
                         candidates.push({ dutyDateStr: toDateStr(prev), shift: 'NIGHT' });
@@ -196,32 +182,21 @@ export default function KPIPage() {
                     data.forEach(item => {
                         const ts = item[dateField];
                         if (!ts) return;
-                        const candidates = getLogDutyCandidates(ts);
-                        candidates.forEach(cand => {
-                            const key = `${cand.dutyDateStr}_${cand.shift}`;
-                            if (!map[key]) map[key] = [];
-                            map[key].push(item);
+                        getLogDutyCandidates(ts).forEach(cand => {
+                            const k = `${cand.dutyDateStr}_${cand.shift}`;
+                            if (!map[k]) map[k] = [];
+                            map[k].push(item);
                         });
                     });
                     return map;
                 };
 
                 const logsByDuty = groupActivity(filteredLogs, 'timestamp');
-                const historyByDuty = groupActivity(filteredHistoryCreated, 'timestamp');
+                const historyByDuty = groupActivity(history, 'timestamp');
                 const incidentsByDuty = groupActivity(incidents, 'timestamp');
                 const maintenanceByDuty = groupActivity(tasks, 'timestamp');
 
-                                // Trace specific shift for debugging
-                const traceKey = "2026-03-26_NIGHT";
-                const traceLogs = (logsByDuty[traceKey] || []).length;
-                const traceHistory = (historyByDuty[traceKey] || []).length;
-                const traceIncidents = (incidentsByDuty[traceKey] || []).length;
-                const traceTasks = (maintenanceByDuty[traceKey] || []).length;
-                diagnostics.push(`Trace ${traceKey}: L:${traceLogs} H:${traceHistory} I:${traceIncidents} T:${traceTasks}`);
-                
-                diagnostics.push(`Incidents: ${filteredIncidents.length}, Tasks: ${filteredTasks.length}`);
-
-                diagnostics.push(`Logs: ${filteredLogs.length}, Raw: ${logs.length}, Duties: ${duties.length}`);
+                diag.push(`Data: L:${filteredLogs.length} H:${filteredHistory.length} D:${duties.length}`);
 
                 const calculatedStats = allUsers.map(u => {
                     let userInspections = 0;
@@ -229,96 +204,65 @@ export default function KPIPage() {
 
                     duties.forEach(dayDuty => {
                         const dateStr = dayDuty.date;
-                        ['DAY', 'NIGHT'].forEach(shiftType => {
-                            const shiftAssignments = dayDuty.assignments?.filter((a: any) => a.shift === shiftType && (isMatch(a.userCode, u.code) || isMatch(a.userName, u.name))) || [];
-                            if (shiftAssignments.length === 0) return;
+                        ['DAY', 'NIGHT'].forEach(st => {
+                            // Find assignments for this shift - handle different shift names
+                            const assignments = dayDuty.assignments?.filter((a: any) => {
+                                const aShift = normalize(a.shift || '');
+                                const targetShift = normalize(st === 'DAY' ? 'CA NGÀY' : 'CA ĐÊM');
+                                // Also handle 'DAY' and 'NIGHT' directly
+                                const isShiftMatch = aShift.includes('ngay') || aShift.includes('dem') || aShift === normalize(st);
+                                if (!isShiftMatch) return false;
+                                return isMatch(a.userCode, u.code) || isMatch(a.userName, u.name);
+                            }) || [];
 
-                            const shiftTeamMembers = dayDuty.assignments?.filter((a: any) => a.shift === shiftType).map((a: any) => a.userCode) || [];
-                            const shiftTeamNames = dayDuty.assignments?.filter((a: any) => a.shift === shiftType).map((a: any) => a.userName) || [];
+                            if (assignments.length === 0) return;
+
+                            const key = `${dateStr}_${st}`;
+                            const crew = dayDuty.assignments?.filter((a: any) => {
+                                const aS = normalize(a.shift || '');
+                                return aS.includes(st === 'DAY' ? 'ngay' : 'dem') || aS === normalize(st);
+                            }) || [];
                             
-                             const key = `${dateStr}_${shiftType}`;
-                             
-                             const teamLogs = (logsByDuty[key] || []).filter(l => shiftTeamMembers.some(m => isMatch(m, l.inspectorCode)) || shiftTeamNames.some(m => isMatch(m, l.inspectorName)));
-                             const teamHistory = (historyByDuty[key] || []).filter(h => shiftTeamMembers.some(m => isMatch(m, h.inspectorCode)) || shiftTeamNames.some(m => isMatch(m, h.inspectorName)));
-                             const teamIncidents = (incidentsByDuty[key] || []).filter(i => {
-                                 const workers = [...(Array.isArray(i.resolvedByCode)?i.resolvedByCode:String(i.resolvedByCode||'').split(',')), ...(Array.isArray(i.participants)?i.participants:String(i.participants||'').split(','))];
-                                 return shiftTeamMembers.some(m => workers.some(w => isMatch(m, w))) || shiftTeamNames.some(m => workers.some(w => isMatch(m, w)));
-                             });
-                             const teamTasks = (maintenanceByDuty[key] || []).filter(t => {
-                                 const assignees = Array.isArray(t.assignees) ? t.assignees : String(t.assignees||'').split(',');
-                                 return shiftTeamMembers.some(m => assignees.some(a => isMatch(m, a))) || shiftTeamNames.some(m => assignees.some(a => isMatch(m, a)));
-                             });
-                             const teamSystems = systems.filter(s => {
-                                 const systemP = parseTimestamp(s.timestamp || '');
-                                 if (!systemP) return false;
-                                 const sh = systemP.h;
-                                 const sDate = new Date(systemP.y, systemP.m - 1, systemP.d);
-                                 let systemDutyDate = toDateStr(sDate);
-                                 let shiftMatch = false;
-                                 if (shiftType === 'DAY') shiftMatch = (sh >= 4 && sh <= 20) && systemDutyDate === dateStr;
-                                 else {
-                                     if (sh <= 11) { const prev = new Date(sDate); prev.setDate(prev.getDate() - 1); systemDutyDate = toDateStr(prev); shiftMatch = systemDutyDate === dateStr; }
-                                     else if (sh >= 16) { shiftMatch = systemDutyDate === dateStr; }
-                                 }
-                                 if (!shiftMatch) return false;
-                                 return shiftTeamMembers.some(m => isMatch(m, s.inspectorCode)) || shiftTeamNames.some(m => isMatch(m, s.inspectorName));
-                             });
+                            const teamHasActivity = (logsByDuty[key] || []).some(l => crew.some(m => isMatch(m.userCode, l.inspectorCode) || isMatch(m.userName, l.inspectorName))) ||
+                                                    (historyByDuty[key] || []).some(h => crew.some(m => isMatch(m.userCode, h.inspectorCode) || isMatch(m.userName, h.inspectorName))) ||
+                                                    (incidentsByDuty[key] || []).some(i => {
+                                                        const wrks = [...(Array.isArray(i.resolvedByCode)?i.resolvedByCode:[i.resolvedByCode]), ...(Array.isArray(i.participants)?i.participants:[i.participants])].filter(Boolean);
+                                                        return crew.some(m => wrks.some(w => isMatch(m.userCode, w) || isMatch(m.userName, w)));
+                                                    }) ||
+                                                    (maintenanceByDuty[key] || []).some(t => {
+                                                        const asgn = Array.isArray(t.assignees) ? t.assignees : [t.assignees];
+                                                        return crew.some(m => asgn.some(a => isMatch(m.userCode, a) || isMatch(m.userName, a)));
+                                                    });
 
-                             if (teamLogs.length > 0 || teamHistory.length > 0 || teamIncidents.length > 0 || teamTasks.length > 0 || teamSystems.length > 0) {
-                                 userInspections += 11;
-                             }
-                             (logsByDuty[key] || []).filter(l => isMatch(l.inspectorCode, u.code) || isMatch(l.inspectorName, u.name)).forEach(l => { if (l.duration && l.duration < 30) fastChecksCount++; });
+                            if (teamHasActivity) userInspections += 11;
+                            (logsByDuty[key] || []).filter(l => isMatch(l.inspectorCode, u.code)).forEach(l => { if (l.duration < 30) fastChecksCount++; });
                         });
                     });
 
-                    const userFaultsFound = filteredHistoryCreated.filter(h => isMatch(h.inspectorCode, u.code) || isMatch(h.inspectorName, u.name)).length;
-                    const userFixes = filteredHistory.filter(h => isMatch(h.resolverCode, u.code) || isMatch(h.resolverName, u.name)).length;
-                    const userIncidents = filteredIncidents.filter(i => {
-                        const workers = [...(Array.isArray(i.resolvedByCode)?i.resolvedByCode:String(i.resolvedByCode||'').split(',')), ...(Array.isArray(i.resolvedBy)?i.resolvedBy:String(i.resolvedBy||'').split(',')), ...(Array.isArray(i.participants)?i.participants:String(i.participants||'').split(','))];
-                        return workers.some(w => isMatch(w, u.code) || isMatch(w, u.name));
-                    }).length;
-                    const userMaintenance = filteredTasks.filter(t => t.type !== 'PROJECT' && (Array.isArray(t.assignees) ? t.assignees : String(t.assignees||'').split(',')).some(a => isMatch(a, u.code) || isMatch(a, u.name))).length;
-                    const userProjectExec = filteredTasks.filter(t => t.type === 'PROJECT' && (Array.isArray(t.assignees) ? t.assignees : String(t.assignees||'').split(',')).some(a => isMatch(a, u.code) || isMatch(a, u.name))).length;
-                    const userProjectSup = filteredTasks.filter(t => (Array.isArray(t.supervisors) ? t.supervisors : String(t.supervisors||'').split(',')).some(a => isMatch(a, u.code) || isMatch(a, u.name))).length;
-
                     return {
                         userId: u.id, code: u.code, name: u.name,
-                        inspectionCount: userInspections, fixCount: userFixes, incidentCount: userIncidents,
-                        maintenanceCount: userMaintenance, faultFoundCount: userFaultsFound,
-                        projectExecCount: userProjectExec, projectSupCount: userProjectSup,
-                        fastCheckCount: fastChecksCount,
-                        score: (userInspections * SCORING_RULES.INSPECTION) + (userFaultsFound * SCORING_RULES.FAULT_FOUND) + (userFixes * SCORING_RULES.FIX) + (userIncidents * SCORING_RULES.INCIDENT) + (userMaintenance * SCORING_RULES.MAINTENANCE) + (userProjectExec * SCORING_RULES.PROJECT_EXEC) + (userProjectSup * SCORING_RULES.PROJECT_SUP) + (fastChecksCount * SCORING_RULES.NEGLIGENCE)
+                        inspectionCount: userInspections, 
+                        fixCount: filteredHistory.filter(h => isMatch(h.resolverCode, u.code)).length,
+                        incidentCount: filteredIncidents.filter(i => isMatch(i.resolvedByCode, u.code)).length,
+                        maintenanceCount: filteredTasks.filter(t => (Array.isArray(t.assignees) ? t.assignees : [t.assignees]).some(a => isMatch(a, u.code))).length,
+                        faultFoundCount: history.filter(h => isMatch(h.inspectorCode, u.code)).length,
+                        projectExecCount: 0, projectSupCount: 0, fastCheckCount: fastChecksCount,
+                        score: (userInspections * SCORING_RULES.INSPECTION) + (fastChecksCount * SCORING_RULES.NEGLIGENCE)
                     };
                 });
 
                 calculatedStats.sort((a, b) => b.score - a.score);
-                                // DEEP TRACE FOR PHÚC (0585VP)
-                let totalDailyInspections = 0;
-                Object.keys(logsByDuty).forEach(k => { if (k.includes('_')) totalDailyInspections += 11; });
-                setTotalInspectionsCount(totalDailyInspections);
-
-                const phucTrace = allUsers.find(u => u.code && u.code.includes('0585'));
-                if (phucTrace) {
-                    diagnostics.push(`Phúc Found: ${phucTrace.name} (${phucTrace.code})`);
-                    duties.filter(d => d.date === '2026-03-26').forEach(d => {
-                        const nightShift = d.assignments?.filter(a => a.shift === 'NIGHT' || a.shift === 'CA ĐÊM' || a.shift === 'ca_dem');
-                        diagnostics.push(`26th Night Crew: ${(nightShift||[]).map(a => a.userName || a.userCode).join(', ')}`);
-                        const isAssigned = (nightShift||[]).some(a => isMatch(a.userCode, phucTrace.code) || isMatch(a.userName, phucTrace.name));
-                        diagnostics.push(`Phúc Assigned to 26th Night? ${isAssigned ? 'YES' : 'NO'}`);
-                    });
-                }
-
                 setStats(calculatedStats);
-                setDiagInfo(diagnostics);
-            } catch (e) {
-                console.error("KPI Calculation error", e);
-                setDiagInfo(["Error: " + e.message]);
+                setDiagInfo(diag);
+                setTotalInspectionsCount(Object.keys(logsByDuty).length * 11);
+            } catch (e: any) {
+                console.error("KPI Error", e);
+                setDiagInfo(["Crash: " + e.message]);
             }
         };
 
         calculateStats();
-
-    }, [monthFilter, allUsers, logs, history, incidents, tasks, duties, systems]);
+    , [monthFilter, allUsers, logs, history, incidents, tasks, duties, systems]);
 
     if (currentUser?.role !== 'ADMIN') {
         return (
