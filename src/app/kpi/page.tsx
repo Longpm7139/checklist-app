@@ -211,6 +211,7 @@ export default function KPIPage() {
                 const incidentsByDuty = groupActivity(incidents, 'timestamp');
                 const maintenanceByDuty = groupActivity(tasks, 'timestamp');
 
+                diagnostics.push(`Incidents: ${filteredIncidents.length}, Tasks: ${filteredTasks.length}`);
                 diagnostics.push(`Logs: ${filteredLogs.length}, Raw: ${logs.length}, Duties: ${duties.length}`);
 
                 const calculatedStats = allUsers.map(u => {
@@ -357,6 +358,23 @@ export default function KPIPage() {
                         </div>
                     </div>
                 </header>
+
+                {/* DIAGNOSTIC PANEL (DEBUG MODE) */}
+                {currentUser?.role === 'ADMIN' && (
+                    <div className="mb-6 bg-slate-900 text-white p-4 rounded-xl text-[10px] font-mono shadow-2xl border-2 border-yellow-500/50">
+                        <div className="flex items-center gap-2 mb-2 text-yellow-400 font-bold uppercase text-[11px]">
+                            <span className="animate-spin text-lg">⚙️</span> KPI Diagnostic Console (VERSION 5.0 - RESCUE READY)
+                        </div>
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-2 opacity-80">
+                            {diagInfo.map((info, i) => (
+                                <div key={i} className="border-b border-slate-700 pb-1">{info}</div>
+                            ))}
+                        </div>
+                        <div className="mt-4 pt-2 border-t border-slate-700 whitespace-nowrap overflow-x-auto text-[9px] text-blue-400">
+                            <b>Sample Logs:</b> {logs.slice(0, 5).map(l => l.timestamp).join(' | ')}
+                        </div>
+                    </div>
+                )}
 
                 {/* Top Statistics Cards (Responsive Stack) */}
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 mb-6">
@@ -579,16 +597,7 @@ export default function KPIPage() {
                     * Bảng điểm được cập nhật tự động theo cơ cấu điểm ở trên.
                 </div>
 
-                {/* DIAGNOSTIC PANEL (Admin Only) */}
-                {currentUser?.role === 'ADMIN' && (
-                    <div className="max-w-6xl mx-auto mt-12 mb-6 bg-slate-800 text-slate-300 p-4 rounded-xl text-[10px] font-mono shadow-lg border border-slate-700">
-                        <div className="flex items-center gap-2 mb-2 text-yellow-500 font-bold uppercase text-[11px]">
-                            <Settings size={14} /> KPI Diagnostic Console (Admin Only)
-                        </div>
-                        <div className="grid grid-cols-1 md:grid-cols-3 gap-x-8 gap-y-2 opacity-80">
-                            {diagInfo.map((info, i) => (
-                                <div key={i} className="border-b border-slate-700/50 pb-1">{info}</div>
-                            ))}
+                
                         </div>
                         <div className="mt-4 pt-2 border-t border-slate-700 whitespace-nowrap overflow-x-auto text-[9px] text-blue-300">
                             <b>Sample Logs Timestamps:</b> {logs.slice(0, 5).map(l => l.timestamp).join(' | ')}
