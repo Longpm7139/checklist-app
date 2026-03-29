@@ -52,6 +52,21 @@ const RULE_LABELS: Record<string, string> = {
     NEGLIGENCE: 'Kiểm tra ẩu'
 };
 
+const parseTS = (ts: string) => {
+    if (!ts || typeof ts !== 'string') return null;
+    const s = ts.trim();
+    let d = -1, m = -1, y = -1, h = 0;
+    const dateMatch = s.match(/(\d{1,2})[\/.-](\d{1,2})[\/.-](\d{4})/) || s.match(/(\d{4})[\/.-](\d{1,2})[\/.-](\d{1,2})/);
+    if (dateMatch) {
+        if (dateMatch[1].length === 4) { y = Number(dateMatch[1]); m = Number(dateMatch[2]); d = Number(dateMatch[3]); }
+        else { d = Number(dateMatch[1]); m = Number(dateMatch[2]); y = Number(dateMatch[3]); }
+        const timeMatch = s.match(/(\d{1,2}):(\d{2})/);
+        if (timeMatch) h = Number(timeMatch[1]);
+        return { d, m, y, h };
+    }
+    return null;
+};
+
 export default function KPIPage() {
     const router = useRouter();
     const { user: currentUser } = useUser();
@@ -94,21 +109,6 @@ export default function KPIPage() {
             try {
                 const [fY, fM] = monthFilter.split('-');
                 const targetM = Number(fM), targetY = Number(fY);
-
-                const parseTS = (ts: string) => {
-                    if (!ts || typeof ts !== 'string') return null;
-                    const s = ts.trim();
-                    let d = -1, m = -1, y = -1, h = 0;
-                    const dateMatch = s.match(/(\d{1,2})[\/.-](\d{1,2})[\/.-](\d{4})/) || s.match(/(\d{4})[\/.-](\d{1,2})[\/.-](\d{1,2})/);
-                    if (dateMatch) {
-                        if (dateMatch[1].length === 4) { y = Number(dateMatch[1]); m = Number(dateMatch[2]); d = Number(dateMatch[3]); }
-                        else { d = Number(dateMatch[1]); m = Number(dateMatch[2]); y = Number(dateMatch[3]); }
-                        const timeMatch = s.match(/(\d{1,2}):(\d{2})/);
-                        if (timeMatch) h = Number(timeMatch[1]);
-                        return { d, m, y, h };
-                    }
-                    return null;
-                };
 
                 const fLogs = logs.filter(l => { const p = parseTS(l.timestamp); return p && p.m === targetM && p.y === targetY; });
                 const fHis = history.filter(h => h.resolvedAt && parseTS(h.resolvedAt)?.m === targetM && parseTS(h.resolvedAt)?.y === targetY);
@@ -432,12 +432,11 @@ export default function KPIPage() {
                                                     if (crew.length === 0) return;
                                                     
                                                     // Check if this shift actually happened (has logs)
-                                                    const k = `${dDuty.date}_${st}`;
                                                     const hasLogs = logs.some(l => {
-                                                        const p = l.timestamp.split(' ')[0].split('/');
-                                                        const lD = `${p[2]}-${p[1].padStart(2,'0')}-${p[0].padStart(2,'0')}`;
-                                                        const timeH = parseInt(l.timestamp.split(' ')[1]?.split(':')[0] || "0");
-                                                        const lShift = (timeH >= 6 && timeH < 18) ? 'DAY' : 'NIGHT';
+                                                        const p = parseTS(l.timestamp);
+                                                        if (!p) return false;
+                                                        const lD = `${p.y}-${String(p.m).padStart(2, '0')}-${String(p.d).padStart(2, '0')}`;
+                                                        const lShift = (p.h >= 6 && p.h < 18) ? 'DAY' : 'NIGHT';
                                                         return lD === dDuty.date && lShift === st;
                                                     });
 
