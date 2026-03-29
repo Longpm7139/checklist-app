@@ -12,12 +12,12 @@ import clsx from 'clsx';
 import { useUser } from '@/providers/UserProvider';
 import ChangePasswordModal from '@/components/ChangePasswordModal';
 import { IMESafeInput } from '@/components/IMESafeInput';
+import HandoffModal from '@/components/dashboard/HandoffModal';
+import Header from '@/components/dashboard/Header';
+import ActionButtons from '@/components/dashboard/ActionButtons';
+import DashboardStats from '@/components/dashboard/DashboardStats';
+import ShiftBanner from '@/components/dashboard/ShiftBanner';
 import { ImageUpload } from '@/components/ImageUpload';
-import {
-  Document, Packer, Paragraph, TextRun, Table, TableRow, TableCell,
-  AlignmentType, WidthType, BorderStyle, HeadingLevel, VerticalAlign
-} from 'docx';
-import { saveAs } from 'file-saver';
 
 const DEFAULT_CATEGORIES: SystemCategory[] = [
   { id: 'CAT1', name: 'A. Hệ thống Cầu hành khách' },
@@ -204,6 +204,10 @@ export default function Home() {
     const now = new Date().toLocaleString('vi-VN', { hour: '2-digit', minute: '2-digit', day: '2-digit', month: '2-digit', year: 'numeric', hour12: false });
     const target = systems.find(s => s.id === id);
     if (target) {
+      // NOTE: User requested points to be assigned when shifting status.
+      // We only log if the status genuinely changes to keep logs clean and informative.
+      const isStatusChanged = target.status !== status;
+
       const updated = { 
         ...target, 
         status, 
@@ -212,7 +216,25 @@ export default function Home() {
         inspectorCode: user?.code,
         imageUrl: status === 'OK' ? '' : target.imageUrl
       };
-      await saveSystem(id, updated);
+      
+      const dbPromises = [];
+      dbPromises.push(saveSystem(id, updated));
+
+      if (isStatusChanged) {
+        dbPromises.push(addLog({
+          id: `${id}_${Date.now()}`,
+          timestamp: now,
+          inspectorName: user?.name || 'Unknown',
+          inspectorCode: user?.code || 'UNKNOWN',
+          systemId: target.id,
+          systemName: target.name,
+          result: status,
+          note: `Thay đổi trạng thái nhanh: ${status}`,
+          duration: 15 // Estimated 15 seconds to visually check
+        }));
+      }
+
+      await Promise.all(dbPromises);
 
       if (status === 'NOK') {
         setSessionInteractedNokIds(prev => new Set(prev).add(id));
@@ -552,403 +574,42 @@ export default function Home() {
   if (!isLoaded) return null;
 
   return (
-    <div className="min-h-screen bg-slate-50 p-4 font-sans text-slate-900">
-      <div className="max-w-4xl mx-auto bg-white border border-slate-300 shadow-sm relative pb-28">
-        <h1 className="text-xl font-bold bg-slate-800 text-white p-4 text-center uppercase flex justify-between items-center relative">
-          <div className="flex flex-col items-start gap-1">
-            <span>Bảng Kiểm Tra Hệ Thống</span>
-            {user && <span className="text-xs font-normal text-slate-300 normal-case">Nhân viên: {user.name} ({user.code})</span>}
-          </div>
-          <div className="flex gap-2 flex-wrap justify-end">
-            <button
-              onClick={() => router.push('/incidents')}
-              className="p-2 rounded text-sm font-normal flex items-center gap-1 bg-red-600 hover:bg-red-700 text-white transition"
-              title="Sự Cố Đột Xuất (Báo ngay)"
-            >
-              <AlertCircle size={16} />
-            </button>
-            <button
-              onClick={() => router.push('/maintenance')}
-              className="p-2 rounded text-sm font-normal flex items-center gap-1 bg-blue-800 hover:bg-blue-900 text-white transition"
-              title="Bảo Trì Định Kỳ"
-            >
-              <Wrench size={16} />
-            </button>
-            {user?.role === 'ADMIN' && (
-              <>
-                <button
-                  onClick={() => router.push('/export-report')}
-                  className="p-2 rounded text-sm font-normal flex items-center gap-1 bg-teal-600 hover:bg-teal-700 text-white transition"
-                  title="Xuất báo cáo định kỳ (Word)"
-                >
-                  <FileText size={16} /> Báo cáo
-                </button>
-                <button
-                  onClick={() => router.push('/reports')}
-                  className="p-2 rounded text-sm font-normal flex items-center gap-1 bg-green-600 hover:bg-green-700 text-white transition"
-                  title="Nhật ký hoạt động"
-                >
-                  <ClipboardList size={16} />
-                </button>
-                <button
-                  onClick={() => router.push('/kpi')}
-                  className="p-2 rounded text-sm font-normal flex items-center gap-1 bg-blue-600 hover:bg-blue-700 text-white transition"
-                  title="Đánh giá KPI"
-                >
-                  <BarChart2 size={16} />
-                </button>
-                <button
-                  onClick={() => router.push('/materials')}
-                  className="p-2 rounded text-sm font-normal flex items-center gap-1 bg-amber-600 hover:bg-amber-700 text-white transition"
-                  title="Quản lý Vật tư"
-                >
-                  <Package size={16} />
-                </button>
-                <button
-                  onClick={() => router.push('/analytics')}
-                  className="p-2 rounded text-sm font-normal flex items-center gap-1 bg-indigo-800 hover:bg-indigo-900 text-white transition"
-                  title="Phân tích xu hướng lỗi"
-                >
-                  <BarChart2 size={16} /> Phân tích
-                </button>
-
-                <button
-                  onClick={() => router.push('/qrs')}
-                  className="p-2 rounded text-sm font-normal flex items-center gap-1 bg-slate-800 hover:bg-black text-white transition"
-                  title="Mã QR Thiết bị"
-                >
-                  <QrCode size={16} />
-                </button>
-                <button
-                  onClick={() => router.push('/users')}
-                  className="p-2 rounded text-sm font-normal flex items-center gap-1 bg-purple-600 hover:bg-purple-700 text-white transition"
-                  title="Quản lý nhân viên"
-                >
-                  <Users size={16} />
-                </button>
-                <button
-                  onClick={() => router.push('/duties')}
-                  className="p-2 rounded text-sm font-normal flex items-center gap-1 bg-indigo-600 hover:bg-indigo-700 text-white transition"
-                  title="Phân công trực"
-                >
-                  <UserCheck size={16} />
-                </button>
-
-                <button
-                  onClick={async () => {
-                    if (confirm('Bạn có muốn tải về bản sao lưu toàn bộ dữ liệu không?')) {
-                      try {
-                        const json = await backupAllData();
-                        const blob = new Blob([json], { type: 'application/json' });
-                        const url = URL.createObjectURL(blob);
-                        const a = document.createElement('a');
-                        a.href = url;
-                        const nowD = new Date();
-                        const todayStr = `${nowD.getFullYear()}-${String(nowD.getMonth() + 1).padStart(2, '0')}-${String(nowD.getDate()).padStart(2, '0')}`;
-                        a.download = `backup_full_${todayStr}.json`;
-                        document.body.appendChild(a);
-                        a.click();
-                        document.body.removeChild(a);
-                        URL.revokeObjectURL(url);
-                        alert('Đã tải xuống bản sao lưu thành công!');
-                      } catch (e) {
-                        console.error(e);
-                        alert('Lỗi sao lưu dữ liệu!');
-                      }
-                    }
-                  }}
-                  className="p-2 rounded text-sm font-normal flex items-center gap-1 bg-slate-600 hover:bg-slate-700 text-white transition"
-                  title="Sao lưu dữ liệu (Admin)"
-                >
-                  <Save size={16} /> JSON
-                </button>
-              </>
-            )}
-            <button
-              onClick={() => setIsChangePasswordOpen(true)}
-              className="p-2 rounded text-sm font-normal flex items-center gap-1 bg-yellow-600 hover:bg-yellow-700 text-white transition"
-              title="Đổi mật khẩu"
-            >
-              <Lock size={16} />
-            </button>
-            <button
-              onClick={logout}
-              className="p-2 rounded text-sm font-normal flex items-center gap-1 bg-red-600 hover:bg-red-700 text-white transition"
-              title="Đăng xuất"
-            >
-              <LogOut size={16} />
-            </button>
-            <button
-              onClick={() => {
-                setIsSearchOpen(!isSearchOpen);
-                if (isSearchOpen) setSearchQuery('');
-              }}
-              className={clsx(
-                "p-2 rounded text-sm font-normal flex items-center gap-1 transition",
-                isSearchOpen ? "bg-blue-500 text-white" : "bg-slate-700 hover:bg-slate-600 text-slate-200"
-              )}
-              title="Tìm kiếm"
-            >
-              <Search size={16} />
-            </button>
-            {isUserOnDuty && (
-              <button
-                onClick={() => router.push(`/export-report?shift=${currentShiftType === 'DAY' ? 'Ca ngày' : 'Ca đêm'}`)}
-                className="p-2 rounded text-sm font-bold flex items-center gap-1 bg-indigo-600 hover:bg-indigo-700 text-white transition shadow-sm"
-                title={`Báo cáo ${currentShiftType === 'DAY' ? 'Ca Ngày' : 'Ca Đêm'}`}
-              >
-                <FileText size={16} /> Báo cáo {currentShiftType === 'DAY' ? 'Ca Ngày' : 'Ca Đêm'}
-              </button>
-            )}
-            <button
-              onClick={() => router.push('/fixed')}
-              className="p-2 rounded text-sm font-normal flex items-center gap-1 bg-slate-700 hover:bg-slate-600 text-slate-200 transition"
-              title="Xem lịch sử sửa chữa"
-            >
-              <HistoryIcon size={16} /> Lịch sử
-            </button>
-            {user?.role === 'ADMIN' && (
-              <button
-                onClick={() => setIsEditMode(!isEditMode)}
-                className={clsx(
-                  "p-2 rounded text-sm font-normal flex items-center gap-1 transition",
-                  isEditMode ? "bg-yellow-500 hover:bg-yellow-600 text-slate-900" : "bg-slate-700 hover:bg-slate-600 text-slate-200"
-                )}
-                title={isEditMode ? "Tắt chế độ chỉnh sửa" : "Bật chế độ chỉnh sửa"}
-              >
-                {isEditMode ? <Check size={16} /> : <Edit2 size={16} />}
-                {isEditMode ? "Xong" : "Sửa"}
-              </button>
-            )}
-            {isEditMode && user?.role === 'ADMIN' && (
-              <button
-                onClick={handleResetDefaults}
-                className="p-2 rounded text-sm font-normal flex items-center gap-1 bg-red-600 hover:bg-red-700 text-white transition"
-                title="Khôi phục mặc định"
-              >
-                <RotateCcw size={16} />
-              </button>
-            )}
-          </div>
-        </h1>
+    <div className="min-h-screen w-full overflow-x-hidden bg-slate-50 p-2 md:p-4 font-sans text-slate-900">
+      <div className="w-full max-w-4xl mx-auto bg-white md:border border-slate-300 md:shadow-sm relative pb-28 md:rounded-lg">
+        <Header
+          isUserOnDuty={isUserOnDuty}
+          currentShiftType={currentShiftType}
+          isSearchOpen={isSearchOpen}
+          setIsSearchOpen={setIsSearchOpen}
+          setSearchQuery={setSearchQuery}
+          isEditMode={isEditMode}
+          setIsEditMode={setIsEditMode}
+          handleResetDefaults={handleResetDefaults}
+          setIsChangePasswordOpen={setIsChangePasswordOpen}
+        />
 
         <div className="bg-slate-50 p-4 border-b border-slate-200">
-          {/* Shift Reminder Banner */}
-          {isLastHourOfShift && showReminder && (
-            <div className="mb-4 bg-amber-50 border border-amber-200 p-4 rounded-xl flex items-start sm:items-center justify-between gap-4 animate-in slide-in-from-top-4 duration-500 shadow-sm">
-              <div className="flex items-start sm:items-center gap-3">
-                <div className="p-2.5 bg-amber-100 text-amber-600 rounded-full animate-bounce h-fit">
-                  <AlertTriangle size={22} />
-                </div>
-                <div>
-                  <h4 className="text-sm font-black text-amber-900 uppercase tracking-tight">Nhắc nhở hoàn tất ca trực</h4>
-                  <p className="text-[11px] sm:text-xs text-amber-700 font-medium leading-tight">Vẫn còn một số hệ thống chưa được kiểm tra. Bạn hãy tranh thủ hoàn thành nốt trước khi hết ca nhé!</p>
-                </div>
-              </div>
-              <button
-                onClick={() => setShowReminder(false)}
-                className="p-2 hover:bg-amber-100 text-amber-400 hover:text-amber-600 rounded-lg transition-colors flex-shrink-0"
-                title="Đóng thông báo"
-              >
-                <X size={20} />
-              </button>
-            </div>
-          )}
-
-          {isUserOnDuty && teamAssignedCategories.length > 0 && (
-            <div className="mb-4 bg-indigo-600 text-white p-4 rounded-lg shadow-md">
-              <div className="flex flex-col md:flex-row items-center justify-between gap-4">
-                <div className="flex items-center gap-3 w-full">
-                  <div className="p-2 bg-white/20 rounded-full">
-                    <UserCheck size={24} />
-                  </div>
-                  <div className="flex-1">
-                    <div className="text-xs font-bold uppercase tracking-widest opacity-80 flex justify-between items-center">
-                      <span>Đội trực: {currentShiftType === 'DAY' ? 'Ca Ngày (07:00 - 19:00)' : 'Ca Đêm (19:00 - 07:00)'}</span>
-                      <span className="bg-white/20 px-2 py-0.5 rounded text-[10px]">Ngày: {shiftDateStr.split('-').reverse().join('/')}</span>
-                    </div>
-                    <div className="text-lg font-bold mb-1">
-                      {currentShiftAssignments.map((a: any) => a.userName).join(' & ') || 'Chưa trực'}
-                    </div>
-                    <div className="text-[10px] font-medium opacity-90 border-t border-white/10 pt-1">
-                      Phân công kiểm tra các nhóm:
-                      <div className="flex flex-wrap gap-2 mt-1">
-                        {teamAssignedCategories.map(cat => {
-                          const catSystems = systems.filter(s => s.categoryId === cat.id);
-                          const isDone = catSystems.length > 0 && catSystems.every(s => s.status && s.status !== 'NA');
-
-                          return (
-                            <button
-                              key={cat.id}
-                              onClick={() => {
-                                const el = document.getElementById(`category-${cat.id}`);
-                                if (el) {
-                                  el.scrollIntoView({ behavior: 'smooth', block: 'start' });
-                                }
-                              }}
-                              className={clsx(
-                                "text-xs px-2 py-1 rounded border font-bold transition-all active:scale-95 flex items-center gap-1 shadow-sm",
-                                isDone
-                                  ? "bg-green-500 text-white border-green-400 hover:bg-green-400"
-                                  : "bg-white/20 text-white border-white/30 hover:bg-white/30"
-                              )}
-                            >
-                              {isDone && <Check size={12} />}
-                              {cat.name}
-                            </button>
-                          );
-                        })}
-                      </div>
-                    </div>
-                  </div>
-                </div>
-                <div className="text-right w-full md:w-auto flex flex-col items-end gap-2">
-                  <span className="text-xs font-medium opacity-70 italic">* Bạn và đồng đội hỗ trợ nhau kiểm tra các nhóm trên.</span>
-                  <div className="flex flex-wrap gap-2">
-                    <button
-                      onClick={() => setIsHandoffModalOpen(true)}
-                      className="bg-green-500 hover:bg-green-400 text-white px-3 py-1.5 rounded-lg border border-green-400 text-sm font-bold flex items-center gap-2 transition active:scale-95 shadow-sm"
-                    >
-                      <FileText size={16} /> Bàn giao ca (Zalo)
-                    </button>
-                    <button
-                      onClick={handleStartNewShift}
-                      className="bg-white/20 hover:bg-white/30 text-white px-3 py-1.5 rounded-lg border border-white/40 text-sm font-bold flex items-center gap-2 transition active:scale-95 shadow-sm"
-                    >
-                      <RotateCcw size={16} /> Bắt đầu ca trực mới
-                    </button>
-                  </div>
-                </div>
-              </div>
-            </div>
-          )}
-
-          {!isUserOnDuty && (
-            <div className="mb-4 flex justify-end">
-              <button
-                onClick={() => alert('Chỉ nhân viên được phân công trong ca trực hiện tại mới được phép thao tác!')}
-                className="bg-slate-200 text-slate-400 px-4 py-2 rounded-xl text-sm font-bold flex items-center gap-2 shadow-sm border border-slate-300 cursor-not-allowed"
-                title="Bạn không được phân công trong ca trực này"
-              >
-                <RotateCcw size={18} /> Bắt đầu ca trực mới
-              </button>
-            </div>
-          )}
-          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4">
-            <div className="bg-white p-4 rounded-lg shadow-sm border border-slate-200">
-              <div className="flex justify-between items-start mb-2">
-                <div>
-                  <h3 className="text-slate-500 text-xs font-bold uppercase tracking-wider">Tiến độ kiểm tra</h3>
-                  <div className="text-2xl font-bold text-slate-800 flex items-baseline gap-1">
-                    {Math.round((systems.filter(s => s.status && s.status !== 'NA').length / systems.length) * 100) || 0}%
-                    <span className="text-sm font-normal text-slate-500">
-                      ({systems.filter(s => s.status && s.status !== 'NA').length}/{systems.length})
-                    </span>
-                  </div>
-                </div>
-                <div className={clsx(
-                  "p-2 rounded-lg transition-colors",
-                  systems.every(s => s.status !== 'NA') ? "bg-green-100 text-green-600" : "bg-blue-100 text-blue-600"
-                )}>
-                  {systems.every(s => s.status !== 'NA') ? <CheckCheck size={20} /> : <ClipboardList size={20} />}
-                </div>
-              </div>
-              <div className="w-full bg-slate-100 rounded-full h-2.5 mb-2">
-                <div
-                  className={clsx("h-2.5 rounded-full transition-all duration-500",
-                    systems.every(s => s.status !== 'NA') ? "bg-green-500" : "bg-blue-600"
-                  )}
-                  style={{ width: `${(systems.filter(s => s.status !== 'NA').length / systems.length) * 100}%` }}
-                ></div>
-              </div>
-              <div className="flex justify-between text-xs font-medium">
-                <span className="text-blue-600">Đã kiểm: {systems.filter(s => s.status !== 'NA').length}</span>
-                <span className="text-slate-400">Chưa kiểm: {systems.filter(s => s.status === 'NA').length}</span>
-              </div>
-            </div>
-
-            <div
-              onClick={() => router.push('/incidents')}
-              className="bg-white p-4 rounded-lg shadow-sm border border-slate-200 cursor-pointer hover:shadow-md hover:border-red-300 transition-all active:scale-95 group"
-            >
-              <div className="flex justify-between items-start">
-                <div>
-                  <h3 className="text-slate-500 text-xs font-bold uppercase tracking-wider group-hover:text-red-600 transition-colors">Sự cố chờ xử lý</h3>
-                  <div className="text-2xl font-bold text-slate-800">
-                    {incidents.filter((i: any) => i.status === 'OPEN').length}
-                  </div>
-                </div>
-                <div className="p-2 bg-red-100 text-red-600 rounded-lg animate-pulse">
-                  <AlertCircle size={20} />
-                </div>
-              </div>
-              <div className="mt-4 text-xs text-red-600 font-medium flex items-center gap-1">
-                Cần khắc phục ngay! <ArrowRight size={12} className="opacity-0 group-hover:opacity-100 transition-all transform translate-x-0 group-hover:translate-x-1" />
-              </div>
-            </div>
-
-            <div className="bg-white p-4 rounded-lg shadow-sm border border-slate-200">
-              <div className="flex justify-between items-start">
-                <div>
-                  <h3 className="text-slate-500 text-xs font-bold uppercase tracking-wider">Bảo trì định kỳ</h3>
-                  <div className="text-2xl font-bold text-slate-800">
-                    {tasks.filter((t) => t.status === 'PENDING').length}
-                  </div>
-                </div>
-                <div className={clsx("p-2 rounded-lg transition-colors", tasks.some(t => t.status === 'PENDING') ? "bg-cyan-100 text-cyan-600" : "bg-green-100 text-green-600")}>
-                  {tasks.some(t => t.status === 'PENDING') ? <Wrench size={20} /> : <CheckCheck size={20} />}
-                </div>
-              </div>
-              <div className="mt-4 text-xs text-slate-400 font-medium">
-                {tasks.some(t => t.status === 'PENDING') ? "Cần hoàn thành bảo dưỡng" : "Đã xong lịch bảo dưỡng"}
-              </div>
-            </div>
-
-            <div
-              onClick={() => router.push('/summary')}
-              className="bg-white p-4 rounded-lg shadow-sm border border-slate-200 cursor-pointer hover:shadow-md hover:border-amber-300 transition-all active:scale-95 group"
-            >
-              <div className="flex justify-between items-start">
-                <div>
-                  <h3 className="text-slate-500 text-xs font-bold uppercase tracking-wider group-hover:text-amber-600 transition-colors">Lỗi phát hiện hôm nay</h3>
-                  <div className="text-2xl font-bold text-slate-800">
-                    {systems.filter(s => s.status === 'NOK').length}
-                  </div>
-                </div>
-                <div className="p-2 bg-amber-100 text-amber-600 rounded-lg">
-                  <AlertCircle size={20} />
-                </div>
-              </div>
-              <div className="mt-4 text-xs text-amber-600 font-medium flex items-center gap-1">
-                Xem chi tiết & Gửi Zalo <ArrowRight size={12} className="opacity-0 group-hover:opacity-100 transition-all transform translate-x-0 group-hover:translate-x-1" />
-              </div>
-            </div>
-
-            <div className="bg-white p-4 rounded-lg shadow-sm border border-slate-200 col-span-2 md:col-span-1 lg:col-span-1">
-              <div className="flex justify-between items-start">
-                <div>
-                  <h3 className="text-slate-500 text-xs font-bold uppercase tracking-wider text-red-600">Nhóm hệ thống đang lỗi</h3>
-                  <div className="mt-2 flex flex-wrap gap-1">
-                    {failedCategoryIds.length > 0 ? (
-                      failedCategoryIds.map(id => {
-                        const cat = categories.find(c => c.id === id);
-                        return (
-                          <span key={id} className="px-2 py-0.5 bg-red-100 text-red-700 rounded text-[9px] font-bold border border-red-200 whitespace-nowrap">
-                            {cat?.name || id}
-                          </span>
-                        );
-                      })
-                    ) : (
-                      <span className="text-xs text-green-600 font-medium italic">Tất cả hệ thống OK</span>
-                    )}
-                  </div>
-                </div>
-                <div className={clsx("p-2 rounded-lg transition-colors", failedCategoryIds.length > 0 ? "bg-red-100 text-red-600 animate-pulse" : "bg-green-100 text-green-600")}>
-                  <AlertTriangle size={20} />
-                </div>
-              </div>
-            </div>
-          </div>
+          <ShiftBanner
+            isLastHourOfShift={isLastHourOfShift}
+            showReminder={showReminder}
+            setShowReminder={setShowReminder}
+            isUserOnDuty={isUserOnDuty}
+            teamAssignedCategories={teamAssignedCategories}
+            currentShiftType={currentShiftType}
+            shiftDateStr={shiftDateStr}
+            currentShiftAssignments={currentShiftAssignments}
+            systems={systems}
+            setIsHandoffModalOpen={setIsHandoffModalOpen}
+            handleStartNewShift={handleStartNewShift}
+            isEditMode={isEditMode}
+          />
+          <DashboardStats
+            systems={systems}
+            incidents={incidents}
+            tasks={tasks}
+            failedCategoryIds={failedCategoryIds}
+            categories={categories}
+          />
         </div>
 
         {isSearchOpen && (
@@ -1026,9 +687,9 @@ export default function Home() {
                               className="border border-slate-300 rounded px-2 py-1 w-full text-sm font-bold focus:border-blue-500 outline-none"
                             />
                           ) : (
-                            <div className="font-bold text-slate-800 flex items-center justify-between gap-2 w-full">
-                              <div className="flex items-center gap-2">
-                                {highlightText(sys.name, searchQuery)} <span className="text-[10px] bg-slate-100 px-1.5 py-0.5 rounded text-slate-500 uppercase font-mono">{highlightText(sys.id, searchQuery)}</span>
+                            <div className="font-bold text-slate-800 flex flex-wrap items-center justify-between gap-2 w-full">
+                              <div className="flex flex-wrap items-center gap-2 break-words max-w-full">
+                                <span className="break-words">{highlightText(sys.name, searchQuery)}</span> <span className="flex-shrink-0 text-[10px] bg-slate-100 px-1.5 py-0.5 rounded text-slate-500 uppercase font-mono">{highlightText(sys.id, searchQuery)}</span>
                               </div>
                               {sys.status === 'IN_PROGRESS' && (
                                 <span className="text-[9px] bg-orange-100 text-orange-700 font-black px-2 py-0.5 rounded-full border border-orange-200 animate-pulse">
@@ -1364,34 +1025,13 @@ export default function Home() {
         )}
       </div>
 
-      {isUserOnDuty && (
-        <div className="fixed bottom-6 right-6 z-50 flex flex-col items-end gap-3 pointer-events-none">
-          {/* Label Tooltips for Desktop - ADMIN ONLY */}
-          {user?.role === 'ADMIN' && (
-            <button
-              onClick={handleMarkAllOK}
-              className="p-3 rounded-full bg-green-600 hover:bg-green-700 text-white shadow-xl transition-all active:scale-90 flex items-center gap-2 pointer-events-auto group md:hover:pr-4 order-2"
-              title="Đánh dấu tất cả OK (Dành cho Admin)"
-            >
-              <span className="hidden md:inline overflow-hidden max-w-0 group-hover:max-w-xs transition-all duration-300 font-bold text-sm whitespace-nowrap">
-                {buttonText} OK (Admin)
-              </span>
-              <CheckCircle size={24} />
-            </button>
-          )}
-
-          <button
-            onClick={handleSaveChecklist}
-            className="p-4 rounded-full bg-blue-600 hover:bg-blue-700 text-white shadow-2xl transition-all active:scale-95 flex items-center gap-2 pointer-events-auto group md:hover:pr-5 order-3"
-            title="Lưu & Báo cáo"
-          >
-            <span className="hidden md:inline overflow-hidden max-w-0 group-hover:max-w-xs transition-all duration-300 font-bold whitespace-nowrap border-r border-white/20 mr-1 pr-2">
-              Lưu & Báo cáo
-            </span>
-            <Save size={28} />
-          </button>
-        </div>
-      )}
+      <ActionButtons
+        isUserOnDuty={isUserOnDuty}
+        role={user?.role}
+        handleMarkAllOK={handleMarkAllOK}
+        handleSaveChecklist={handleSaveChecklist}
+        buttonText={buttonText}
+      />
 
       {isHandoffModalOpen && (
         <HandoffModal
@@ -1410,300 +1050,6 @@ export default function Home() {
           onClose={() => setIsChangePasswordOpen(false)}
         />
       )}
-    </div>
-  );
-}
-
-// --- NEW COMPONENT: HANDOFF MODAL ---
-function HandoffModal({ systems, history, incidents, assignments, shiftType, onClose }: any) {
-  const [copied, setCopied] = useState(false);
-
-  // Determine shift start for filtering "new" items
-  const nowD = new Date();
-  const currentHour = nowD.getHours();
-  const shiftStart = new Date(nowD);
-  shiftStart.setSeconds(0, 0);
-  shiftStart.setMilliseconds(0);
-
-  if (currentHour >= 7 && currentHour < 19) {
-    shiftStart.setHours(7, 0, 0, 0);
-  } else {
-    shiftStart.setHours(19, 0, 0, 0);
-    if (currentHour < 7) {
-      shiftStart.setDate(shiftStart.getDate() - 1);
-    }
-  }
-
-  const parseVNTime = (t: string) => {
-    if (!t) return null;
-    try {
-      const parts = t.split(/[/, : ]+/).filter(Boolean);
-      const yearIdx = parts.findIndex(p => p.length === 4);
-      if (yearIdx === -1) return null;
-      let day, month, year, hour, minute;
-      if (yearIdx === 4) { // HH mm DD MM YYYY
-        hour = parseInt(parts[0]); minute = parseInt(parts[1]);
-        day = parseInt(parts[2]); month = parseInt(parts[3]) - 1; year = parseInt(parts[4]);
-      } else { // DD MM YYYY HH mm
-        day = parseInt(parts[0]); month = parseInt(parts[1]) - 1; year = parseInt(parts[2]);
-        hour = parseInt(parts[3]); minute = parseInt(parts[4]);
-      }
-      return new Date(year, month, day, hour, minute);
-    } catch (e) { return null; }
-  };
-
-  // Calculate statistics for the current shift
-  const checkedSystems = systems.filter((s: any) => s.status !== 'NA' && s.inspectorCode);
-
-  const newNokItems = systems.filter((s: any) => {
-    if (s.status !== 'NOK' || !s.timestamp) return false;
-    const t = parseVNTime(s.timestamp);
-    return t && t >= shiftStart;
-  });
-
-  const resolvedToday = history.filter((h: any) => {
-    if (!h.resolvedAt) return false;
-    const t = parseVNTime(h.resolvedAt);
-    return t && t >= shiftStart;
-  });
-
-  const openIncidents = incidents.filter((i: any) => i.status === 'OPEN');
-
-  const shiftDate = shiftStart.toLocaleDateString('vi-VN');
-  const staffNames = assignments.map((a: any) => a.userName).join(' & ') || 'Chưa trực';
-
-  const summaryText = `📋 [BÁO CÁO BÀN GIAO CA]
-- Ca trực: ${shiftType === 'DAY' ? 'Ca Ngày' : 'Ca Đêm'}
-- Ngày: ${shiftDate}
-- Nhân viên: ${staffNames}
----------------------------
-✅ TIẾN ĐỘ: ${checkedSystems.length}/${systems.length} hệ thống (${Math.round((checkedSystems.length / (systems.length || 1)) * 100)}%)
-⚠️ LỖI PHÁT SINH MỚI: [${newNokItems.length}]
-${newNokItems.map((s: any, i: number) => `   ${i + 1}. ${s.name}: ${s.note || 'Chưa có ghi chú'}`).join('\n') || '   (Không có)'}
-🛠️ ĐÃ XỬ LÝ XONG: [${resolvedToday.length}]
-${resolvedToday.map((h: any, i: number) => `   ${i + 1}. ${h.systemName}: ${h.actionNote || 'Đã sửa'}`).join('\n') || '   (Không có)'}
-🚨 SỰ CỐ TỒN ĐỌNG: [${openIncidents.length}]
----------------------------
-Chúc ca sau trực tốt!`;
-
-  const handleCopy = () => {
-    navigator.clipboard.writeText(summaryText);
-    setCopied(true);
-    setTimeout(() => setCopied(false), 2000);
-  };
-
-  const handleExportWord = async () => {
-    const doc = new Document({
-      sections: [{
-        properties: {},
-        children: [
-          new Paragraph({
-            alignment: AlignmentType.CENTER,
-            spacing: { after: 200 },
-            children: [
-              new TextRun({ text: "BIÊN BẢN BÀN GIAO CA TRỰC", bold: true, size: 32, font: "Times New Roman" }),
-            ],
-          }),
-          new Paragraph({
-            children: [
-              new TextRun({ text: `Ngày báo cáo: ${shiftDate}`, bold: true, font: "Times New Roman" }),
-            ],
-          }),
-          new Paragraph({
-            children: [
-              new TextRun({ text: `Ca trực: ${shiftType === 'DAY' ? 'Ca Ngày' : 'Ca Đêm'}`, font: "Times New Roman" }),
-            ],
-          }),
-          new Paragraph({
-            spacing: { after: 200 },
-            children: [
-              new TextRun({ text: `Nhân viên thực hiện: ${staffNames}`, font: "Times New Roman" }),
-            ],
-          }),
-
-          new Paragraph({
-            heading: HeadingLevel.HEADING_2,
-            children: [
-              new TextRun({ text: "1. TIẾN ĐỘ KIỂM TRA HỆ THỐNG", bold: true, font: "Times New Roman", color: "2E75B6" }),
-            ],
-          }),
-          new Paragraph({
-            children: [
-              new TextRun({ text: `Tổng số hệ thống: ${systems.length}`, font: "Times New Roman" }),
-            ],
-          }),
-          new Paragraph({
-            children: [
-              new TextRun({ text: `Đã hoàn thành: ${checkedSystems.length}/${systems.length} (${Math.round((checkedSystems.length / (systems.length || 1)) * 100)}%)`, font: "Times New Roman" }),
-            ],
-          }),
-
-          new Paragraph({
-            heading: HeadingLevel.HEADING_2,
-            spacing: { before: 200 },
-            children: [
-              new TextRun({ text: "2. CÁC LỖI PHÁT SINH MỚI (NOK)", bold: true, font: "Times New Roman", color: "C00000" }),
-            ],
-          }),
-          new Table({
-            width: { size: 100, type: WidthType.PERCENTAGE },
-            rows: [
-              new TableRow({
-                children: [
-                  new TableCell({ width: { size: 10, type: WidthType.PERCENTAGE }, children: [new Paragraph({ alignment: AlignmentType.CENTER, children: [new TextRun({ text: "STT", bold: true })] })] }),
-                  new TableCell({ width: { size: 40, type: WidthType.PERCENTAGE }, children: [new Paragraph({ alignment: AlignmentType.CENTER, children: [new TextRun({ text: "Hệ thống", bold: true })] })] }),
-                  new TableCell({ width: { size: 50, type: WidthType.PERCENTAGE }, children: [new Paragraph({ alignment: AlignmentType.CENTER, children: [new TextRun({ text: "Ghi chú lỗi", bold: true })] })] }),
-                ]
-              }),
-              ...(newNokItems.length > 0
-                ? newNokItems.map((s: any, i: number) => new TableRow({
-                  children: [
-                    new TableCell({ children: [new Paragraph({ alignment: AlignmentType.CENTER, text: (i + 1).toString() })] }),
-                    new TableCell({ children: [new Paragraph(s.name)] }),
-                    new TableCell({ children: [new Paragraph(s.note || "Chưa có ghi chú")] }),
-                  ]
-                }))
-                : [new TableRow({
-                  children: [
-                    new TableCell({ columnSpan: 3, children: [new Paragraph({ alignment: AlignmentType.CENTER, children: [new TextRun({ text: "(Không có lỗi phát sinh mới)", italics: true })] })] }),
-                  ]
-                })])
-            ]
-          }),
-
-          new Paragraph({
-            heading: HeadingLevel.HEADING_2,
-            spacing: { before: 200 },
-            children: [
-              new TextRun({ text: "3. CÁC MỤC ĐÃ XỬ LÝ XONG (FIXED)", bold: true, font: "Times New Roman", color: "385723" }),
-            ],
-          }),
-          new Table({
-            width: { size: 100, type: WidthType.PERCENTAGE },
-            rows: [
-              new TableRow({
-                children: [
-                  new TableCell({ width: { size: 10, type: WidthType.PERCENTAGE }, children: [new Paragraph({ alignment: AlignmentType.CENTER, children: [new TextRun({ text: "STT", bold: true })] })] }),
-                  new TableCell({ width: { size: 40, type: WidthType.PERCENTAGE }, children: [new Paragraph({ alignment: AlignmentType.CENTER, children: [new TextRun({ text: "Hệ thống", bold: true })] })] }),
-                  new TableCell({ width: { size: 50, type: WidthType.PERCENTAGE }, children: [new Paragraph({ alignment: AlignmentType.CENTER, children: [new TextRun({ text: "Nội dung sửa chữa", bold: true })] })] }),
-                ]
-              }),
-              ...(resolvedToday.length > 0
-                ? resolvedToday.map((h: any, i: number) => new TableRow({
-                  children: [
-                    new TableCell({ children: [new Paragraph({ alignment: AlignmentType.CENTER, text: (i + 1).toString() })] }),
-                    new TableCell({ children: [new Paragraph(h.systemName)] }),
-                    new TableCell({ children: [new Paragraph(h.actionNote || "Đã sửa")] }),
-                  ]
-                }))
-                : [new TableRow({
-                  children: [
-                    new TableCell({ columnSpan: 3, children: [new Paragraph({ alignment: AlignmentType.CENTER, children: [new TextRun({ text: "(Trong ca trực chưa có mục nào được Fix)", italics: true })] })] }),
-                  ]
-                })])
-            ]
-          }),
-
-          new Paragraph({
-            heading: HeadingLevel.HEADING_2,
-            spacing: { before: 200 },
-            children: [
-              new TextRun({ text: "4. SỰ CỐ TỒN ĐỌNG", bold: true, font: "Times New Roman", color: "E36C09" }),
-            ],
-          }),
-          new Paragraph({
-            children: [
-              new TextRun({ text: `Số lượng sự cố đang mở: ${openIncidents.length}`, font: "Times New Roman" }),
-            ],
-          }),
-
-          new Paragraph({ spacing: { before: 400 } }),
-          new Table({
-            width: { size: 100, type: WidthType.PERCENTAGE },
-            borders: {
-              top: { style: BorderStyle.NONE },
-              bottom: { style: BorderStyle.NONE },
-              left: { style: BorderStyle.NONE },
-              right: { style: BorderStyle.NONE },
-              insideHorizontal: { style: BorderStyle.NONE },
-              insideVertical: { style: BorderStyle.NONE },
-            },
-            rows: [
-              new TableRow({
-                children: [
-                  new TableCell({ children: [new Paragraph({ alignment: AlignmentType.CENTER, children: [new TextRun({ text: "NHÂN VIÊN BÀN GIAO", bold: true })] })] }),
-                  new TableCell({ children: [new Paragraph({ alignment: AlignmentType.CENTER, children: [new TextRun({ text: "NHÂN VIÊN TIẾP NHẬN", bold: true })] })] }),
-                ]
-              }),
-              new TableRow({
-                children: [
-                  new TableCell({ children: [new Paragraph({ alignment: AlignmentType.CENTER, spacing: { before: 100 }, children: [new TextRun({ text: "(Ký và ghi rõ họ tên)", italics: true })] })] }),
-                  new TableCell({ children: [new Paragraph({ alignment: AlignmentType.CENTER, spacing: { before: 100 }, children: [new TextRun({ text: "(Ký và ghi rõ họ tên)", italics: true })] })] }),
-                ]
-              }),
-              new TableRow({
-                children: [
-                  new TableCell({ children: [new Paragraph({ alignment: AlignmentType.CENTER, spacing: { before: 1000 }, text: staffNames })] }),
-                  new TableCell({ children: [new Paragraph({ alignment: AlignmentType.CENTER, spacing: { before: 1000 }, text: "..................................." })] }),
-                ]
-              }),
-            ]
-          }),
-        ],
-      }],
-    });
-
-    const blob = await Packer.toBlob(doc);
-    saveAs(blob, `BaoCao_BanGiaoCa_${shiftDate.replace(/\//g, '-')}_${shiftType}.docx`);
-  };
-
-  return (
-    <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-[100] flex items-center justify-center p-4 overflow-y-auto">
-      <div className="bg-white rounded-2xl shadow-2xl w-full max-w-lg overflow-hidden animate-in zoom-in-95 duration-200">
-        <div className="p-4 bg-slate-800 text-white flex justify-between items-center">
-          <h2 className="font-bold flex items-center gap-2"><FileText size={20} /> Tổng Hợp Bàn Giao Ca</h2>
-          <button onClick={onClose} className="p-1 hover:bg-white/10 rounded"><X size={20} /></button>
-        </div>
-        <div className="p-6">
-          <div className="bg-slate-50 p-4 rounded-xl border border-slate-200 mb-6 group relative">
-            <pre className="whitespace-pre-wrap font-mono text-sm leading-relaxed text-slate-700">
-              {summaryText}
-            </pre>
-            <button
-              onClick={handleCopy}
-              className={clsx(
-                "absolute top-2 right-2 p-2 rounded-lg transition-all active:scale-95 flex items-center gap-1 text-xs font-bold",
-                copied ? "bg-green-500 text-white" : "bg-white border border-slate-300 text-slate-600 hover:bg-slate-50 shadow-sm"
-              )}
-            >
-              {copied ? <><CheckCheck size={14} /> Đã chép</> : <><Save size={14} /> Chép Zalo</>}
-            </button>
-          </div>
-          <div className="flex gap-3">
-            <button
-              onClick={handleCopy}
-              className="px-4 py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-xl font-bold flex items-center justify-center gap-2 shadow-sm transition-all active:scale-95"
-            >
-              <Send size={18} /> Chép Zalo
-            </button>
-            <button
-              onClick={handleExportWord}
-              className="flex-1 py-3 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl font-bold flex items-center justify-center gap-2 shadow-lg shadow-indigo-200 transition-all active:scale-95"
-            >
-              <FileText size={18} /> Xuất File Word (.docx)
-            </button>
-            <button
-              onClick={onClose}
-              className="px-6 py-3 bg-slate-100 hover:bg-slate-200 text-slate-600 rounded-xl font-bold transition-all active:scale-95"
-            >
-              Đóng
-            </button>
-          </div>
-          <p className="mt-4 text-[10px] text-slate-400 text-center italic">
-            * Sau khi bấm "Sao chép", hãy mở Zalo nhóm và Dán (Ctrl+V) để gửi báo cáo.
-          </p>
-        </div>
-      </div>
     </div>
   );
 }

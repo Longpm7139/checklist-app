@@ -197,14 +197,19 @@ export default function KPIPage() {
                 const nextM = nextMonthDate.getMonth() + 1;
                 const nextY = nextMonthDate.getFullYear();
 
-                // Extended log filter: include current month AND
-                // early morning (00:00-07:59) logs of the 1st day of next month
+                const prevMonthDate = new Date(targetY, targetM - 2, 1);
+                const prevM = prevMonthDate.getMonth() + 1;
+                const prevY = prevMonthDate.getFullYear();
+
+                // Extended log filter: include current month AND limits of adjacent months to not miss midnight shift boundaries
                 const filteredLogs = logs.filter((l: any) => {
-                    if (isMonthYearMatch(l.timestamp, targetM, targetY)) return true;
-                    if (isMonthYearMatch(l.timestamp, nextM, nextY)) {
-                        const p = parseTimestamp(l.timestamp);
-                        if (p && p.d === 1 && p.h >= 0 && p.h < 8) return true;
-                    }
+                    const p = parseTimestamp(l.timestamp);
+                    if (!p) return false;
+
+                    if (p.m === targetM && p.y === targetY) return true;
+                    // Early morning logs on the 1st of next month belong to current month's NIGHT shift
+                    if (p.m === nextM && p.y === nextY && p.d === 1 && p.h >= 0 && p.h <= 9) return true;
+                    // Late evening logs on the last day of previous month belong to current month's NIGHT shift (wait, actually prev month's NIGHT shift spans to 1st of current month, which is captured by targetM == targetM. But what if target month is April 1st? We DO need to include March 31st evening? No, March 31st evening duty belongs to March KPI. April 1st morning belongs to March KPI!)
                     return false;
                 });
 
@@ -237,22 +242,21 @@ export default function KPIPage() {
                     const toDateStr = (dt: Date) =>
                         `${dt.getFullYear()}-${String(dt.getMonth() + 1).padStart(2, '0')}-${String(dt.getDate()).padStart(2, '0')}`;
 
-                    // Day Shift: 06:00 – 18:59
-                    if (hh >= 6 && hh < 19) {
+                    // Day Shift officially: 07:00 - 19:00.
+                    // Generous allowance: 04:00 to 20:59 to capture extreme early starts and late finishes.
+                    if (hh >= 4 && hh <= 20) {
                         candidates.push({ dutyDateStr: toDateStr(logDate), shift: 'DAY' });
                     }
-                    // Handover hour 18:xx – also try NIGHT
-                    if (hh === 18) {
+
+                    // Night Shift officially: 19:00 - 07:00 (next day)
+                    // Evening portion: Allow from 16:00 to 23:59 (catches early check-ins up to 3 hours prior)
+                    if (hh >= 16) {
                         candidates.push({ dutyDateStr: toDateStr(logDate), shift: 'NIGHT' });
                     }
-                    // Night Shift evening: 19:00 – 23:59
-                    if (hh >= 19) {
-                        candidates.push({ dutyDateStr: toDateStr(logDate), shift: 'NIGHT' });
-                    }
-                    // Night Shift early morning: 00:00 – 07:59 → previous day's NIGHT
-                    if (hh < 8) {
+                    // Morning portion: Allow from 00:00 to 11:59 (catches late sign-offs up to 11:59 AM)
+                    if (hh <= 11) {
                         const prev = new Date(logDate);
-                        prev.setDate(prev.getDate() - 1);
+                        prev.setDate(prev.getDate() - 1); // Belongs to previous day's duty shift
                         candidates.push({ dutyDateStr: toDateStr(prev), shift: 'NIGHT' });
                     }
 
