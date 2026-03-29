@@ -159,24 +159,29 @@ export default function KPIPage() {
                     fDuties.forEach(dDuty => {
                         const dS = dDuty.date; // YYYY-MM-DD
                         ['DAY', 'NIGHT'].forEach(st => {
-                            // 1. Get the ENTIRE crew assigned to this shift
-                            const currentShiftCrew = dDuty.assignments?.filter((a: any) => {
+                            // 1. Resolve the ENTIRE crew for this shift (mapping codes to full profiles)
+                            const shiftAssignments = dDuty.assignments?.filter((a: any) => {
                                 const aS = normalize(a.shift || '');
                                 return (aS.includes('ngay') || aS.includes('dem') || aS === normalize(st));
                             }) || [];
 
+                            const resolvedCrew = shiftAssignments.map((a: any) => {
+                                const found = allUsers.find(au => isVeryLenientMatch(au.code, a.userCode));
+                                return found || { code: a.userCode, name: a.userName || '' };
+                            });
+
                             // 2. Is THIS user (u) in that crew?
-                            const isUserOnDuty = currentShiftCrew.some((a: any) => 
-                                isVeryLenientMatch(a.userCode, u.code) || isVeryLenientMatch(a.userName, u.name)
+                            const isUserOnDuty = resolvedCrew.some((member: any) => 
+                                isVeryLenientMatch(member.code, u.code) || isVeryLenientMatch(member.name, u.name)
                             );
                             
                             if (!isUserOnDuty) return;
 
-                            // 3. Did ANYONE in this crew perform ANY check during this shift window?
+                            // 3. Did ANYONE in this crew perform ANY check?
                             const isShiftCompletedByCrew = fLogs.some(l => {
-                                // Check if the log inspector is ANYONE from the crew
-                                const isLogByCrewMember = currentShiftCrew.some((a: any) => 
-                                    isVeryLenientMatch(l.inspectorCode, a.userCode) || isVeryLenientMatch(l.inspectorName, a.userName)
+                                const isLogByCrewMember = resolvedCrew.some((member: any) => 
+                                    isVeryLenientMatch(l.inspectorCode, member.code) || 
+                                    isVeryLenientMatch(l.inspectorName, member.name)
                                 );
                                 
                                 if (!isLogByCrewMember) return false;
@@ -184,7 +189,6 @@ export default function KPIPage() {
                                 const p = parseTS(l.timestamp);
                                 if (!p) return false;
                                 
-                                // Create Date objects for shift windows
                                 const [y, m, d] = dS.split('-').map(Number);
                                 const shiftStart = new Date(y, m - 1, d);
                                 const shiftEnd = new Date(y, m - 1, d);
@@ -268,7 +272,7 @@ export default function KPIPage() {
                         <div>
                             <div className="flex items-center gap-2">
                                 <h1 className="text-3xl font-black uppercase tracking-tight text-slate-900 mb-1">Bảng Xếp Hạng KPI Điểm Tức Thì</h1>
-                                <span className="bg-blue-600 text-white text-[10px] font-bold px-1.5 py-0.5 rounded shadow-sm">v1.1.9</span>
+                                <span className="bg-blue-600 text-white text-[10px] font-bold px-1.5 py-0.5 rounded shadow-sm">v1.1.10</span>
                             </div>
                             <div className="flex items-center gap-2 text-slate-400 font-bold text-xs uppercase tracking-widest">
                                 <Activity size={14} className="text-blue-500" /> Hệ thống tính điểm Real-time
