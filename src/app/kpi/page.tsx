@@ -266,11 +266,15 @@ export default function KPIPage() {
                                     </div>
                                     <div className="text-right"><div className="text-2xl font-black text-blue-700">{row.score}</div><div className="text-[8px] text-slate-400 uppercase font-bold tracking-tighter">Tổng điểm</div></div>
                                 </div>
-                                <div className="p-5 grid grid-cols-2 gap-4">
+                                <div className="p-5 grid grid-cols-2 sm:grid-cols-4 gap-3">
                                     <div className="bg-slate-50 p-3 rounded-xl"><div className="text-[9px] text-slate-400 font-black uppercase mb-1">Kiểm tra</div><div className="text-lg font-black text-blue-600">{row.inspectionCount}</div></div>
+                                    <div className="bg-slate-50 p-3 rounded-xl"><div className="text-[9px] text-slate-400 font-black uppercase mb-1">Tìm thấy</div><div className="text-lg font-black text-amber-600">{row.faultFoundCount}</div></div>
                                     <div className="bg-slate-50 p-3 rounded-xl"><div className="text-[9px] text-slate-400 font-black uppercase mb-1">Sửa lỗi</div><div className="text-lg font-black text-green-600">{row.fixCount}</div></div>
-                                    <div className="bg-slate-50 p-3 rounded-xl"><div className="text-[9px] text-slate-400 font-black uppercase mb-1">Bảo dưỡng</div><div className="text-lg font-black text-cyan-600">{row.maintenanceCount || 0}</div></div>
-                                    <div className="bg-slate-50 p-3 rounded-xl"><div className="text-[9px] text-slate-400 font-black uppercase mb-1">Làm ẩu</div><div className="text-lg font-black text-red-500">{row.fastCheckCount ? `-${row.fastCheckCount}` : '-'}</div></div>
+                                    <div className="bg-slate-50 p-3 rounded-xl"><div className="text-[9px] text-slate-400 font-black uppercase mb-1">Sự cố</div><div className="text-lg font-black text-red-600">{row.incidentCount}</div></div>
+                                    <div className="bg-slate-50 p-3 rounded-xl"><div className="text-[9px] text-slate-400 font-black uppercase mb-1">Bảo dưỡng</div><div className="text-lg font-black text-cyan-600">{row.maintenanceCount}</div></div>
+                                    <div className="bg-slate-50 p-3 rounded-xl"><div className="text-[9px] text-slate-400 font-black uppercase mb-1">Thi công</div><div className="text-lg font-black text-indigo-600">{row.projectExecCount}</div></div>
+                                    <div className="bg-slate-50 p-3 rounded-xl"><div className="text-[9px] text-slate-400 font-black uppercase mb-1">Giám sát</div><div className="text-lg font-black text-purple-600">{row.projectSupCount}</div></div>
+                                    <div className="bg-slate-50 p-3 rounded-xl"><div className="text-[9px] text-slate-400 font-black uppercase mb-1">Làm ẩu</div><div className="text-lg font-black text-slate-400">{row.fastCheckCount ? `-${row.fastCheckCount}` : '-'}</div></div>
                                 </div>
                             </div>
                         ))}
@@ -281,25 +285,33 @@ export default function KPIPage() {
                         <table className="w-full text-left">
                             <thead className="bg-slate-50 text-[10px] text-slate-400 font-black uppercase tracking-[0.2em] border-b border-slate-200">
                                 <tr>
-                                    <th className="p-6 w-20 text-center">Hạng</th>
-                                    <th className="p-6">Nhân viên</th>
-                                    <th className="p-6 text-center">Kiểm tra</th>
-                                    <th className="p-6 text-center text-green-600">Sửa lỗi</th>
-                                    <th className="p-6 text-center text-cyan-600">Bảo dưỡng</th>
-                                    <th className="p-6 text-center text-red-500">Làm ẩu</th>
-                                    <th className="p-6 text-right pr-8">Tổng điểm</th>
+                                    <th className="p-4 w-16 text-center">Hạng</th>
+                                    <th className="p-4">Nhân viên</th>
+                                    <th className="p-4 text-center">Kiểm tra</th>
+                                    <th className="p-4 text-center text-amber-600">Tìm thấy</th>
+                                    <th className="p-4 text-center text-green-600">Sửa lỗi</th>
+                                    <th className="p-4 text-center text-red-600">Sự cố</th>
+                                    <th className="p-4 text-center text-cyan-600">Bảo trì</th>
+                                    <th className="p-4 text-center text-indigo-600">Thi công</th>
+                                    <th className="p-4 text-center text-purple-600">Giám sát</th>
+                                    <th className="p-4 text-center text-slate-400">Làm ẩu</th>
+                                    <th className="p-4 text-right pr-6">Tổng điểm</th>
                                 </tr>
                             </thead>
                             <tbody className="divide-y divide-slate-100">
                                 {stats.map((row, idx) => (
                                     <tr key={row.userId} className={clsx("hover:bg-slate-50/80 transition group", idx === 0 ? "bg-amber-50/30" : "")}>
-                                        <td className="p-6 text-center"><div className={clsx("w-10 h-10 rounded-full flex items-center justify-center font-black mx-auto transition-transform group-hover:scale-110 shadow-sm", idx === 0 ? "bg-amber-400 text-white" : idx === 1 ? "bg-slate-300 text-white" : idx === 2 ? "bg-amber-600 text-white" : "bg-slate-100 text-slate-400")}>{idx + 1}</div></td>
-                                        <td className="p-6 font-black text-slate-800">{row.name}<div className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">{row.code}</div></td>
-                                        <td className="p-6 text-center font-black text-blue-600 text-lg">{row.inspectionCount}</td>
-                                        <td className="p-6 text-center font-black text-green-600 text-lg">{row.fixCount}</td>
-                                        <td className="p-6 text-center font-black text-cyan-600 text-lg">{row.maintenanceCount || '-'}</td>
-                                        <td className="p-6 text-center font-black text-red-500 text-lg">{row.fastCheckCount || '-'}</td>
-                                        <td className="p-6 text-right pr-8 font-black text-slate-900 text-2xl">{row.score}</td>
+                                        <td className="p-4 text-center"><div className={clsx("w-9 h-9 rounded-full flex items-center justify-center font-black mx-auto shadow-sm", idx === 0 ? "bg-amber-400 text-white" : idx === 1 ? "bg-slate-300 text-white" : idx === 2 ? "bg-amber-600 text-white" : "bg-slate-100 text-slate-400")}>{idx + 1}</div></td>
+                                        <td className="p-4 font-black text-slate-800 text-sm whitespace-nowrap">{row.name}<div className="text-[9px] font-bold text-slate-400 uppercase tracking-widest">{row.code}</div></td>
+                                        <td className="p-4 text-center font-black text-blue-600">{row.inspectionCount}</td>
+                                        <td className="p-4 text-center font-black text-amber-600">{row.faultFoundCount || '-'}</td>
+                                        <td className="p-4 text-center font-black text-green-600">{row.fixCount || '-'}</td>
+                                        <td className="p-4 text-center font-black text-red-600">{row.incidentCount || '-'}</td>
+                                        <td className="p-4 text-center font-black text-cyan-600">{row.maintenanceCount || '-'}</td>
+                                        <td className="p-4 text-center font-black text-indigo-600">{row.projectExecCount || '-'}</td>
+                                        <td className="p-4 text-center font-black text-purple-600">{row.projectSupCount || '-'}</td>
+                                        <td className="p-4 text-center font-black text-slate-400 text-xs">{row.fastCheckCount || '-'}</td>
+                                        <td className="p-4 text-right pr-6 font-black text-slate-900 text-xl">{row.score}</td>
                                     </tr>
                                 ))}
                             </tbody>
