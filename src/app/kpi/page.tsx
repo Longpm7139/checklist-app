@@ -123,11 +123,45 @@ export default function KPIPage() {
                 const [fY, fM] = monthFilter.split('-');
                 const targetM = Number(fM), targetY = Number(fY);
 
-                const fLogs = logs.filter(l => { const p = parseTS(l.timestamp); return p && p.m === targetM && p.y === targetY; });
-                const fHis = history.filter(h => h.resolvedAt && parseTS(h.resolvedAt)?.m === targetM && parseTS(h.resolvedAt)?.y === targetY);
-                const fInc = incidents.filter(i => i.resolvedAt && parseTS(i.resolvedAt)?.m === targetM && parseTS(i.resolvedAt)?.y === targetY);
-                const fTasks = tasks.filter(t => t.completedAt && parseTS(t.completedAt)?.m === targetM && parseTS(t.completedAt)?.y === targetY);
-                const fDuties = duties.filter(d => { const p = d.date.split('-'); return Number(p[1]) === targetM && Number(p[0]) === targetY; });
+                // v1.2.0: Reset point: 2026-03-29 17:00:00 (Start of Night Shift)
+                const RESET_TIME = new Date(2026, 2, 29, 17, 0, 0).getTime();
+                
+                const fLogs = logs.filter(l => { 
+                    const p = parseTS(l.timestamp); 
+                    if (!p) return false;
+                    const logTime = new Date(p.y, p.m - 1, p.d, p.h, p.min).getTime();
+                    return logTime >= RESET_TIME && p.m === targetM && p.y === targetY; 
+                });
+                
+                const fHis = history.filter(h => {
+                    if (!h.resolvedAt) return false;
+                    const p = parseTS(h.resolvedAt);
+                    if (!p) return false;
+                    const time = new Date(p.y, p.m - 1, p.d, p.h, p.min).getTime();
+                    return time >= RESET_TIME && p.m === targetM && p.y === targetY;
+                });
+                
+                const fInc = incidents.filter(i => {
+                    if (!i.resolvedAt) return false;
+                    const p = parseTS(i.resolvedAt);
+                    if (!p) return false;
+                    const time = new Date(p.y, p.m - 1, p.d, p.h, p.min).getTime();
+                    return time >= RESET_TIME && p.m === targetM && p.y === targetY;
+                });
+                
+                const fTasks = tasks.filter(t => {
+                    if (!t.completedAt) return false;
+                    const p = parseTS(t.completedAt);
+                    if (!p) return false;
+                    const time = new Date(p.y, p.m - 1, p.d, p.h, p.min).getTime();
+                    return time >= RESET_TIME && p.m === targetM && p.y === targetY;
+                });
+                
+                const fDuties = duties.filter(d => { 
+                    const p = d.date.split('-'); 
+                    const dutyDate = new Date(Number(p[0]), Number(p[1]) - 1, Number(p[2]), 23, 59, 59).getTime(); // End of day for safety
+                    return dutyDate >= RESET_TIME && Number(p[1]) === targetM && Number(p[0]) === targetY; 
+                });
 
                 const logsByD: any = {};
                 fLogs.forEach(l => {
@@ -272,7 +306,7 @@ export default function KPIPage() {
                         <div>
                             <div className="flex items-center gap-2">
                                 <h1 className="text-3xl font-black uppercase tracking-tight text-slate-900 mb-1">Bảng Xếp Hạng KPI Điểm Tức Thì</h1>
-                                <span className="bg-blue-600 text-white text-[10px] font-bold px-1.5 py-0.5 rounded shadow-sm">v1.1.11</span>
+                                <span className="bg-blue-600 text-white text-[10px] font-bold px-1.5 py-0.5 rounded shadow-sm">v1.2.0</span>
                             </div>
                             <div className="flex items-center gap-2 text-slate-400 font-bold text-xs uppercase tracking-widest">
                                 <Activity size={14} className="text-blue-500" /> Hệ thống tính điểm Real-time
