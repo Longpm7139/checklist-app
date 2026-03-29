@@ -34,11 +34,11 @@ export const isMatch = (v1: any, v2: any): boolean => {
   // Direct match or inclusion
   if (n1 === n2 || n1.includes(n2) || n2.includes(n1)) return true;
   
-  // Number-only match (handles "NV0585" vs "0585")
+  // Number-only match (handles "016696" vs "16696")
   const num1 = n1.replace(/\D/g, '');
   const num2 = n2.replace(/\D/g, '');
   
-  if (num1 !== '' && num1 === num2) return true;
+  if (num1 !== '' && num2 !== '' && parseInt(num1) === parseInt(num2)) return true;
   
   return false;
 };
