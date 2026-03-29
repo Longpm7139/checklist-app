@@ -244,12 +244,10 @@ export default function KPIPage() {
                                 return aS.includes(st === 'DAY' ? 'ngay' : 'dem') || aS === normalize(st);
                             }) || [];
                             
-                                                        const teamHasActivity = (logsByDuty[key] || []).some((l: any) => {
-                                return crew.some((m: any) => {
-                                    const mC = m.userCode; const mN = m.userName;
-                                    const lC = l.inspectorCode; const lN = l.inspectorName;
-                                    return isMatch(mC, lC) || isMatch(mN, lN) || isMatch(mC, lN) || isMatch(mN, lC);
-                                });
+                                                                                    const teamHasActivity = (logsByDuty[key] || []).length > 0 || 
+                                                    (historyByDuty[key] || []).length > 0 || 
+                                                    (incidentsByDuty[key] || []).length > 0 ||
+                                                    (maintenanceByDuty[key] || []).length > 0;
                             }) || (historyByDuty[key] || []).some((h: any) => {
                                 return crew.some((m: any) => {
                                     const mC = m.userCode; const mN = m.userName;
@@ -357,9 +355,9 @@ export default function KPIPage() {
 
                 {/* DIAGNOSTIC PANEL (VERSION 8.0 - SUPER RESCUE) */}
                 {currentUser?.role === 'ADMIN' && (
-                    <div className="mb-6 bg-slate-900 text-white p-6 rounded-2xl text-[12px] font-mono shadow-2xl border-4 border-red-500">
-                        <div className="flex items-center gap-2 mb-4 text-red-500 font-bold uppercase text-[14px]">
-                            <span className="animate-ping text-lg font-black">●</span> KPI DIAGNOSTIC - FINAL RESCUE v9.0 (VER_9_0_1774770316808)
+                    <div className="mb-6 bg-slate-900 text-white p-6 rounded-2xl text-[12px] font-mono shadow-md border border-slate-200">
+                        <div className="flex items-center gap-2 mb-4 text-slate-500 font-bold uppercase text-[14px]">
+                            <span className="text-blue-600">●</span> KPI DIAGNOSTIC (STABLE) - FINAL RESCUE v9.0 (VER_9_0_1774770316808)
                         </div>
                         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-x-8 gap-y-3">
                             {diagInfo.map((info, i) => (
