@@ -156,13 +156,13 @@ export default function KPIPage() {
 
                 const toDateStr = (dt: Date) => `${dt.getFullYear()}-${String(dt.getMonth() + 1).padStart(2, '0')}-${String(dt.getDate()).padStart(2, '0')}`;
                 
-                const filteredLogs = logs.filter(l => {
+                const filteredLogs = logs.filter((l: any) => {
                     const p = parseTimestamp(l.timestamp);
                     return p ? (p.m === targetM && p.y === targetY) : false;
                 });
-                const filteredHistory = history.filter(h => h.resolvedAt && (parseTimestamp(h.resolvedAt)?.m === targetM));
-                const filteredIncidents = incidents.filter(i => i.resolvedAt && (parseTimestamp(i.resolvedAt)?.m === targetM));
-                const filteredTasks = tasks.filter(t => t.completedAt && (parseTimestamp(t.completedAt)?.m === targetM));
+                const filteredHistory = history.filter((h: any) => h.resolvedAt && (parseTimestamp(h.resolvedAt)?.m === targetM));
+                const filteredIncidents = incidents.filter((i: any) => i.resolvedAt && (parseTimestamp(i.resolvedAt)?.m === targetM));
+                const filteredTasks = tasks.filter((t: any) => t.completedAt && (parseTimestamp(t.completedAt)?.m === targetM));
 
                 const getLogDutyCandidates = (timestamp: string) => {
                     const p = parseTimestamp(timestamp);
@@ -219,7 +219,7 @@ export default function KPIPage() {
 
                 diag.push(`Data: L:${filteredLogs.length} H:${filteredHistory.length} D:${duties.length}`);
 
-                const calculatedStats = allUsers.map(u => {
+                const calculatedStats = allUsers.map((u: any) => {
                     let userInspections = 0;
                     let fastChecksCount = 0;
 
@@ -251,28 +251,28 @@ export default function KPIPage() {
                                     return isMatch(mC, lC) || isMatch(mN, lN) || isMatch(mC, lN) || isMatch(mN, lC);
                                 });
                             }) || (historyByDuty[key] || []).some((h: any) => {
-                                return crew.some(m => {
+                                return crew.some((m: any) => {
                                     const mC = m.userCode; const mN = m.userName;
                                     const hC = h.inspectorCode || h.resolverCode; const hN = h.inspectorName || h.resolverName;
                                     return isMatch(mC, hC) || isMatch(mN, hN) || isMatch(mC, hN) || isMatch(mN, hC);
                                 });
                             }) || (incidentsByDuty[key] || []).some(i => {
                                 const wrks = [...(Array.isArray(i.resolvedByCode)?i.resolvedByCode:[i.resolvedByCode]), ...(Array.isArray(i.participants)?i.participants:[i.participants])].filter(Boolean);
-                                return crew.some(m => wrks.some((w: any) => isMatch(m.userCode, w) || isMatch(m.userName, w)));
+                                return crew.some((m: any) => wrks.some((w: any) => isMatch(m.userCode, w) || isMatch(m.userName, w)));
                             });
 
                             if (teamHasActivity) userInspections += 11;
-                            (logsByDuty[key] || []).filter(l => isMatch(l.inspectorCode, u.code)).forEach(l => { if (l.duration < 30) fastChecksCount++; });
+                            (logsByDuty[key] || []).filter((l: any) => isMatch(l.inspectorCode, u.code)).forEach(l => { if (l.duration < 30) fastChecksCount++; });
                         });
                     });
 
                     return {
                         userId: u.id, code: u.code, name: u.name,
                         inspectionCount: userInspections, 
-                        fixCount: filteredHistory.filter(h => isMatch(h.resolverCode, u.code)).length,
-                        incidentCount: filteredIncidents.filter(i => isMatch(i.resolvedByCode, u.code)).length,
-                        maintenanceCount: filteredTasks.filter(t => (Array.isArray(t.assignees) ? t.assignees : [t.assignees]).some(a => isMatch(a, u.code))).length,
-                        faultFoundCount: history.filter(h => isMatch(h.inspectorCode, u.code)).length,
+                        fixCount: filteredHistory.filter((h: any) => isMatch(h.resolverCode, u.code)).length,
+                        incidentCount: filteredIncidents.filter((i: any) => isMatch(i.resolvedByCode, u.code)).length,
+                        maintenanceCount: filteredTasks.filter((t: any) => (Array.isArray(t.assignees) ? t.assignees : [t.assignees]).some(a => isMatch(a, u.code))).length,
+                        faultFoundCount: history.filter((h: any) => isMatch(h.inspectorCode, u.code)).length,
                         projectExecCount: 0, projectSupCount: 0, fastCheckCount: fastChecksCount,
                         score: (userInspections * SCORING_RULES.INSPECTION) + (fastChecksCount * SCORING_RULES.NEGLIGENCE)
                     };
