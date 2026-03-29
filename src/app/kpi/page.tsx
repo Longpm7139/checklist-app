@@ -118,6 +118,12 @@ export default function KPIPage() {
                 const targetM = Number(filterMonth);
                 const targetY = Number(filterYear);
 
+                // Calculate next month (to include early morning logs of the 1st next month
+                // which belong to the previous month's last night shift)
+                const nextMonthDate = new Date(targetY, targetM, 1); // 1st of next month
+                const nextM = nextMonthDate.getMonth() + 1;
+                const nextY = nextMonthDate.getFullYear();
+
                 // Improved date extraction using regex (handles '.', '/', and '-' delimiters)
                 const isMonthYearMatch = (timestamp: string, targetMonth: number, targetYear: number) => {
                     if (!timestamp) return false;
@@ -138,9 +144,31 @@ export default function KPIPage() {
                     return Number(m) === targetMonth && yearNum === targetYear;
                 };
 
-                // (Filtering logic moved above using isMonthYearMatch helper for consistency)
+                // Parse timestamp to get hour - to detect early morning night shift logs
+                const getTimestampHour = (timestamp: string): number => {
+                    const timeMatch = timestamp.match(/(\d{1,2}):(\d{1,2})/);
+                    if (timeMatch) return Number(timeMatch[1]);
+                    return -1;
+                };
 
-                const filteredLogs = logs.filter((l: any) => isMonthYearMatch(l.timestamp, targetM, targetY));
+                // Extended log filter: include current month AND
+                // early morning (00:00-07:59) logs of the 1st day of next month
+                // (these belong to the last night shift of the current month)
+                const filteredLogs = logs.filter((l: any) => {
+                    if (isMonthYearMatch(l.timestamp, targetM, targetY)) return true;
+                    // Include day-1 of next month if it's early morning (night shift overflow)
+                    if (isMonthYearMatch(l.timestamp, nextM, nextY)) {
+                        const hour = getTimestampHour(l.timestamp);
+                        // Check if this is day 1 of next month
+                        const dateMatch = l.timestamp.match(/(\d{1,2})[\/\-\.](\d{1,2})[\/\-\.](\d{2,4})/);
+                        const isoMatch = l.timestamp.match(/(\d{4})[\/\-\.](\d{1,2})[\/\-\.](\d{1,2})/);
+                        let dayNum = -1;
+                        if (dateMatch) dayNum = Number(dateMatch[1]);
+                        else if (isoMatch) dayNum = Number(isoMatch[3]);
+                        if (dayNum === 1 && hour >= 0 && hour < 8) return true;
+                    }
+                    return false;
+                });
                 
                 const filteredHistory = history.filter((h: any) => h.resolvedAt && isMonthYearMatch(h.resolvedAt, targetM, targetY));
                 
@@ -150,7 +178,11 @@ export default function KPIPage() {
 
                 const filteredTasks = tasks.filter((t: any) => t.completedAt && t.status === 'COMPLETED' && isMonthYearMatch(t.completedAt, targetM, targetY));
 
-                // (Filtering logic moved above using isMonthYearMatch helper for consistency)
+                // Debug: log counts for admin
+                console.log(`[KPI Debug] Month: ${monthFilter}, filteredLogs: ${filteredLogs.length} (raw: ${logs.length}), duties: ${duties.length}`);
+                if (filteredLogs.length > 0) {
+                    console.log('[KPI Debug] Sample timestamps:', filteredLogs.slice(0, 3).map((l: any) => l.timestamp));
+                }
 
                 // --- Helper to map Log Timestamp string to Duty Date + Shift ---
                 // --- Helper to map Log Timestamp string to candidate Duty Date + Shift pairs ---
@@ -177,24 +209,32 @@ export default function KPIPage() {
                     const candidates: { dutyDateStr: string, shift: 'DAY' | 'NIGHT' }[] = [];
                     const logDate = new Date(yearNum, Number(m) - 1, Number(d));
 
-                    // Day Shift Window: 06:00 - 20:00 (Official 07:00 - 19:00)
-                    if (hh >= 6 && hh < 20) {
+                    // Day Shift Window: 06:00 - 19:00 (Official 07:00 - 19:00)
+                    // Note: we stop at 19:00 (exclusive) so 19:xx logs only go to NIGHT
+                    if (hh >= 6 && hh < 19) {
                         const dateStr = `${logDate.getFullYear()}-${String(logDate.getMonth() + 1).padStart(2, '0')}-${String(logDate.getDate()).padStart(2, '0')}`;
                         candidates.push({ dutyDateStr: dateStr, shift: 'DAY' });
                     }
 
-                    // Night Shift Window: 18:00 (Day X) - 08:00 (Day X+1)
-                    // case 1: evening of the day (18:00 - 23:59)
-                    if (hh >= 18) {
+                    // Night Shift Window: 19:00 (Day X) - 07:00 (Day X+1)
+                    // case 1: evening of the day (19:00 - 23:59) - strictly night shift hours
+                    if (hh >= 19) {
                         const dateStr = `${logDate.getFullYear()}-${String(logDate.getMonth() + 1).padStart(2, '0')}-${String(logDate.getDate()).padStart(2, '0')}`;
                         candidates.push({ dutyDateStr: dateStr, shift: 'NIGHT' });
                     }
-                    // case 2: early morning (00:00 - 08:00) -> belongs to previous day's night duty
+                    // case 2: early morning (00:00 - 07:59) -> belongs to previous day's night duty
                     if (hh < 8) {
                         const dutyDate = new Date(logDate);
                         dutyDate.setDate(dutyDate.getDate() - 1);
                         const dateStr = `${dutyDate.getFullYear()}-${String(dutyDate.getMonth() + 1).padStart(2, '0')}-${String(dutyDate.getDate()).padStart(2, '0')}`;
                         candidates.push({ dutyDateStr: dateStr, shift: 'NIGHT' });
+                    }
+                    // Buffer: 18:00 - 19:00 can be either shift (handover period)
+                    if (hh === 18) {
+                        const dateStr = `${logDate.getFullYear()}-${String(logDate.getMonth() + 1).padStart(2, '0')}-${String(logDate.getDate()).padStart(2, '0')}`;
+                        // Also add as NIGHT candidate for the handover hour
+                        const alreadyNight = candidates.some(c => c.dutyDateStr === dateStr && c.shift === 'NIGHT');
+                        if (!alreadyNight) candidates.push({ dutyDateStr: dateStr, shift: 'NIGHT' });
                     }
 
                     return candidates;
@@ -210,6 +250,11 @@ export default function KPIPage() {
                         logsByDuty[key].push(l);
                     });
                 });
+
+                // Debug: show all duty keys that have log activity
+                const nightKeys = Object.keys(logsByDuty).filter(k => k.endsWith('_NIGHT'));
+                const dayKeys = Object.keys(logsByDuty).filter(k => k.endsWith('_DAY'));
+                console.log('[KPI Debug] Duty keys with activity - NIGHT:', nightKeys, '| DAY:', dayKeys);
 
                 const historyByDuty: { [key: string]: any[] } = {};
                 filteredHistoryCreated.forEach((h: any) => {
@@ -263,13 +308,12 @@ export default function KPIPage() {
 
                             if (teamLogs.length > 0 || teamHistory.length > 0) {
                                 userInspections += 11;
-                                if (normalize(u.name).includes('nguyên') || normalize(u.name).includes('quỳnh') || normalize(u.name).includes('phúc') || normalize(u.name).includes('tuấn')) {
-                                    console.log(`Matching KPI Success for ${u.name}: Date: ${dateStr}, Shift: ${shiftType}, HasActivity: ${teamLogs.length > 0 ? 'Log' : 'History'}, PointsEarned: 11`);
-                                }
+                                console.log(`[KPI ✅] ${u.name}: Date=${dateStr}, Shift=${shiftType}, Logs=${teamLogs.length}, History=${teamHistory.length} → +11 điểm`);
                             } else {
-                                if (normalize(u.name).includes('nguyên') || normalize(u.name).includes('quỳnh') || normalize(u.name).includes('phúc') || normalize(u.name).includes('tuấn')) {
-                                    console.log(`Matching KPI Failed for ${u.name}: Date: ${dateStr}, Shift: ${shiftType}, No logs or history found for team.`);
-                                }
+                                // DEBUG: Show why no match found
+                                const dutyKey = `${dateStr}_${shiftType}`;
+                                const rawShiftLogs = logsByDuty[dutyKey] || [];
+                                console.log(`[KPI ❌] ${u.name}: Date=${dateStr}, Shift=${shiftType}, TeamMembers=[${shiftTeamMembers.join(',')}], TeamNames=[${shiftTeamNames.join(',')}], RawShiftLogs=${rawShiftLogs.length} (inspectors: ${rawShiftLogs.slice(0,3).map((l:any)=>l.inspectorName||l.inspectorCode).join(',')})`);
                             }
                             
                             const userLogs = shiftLogs.filter((l: any) =>
