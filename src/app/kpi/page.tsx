@@ -222,9 +222,12 @@ export default function KPIPage() {
                             <ArrowLeft size={24} className="text-slate-600" />
                         </button>
                         <div>
-                            <h1 className="text-3xl font-black uppercase tracking-tight text-slate-900 mb-1">Bảng Xếp Hạng KPI</h1>
+                            <div className="flex items-center gap-2">
+                                <h1 className="text-3xl font-black uppercase tracking-tight text-slate-900 mb-1">Bảng Xếp Hạng KPI Điểm Tức Thì</h1>
+                                <span className="bg-blue-600 text-white text-[10px] font-bold px-1.5 py-0.5 rounded shadow-sm">v1.1.1</span>
+                            </div>
                             <div className="flex items-center gap-2 text-slate-400 font-bold text-xs uppercase tracking-widest">
-                                <Activity size={14} className="text-blue-500" /> Hệ thống tính điểm v1.0.6
+                                <Activity size={14} className="text-blue-500" /> Hệ thống tính điểm Real-time
                             </div>
                         </div>
                     </div>
@@ -239,9 +242,12 @@ export default function KPIPage() {
                                 className="bg-transparent border-none outline-none px-3 py-2 font-black text-slate-700"
                             />
                             <button 
-                                onClick={() => lastProcessed.current = ""} 
-                                className="p-2 text-slate-300 hover:text-blue-500 transition-colors"
-                                title="Làm mới dữ liệu"
+                                onClick={() => {
+                                    lastProcessed.current = "";
+                                    alert("Đã làm mới dữ liệu!");
+                                }} 
+                                className="p-2 ml-2 bg-blue-50 text-blue-600 rounded-lg hover:bg-blue-600 hover:text-white transition-all shadow-sm border border-blue-100"
+                                title="Làm mới dữ liệu (Sync)"
                             >
                                 <RotateCcw size={16} />
                             </button>
