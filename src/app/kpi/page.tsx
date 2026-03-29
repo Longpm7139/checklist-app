@@ -244,13 +244,13 @@ export default function KPIPage() {
                                 return aS.includes(st === 'DAY' ? 'ngay' : 'dem') || aS === normalize(st);
                             }) || [];
                             
-                                                        const teamHasActivity = (logsByDuty[key] || []).some(l => {
-                                return crew.some(m => {
+                                                        const teamHasActivity = (logsByDuty[key] || []).some((l: any) => {
+                                return crew.some((m: any) => {
                                     const mC = m.userCode; const mN = m.userName;
                                     const lC = l.inspectorCode; const lN = l.inspectorName;
                                     return isMatch(mC, lC) || isMatch(mN, lN) || isMatch(mC, lN) || isMatch(mN, lC);
                                 });
-                            }) || (historyByDuty[key] || []).some(h => {
+                            }) || (historyByDuty[key] || []).some((h: any) => {
                                 return crew.some(m => {
                                     const mC = m.userCode; const mN = m.userName;
                                     const hC = h.inspectorCode || h.resolverCode; const hN = h.inspectorName || h.resolverName;
@@ -258,7 +258,7 @@ export default function KPIPage() {
                                 });
                             }) || (incidentsByDuty[key] || []).some(i => {
                                 const wrks = [...(Array.isArray(i.resolvedByCode)?i.resolvedByCode:[i.resolvedByCode]), ...(Array.isArray(i.participants)?i.participants:[i.participants])].filter(Boolean);
-                                return crew.some(m => wrks.some(w => isMatch(m.userCode, w) || isMatch(m.userName, w)));
+                                return crew.some(m => wrks.some((w: any) => isMatch(m.userCode, w) || isMatch(m.userName, w)));
                             });
 
                             if (teamHasActivity) userInspections += 11;
