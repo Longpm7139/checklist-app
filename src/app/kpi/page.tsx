@@ -9,7 +9,7 @@ import { subscribeToLogs, subscribeToHistory, subscribeToIncidents, subscribeToM
 import { SystemCheck } from '@/lib/types';
 
 interface KPIRow {
-    userId: number;
+    userId: string;
     code: string;
     name: string;
     inspectionCount: number;
@@ -229,7 +229,7 @@ export default function KPIPage() {
                             // Find assignments for this shift - handle different shift names
                             const assignments = dayDuty.assignments?.filter((a: any) => {
                                 const aShift = normalize(a.shift || '');
-                                const targetShift = normalize(st === 'DAY' ? 'CA NGÀY' : 'CA ĐÊM');
+                                
                                 // Also handle 'DAY' and 'NIGHT' directly
                                 const isShiftMatch = aShift.includes('ngay') || aShift.includes('dem') || aShift === normalize(st);
                                 if (!isShiftMatch) return false;
