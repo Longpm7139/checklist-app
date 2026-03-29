@@ -292,6 +292,22 @@ export default function KPIPage() {
                 });
 
                 calculatedStats.sort((a, b) => b.score - a.score);
+                                // DEEP TRACE FOR PHÚC (0585VP)
+                let totalDailyInspections = 0;
+                Object.keys(logsByDuty).forEach(k => { if (k.includes('_')) totalDailyInspections += 11; });
+                setTotalInspectionsCount(totalDailyInspections);
+
+                const phucTrace = allUsers.find(u => u.code && u.code.includes('0585'));
+                if (phucTrace) {
+                    diagnostics.push(`Phúc Found: ${phucTrace.name} (${phucTrace.code})`);
+                    duties.filter(d => d.date === '2026-03-26').forEach(d => {
+                        const nightShift = d.assignments?.filter(a => a.shift === 'NIGHT' || a.shift === 'CA ĐÊM' || a.shift === 'ca_dem');
+                        diagnostics.push(`26th Night Crew: ${(nightShift||[]).map(a => a.userName || a.userCode).join(', ')}`);
+                        const isAssigned = (nightShift||[]).some(a => isMatch(a.userCode, phucTrace.code) || isMatch(a.userName, phucTrace.name));
+                        diagnostics.push(`Phúc Assigned to 26th Night? ${isAssigned ? 'YES' : 'NO'}`);
+                    });
+                }
+
                 setStats(calculatedStats);
                 setDiagInfo(diagnostics);
             } catch (e) {
