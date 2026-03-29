@@ -88,7 +88,7 @@ export default function CheckPage() {
             alert("Chỉ nhân viên trong ca trực mới được phép cập nhật tình trạng!");
             return;
         }
-        const now = new Date().toLocaleString('vi-VN', { hour: '2-digit', minute: '2-digit', day: '2-digit', month: '2-digit', year: 'numeric' });
+        const now = new Date().toLocaleString('vi-VN', { hour: '2-digit', minute: '2-digit', day: '2-digit', month: '2-digit', year: 'numeric', hour12: false });
 
         setItems(prev => prev.map(i => {
             if (i.id === id) {
@@ -114,7 +114,7 @@ export default function CheckPage() {
 
     const handleNoteChange = (id: string, val: string) => {
         if (!isUserOnDuty) return;
-        const now = new Date().toLocaleString('vi-VN', { hour: '2-digit', minute: '2-digit', day: '2-digit', month: '2-digit', year: 'numeric' });
+        const now = new Date().toLocaleString('vi-VN', { hour: '2-digit', minute: '2-digit', day: '2-digit', month: '2-digit', year: 'numeric', hour12: false });
         setItems(prev => prev.map(i => i.id === id ? { ...i, note: val, timestamp: now, inspectorName: i.inspectorName || user?.name, inspectorCode: i.inspectorCode || user?.code } : i));
         setIsDirty(true);
     };
@@ -181,7 +181,7 @@ export default function CheckPage() {
             // ALWAYS Save and Log when clicking Save, even if no changes are detected.
             // This is critical for KPI tracking of routine inspections.
             if (true) {
-                const now = new Date().toLocaleString('vi-VN', { hour: '2-digit', minute: '2-digit', day: '2-digit', month: '2-digit', year: 'numeric' });
+                const now = new Date().toLocaleString('vi-VN', { hour: '2-digit', minute: '2-digit', day: '2-digit', month: '2-digit', year: 'numeric', hour12: false });
                 const durationSeconds = Math.round((Date.now() - startTime) / 1000);
 
                 const uncheckedCount = items.filter(i => i.status === 'NA').length;

@@ -201,7 +201,7 @@ export default function Home() {
   const handleStatusChange = async (id: string, status: Status) => {
     if (!isUserOnDuty) return;
 
-    const now = new Date().toLocaleString('vi-VN', { hour: '2-digit', minute: '2-digit', day: '2-digit', month: '2-digit', year: 'numeric' });
+    const now = new Date().toLocaleString('vi-VN', { hour: '2-digit', minute: '2-digit', day: '2-digit', month: '2-digit', year: 'numeric', hour12: false });
     const target = systems.find(s => s.id === id);
     if (target) {
       const updated = { 
@@ -237,7 +237,7 @@ export default function Home() {
 
   const handleNoteChange = async (id: string, note: string) => {
     if (!isUserOnDuty) return;
-    const now = new Date().toLocaleString('vi-VN', { hour: '2-digit', minute: '2-digit', day: '2-digit', month: '2-digit', year: 'numeric' });
+    const now = new Date().toLocaleString('vi-VN', { hour: '2-digit', minute: '2-digit', day: '2-digit', month: '2-digit', year: 'numeric', hour12: false });
     const target = systems.find(s => s.id === id);
     if (target) {
       const updated = { ...target, note, timestamp: now, inspectorName: user?.name, inspectorCode: user?.code };
@@ -348,7 +348,7 @@ export default function Home() {
       alert("Chỉ nhân viên trong ca trực mới được phép thao tác!");
       return;
     }
-    const now = new Date().toLocaleString('vi-VN', { hour: '2-digit', minute: '2-digit', day: '2-digit', month: '2-digit', year: 'numeric' });
+    const now = new Date().toLocaleString('vi-VN', { hour: '2-digit', minute: '2-digit', day: '2-digit', month: '2-digit', year: 'numeric', hour12: false });
 
     systems.forEach(async (s) => {
       if (s.status === 'NA' || !s.status) {

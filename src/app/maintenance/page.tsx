@@ -155,7 +155,7 @@ export default function MaintenancePage() {
                 supervisorNames: selectedSupervisorNames,
                 assignedByName: currentUser?.name || 'Admin',
                 status: 'PENDING',
-                createdAt: new Date().toLocaleString('vi-VN', { hour: '2-digit', minute: '2-digit', day: '2-digit', month: '2-digit', year: 'numeric' }),
+                createdAt: new Date().toLocaleString('vi-VN', { hour: '2-digit', minute: '2-digit', day: '2-digit', month: '2-digit', year: 'numeric', hour12: false }),
                 beforeImageUrl: uploadedBeforeUrl
             };
 
@@ -208,7 +208,7 @@ export default function MaintenancePage() {
                 const updatedTask: MaintenanceTask = {
                     ...taskToUpdate,
                     status: 'COMPLETED',
-                    completedAt: new Date().toLocaleString('vi-VN', { hour: '2-digit', minute: '2-digit', day: '2-digit', month: '2-digit', year: 'numeric' }),
+                    completedAt: new Date().toLocaleString('vi-VN', { hour: '2-digit', minute: '2-digit', day: '2-digit', month: '2-digit', year: 'numeric', hour12: false }),
                     completedNote: completeNote,
                     remainingIssues: remainingIssues,
                     afterImageUrl: uploadedAfterUrl

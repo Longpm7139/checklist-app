@@ -144,11 +144,17 @@ export default function KPIPage() {
                     return Number(m) === targetMonth && yearNum === targetYear;
                 };
 
-                // Parse timestamp to get hour - to detect early morning night shift logs
+                // Parse timestamp to get actual hour (handles 12h CH/SA format)
                 const getTimestampHour = (timestamp: string): number => {
                     const timeMatch = timestamp.match(/(\d{1,2}):(\d{1,2})/);
-                    if (timeMatch) return Number(timeMatch[1]);
-                    return -1;
+                    if (!timeMatch) return -1;
+                    let h = Number(timeMatch[1]);
+                    const tl = timestamp.toLowerCase();
+                    const isPM = / ch[\s\/\d]/.test(tl) || /\bch\b/.test(tl) || tl.includes('chiều') || / pm/.test(tl);
+                    const isAM = / sa[\s\/\d]/.test(tl) || /\bsa\b/.test(tl) || tl.includes('sáng') || / am/.test(tl);
+                    if (isPM && h !== 12) h += 12;
+                    else if (isAM && h === 12) h = 0;
+                    return h;
                 };
 
                 // Extended log filter: include current month AND
@@ -204,7 +210,29 @@ export default function KPIPage() {
                     if (yearNum < 100) yearNum += 2000;
                     
                     if (!timeMatch) return [];
-                    const [, hh, min] = timeMatch.map(Number);
+                    const [, hhRaw, min] = timeMatch.map(Number);
+                    
+                    // *** CRITICAL FIX: Handle 12-hour format ***
+                    // Vietnamese locale on some devices saves timestamps as:
+                    // "07:30 CH 25/03/2026" (CH=chiều=PM) instead of "19:30 25/03/2026"
+                    // "07:30 SA 25/03/2026" (SA=sáng=AM)
+                    let hh = hhRaw;
+                    const tLower = timestamp.toLowerCase();
+                    // Detect PM markers: "ch" (chiều), "pm", or "chiều"
+                    const isPM = / ch[\s\/\d]/.test(tLower) || 
+                                 /\bch\b/.test(tLower) || 
+                                 / pm[\s\/\d]/.test(tLower) ||
+                                 tLower.includes('chiều');
+                    // Detect AM markers: "sa" (sáng), "am", "sáng"  
+                    const isAM = / sa[\s\/\d]/.test(tLower) ||
+                                 /\bsa\b/.test(tLower) ||
+                                 / am[\s\/\d]/.test(tLower) ||
+                                 tLower.includes('sáng');
+                    if (isPM && hhRaw !== 12) {
+                        hh = hhRaw + 12; // e.g. "07:30 CH" → hour=19
+                    } else if (isAM && hhRaw === 12) {
+                        hh = 0; // midnight "12:xx SA" → hour=0
+                    }
                     
                     const candidates: { dutyDateStr: string, shift: 'DAY' | 'NIGHT' }[] = [];
                     const logDate = new Date(yearNum, Number(m) - 1, Number(d));

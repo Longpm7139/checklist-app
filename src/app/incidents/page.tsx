@@ -105,7 +105,7 @@ export default function IncidentsPage() {
                 status: 'OPEN',
                 assignedTo: assignee,
                 reportedBy: currentUser?.name || 'Admin',
-                createdAt: new Date().toLocaleString('vi-VN', { hour: '2-digit', minute: '2-digit', day: '2-digit', month: '2-digit', year: 'numeric' }),
+                createdAt: new Date().toLocaleString('vi-VN', { hour: '2-digit', minute: '2-digit', day: '2-digit', month: '2-digit', year: 'numeric', hour12: false }),
                 imageUrl: uploadedUrl
             };
 
@@ -202,7 +202,7 @@ export default function IncidentsPage() {
                     ...incidentToUpdate,
                     status: 'RESOLVED',
                     resolvedBy: currentUser?.name || 'Unknown',
-                    resolvedAt: new Date().toLocaleString('vi-VN', { hour: '2-digit', minute: '2-digit', day: '2-digit', month: '2-digit', year: 'numeric' }),
+                    resolvedAt: new Date().toLocaleString('vi-VN', { hour: '2-digit', minute: '2-digit', day: '2-digit', month: '2-digit', year: 'numeric', hour12: false }),
                     resolutionNote: resolutionNote,
                     participants: selectedParticipants,
                     resolutionImageUrl: uploadedUrl
