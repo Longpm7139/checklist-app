@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import { ArrowLeft, BarChart2, Medal, TrendingUp, UserCheck, Calendar, AlertTriangle, RotateCcw, Settings } from 'lucide-react';
 import clsx from 'clsx';
@@ -59,6 +59,7 @@ export default function KPIPage() {
     const [duties, setDuties] = useState<any[]>([]);
     const [systems, setSystems] = useState<SystemCheck[]>([]);
     const [diagInfo, setDiagInfo] = useState<string[]>([]);
+    const lastProcessed = useRef("");
 
     // 1. Subscribe to Data
     useEffect(() => {
@@ -95,7 +96,11 @@ export default function KPIPage() {
     useEffect(() => {
         if (!monthFilter || allUsers.length === 0) return;
 
-                const calculateStats = () => {
+                        const calculateStats = () => {
+            const dataState = JSON.stringify({ monthFilter, userCount: allUsers.length, logCount: logs.length, dutyCount: duties.length });
+            if (lastProcessed.current === dataState) return;
+            lastProcessed.current = dataState;
+
             try {
                 const diag: string[] = [];
                 const removeAccents = (str: string) => (str || '').toString().normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/đ/g, 'd').replace(/Đ/g, 'D');
@@ -262,7 +267,7 @@ export default function KPIPage() {
         };
 
         calculateStats();
-    , [monthFilter, allUsers, logs, history, incidents, tasks, duties, systems]);
+    }, [monthFilter, allUsers, logs, history, incidents, tasks, duties, systems]);
 
     if (currentUser?.role !== 'ADMIN') {
         return (
