@@ -596,14 +596,6 @@ export default function KPIPage() {
                 <div className="mt-4 text-xs text-slate-400 italic text-right mb-8">
                     * Bảng điểm được cập nhật tự động theo cơ cấu điểm ở trên.
                 </div>
-
-                
-                        </div>
-                        <div className="mt-4 pt-2 border-t border-slate-700 whitespace-nowrap overflow-x-auto text-[9px] text-blue-300">
-                            <b>Sample Logs Timestamps:</b> {logs.slice(0, 5).map(l => l.timestamp).join(' | ')}
-                        </div>
-                    </div>
-                )}
             </div>
         </div>
     );
