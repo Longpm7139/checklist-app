@@ -11,7 +11,7 @@ import {
 import clsx from 'clsx';
 import * as XLSX from 'xlsx';
 import { useUser } from '@/providers/UserProvider';
-import { isMatch, normalize } from '@/lib/utils';
+import { isMatch, normalize, isVeryLenientMatch } from '@/lib/utils';
 import { subscribeToLogs, subscribeToHistory, subscribeToIncidents, subscribeToMaintenance, getUsers, resetKPIData, subscribeToDuties, subscribeToSystems } from '@/lib/firebase';
 import { SystemCheck } from '@/lib/types';
 
@@ -163,15 +163,14 @@ export default function KPIPage() {
                             const crew = dDuty.assignments?.filter((a: any) => {
                                 const aS = normalize(a.shift || '');
                                 if (!(aS.includes('ngay') || aS.includes('dem') || aS === normalize(st))) return false;
-                                return isMatch(a.userCode, u.code) || isMatch(a.userName, u.name);
+                                return isVeryLenientMatch(a.userCode, u.code) || isVeryLenientMatch(a.userName, u.name);
                             }) || [];
                             
                             if (crew.length === 0) return;
 
                             // 2. Did this specific user perform ANY log check during this shift window?
-                            // DAY: 05:00 - 20:00 | NIGHT: 17:00 - 09:00 (Next Day)
                             const hasActivity = fLogs.some(l => {
-                                if (!(isMatch(l.inspectorCode, u.code) || isMatch(l.inspectorName, u.name))) return false;
+                                if (!(isVeryLenientMatch(l.inspectorCode, u.code) || isVeryLenientMatch(l.inspectorName, u.name))) return false;
                                 
                                 const p = parseTS(l.timestamp);
                                 if (!p) return false;
@@ -260,7 +259,7 @@ export default function KPIPage() {
                         <div>
                             <div className="flex items-center gap-2">
                                 <h1 className="text-3xl font-black uppercase tracking-tight text-slate-900 mb-1">Bảng Xếp Hạng KPI Điểm Tức Thì</h1>
-                                <span className="bg-blue-600 text-white text-[10px] font-bold px-1.5 py-0.5 rounded shadow-sm">v1.1.7</span>
+                                <span className="bg-blue-600 text-white text-[10px] font-bold px-1.5 py-0.5 rounded shadow-sm">v1.1.8</span>
                             </div>
                             <div className="flex items-center gap-2 text-slate-400 font-bold text-xs uppercase tracking-widest">
                                 <Activity size={14} className="text-blue-500" /> Hệ thống tính điểm Real-time

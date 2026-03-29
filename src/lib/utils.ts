@@ -42,3 +42,24 @@ export const isMatch = (v1: any, v2: any): boolean => {
   
   return false;
 };
+
+/**
+ * Extreme lenient matching for Vietnamese names and codes.
+ * Removes accents, spaces, and compares parts of names.
+ */
+export const isVeryLenientMatch = (v1: any, v2: any): boolean => {
+  if (!v1 || !v2) return false;
+  
+  const n1 = normalize(v1);
+  const n2 = normalize(v2);
+  
+  // Direct or Number match first (Fastest)
+  if (n1 === n2 || isMatch(v1, v2)) return true;
+  
+  // Part matching (e.g. "Ngoc Quynh" in "Mai Ngoc Quynh")
+  if (n1.length > 3 && n2.length > 3) {
+    if (n1.includes(n2) || n2.includes(n1)) return true;
+  }
+  
+  return false;
+};
