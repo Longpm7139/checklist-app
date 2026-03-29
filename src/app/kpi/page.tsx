@@ -159,19 +159,28 @@ export default function KPIPage() {
                     fDuties.forEach(dDuty => {
                         const dS = dDuty.date; // YYYY-MM-DD
                         ['DAY', 'NIGHT'].forEach(st => {
-                            // 1. Is user assigned to this shift on this day?
-                            const crew = dDuty.assignments?.filter((a: any) => {
+                            // 1. Get the ENTIRE crew assigned to this shift
+                            const currentShiftCrew = dDuty.assignments?.filter((a: any) => {
                                 const aS = normalize(a.shift || '');
-                                if (!(aS.includes('ngay') || aS.includes('dem') || aS === normalize(st))) return false;
-                                return isVeryLenientMatch(a.userCode, u.code) || isVeryLenientMatch(a.userName, u.name);
+                                return (aS.includes('ngay') || aS.includes('dem') || aS === normalize(st));
                             }) || [];
-                            
-                            if (crew.length === 0) return;
 
-                            // 2. Did this specific user perform ANY log check during this shift window?
-                            const hasActivity = fLogs.some(l => {
-                                if (!(isVeryLenientMatch(l.inspectorCode, u.code) || isVeryLenientMatch(l.inspectorName, u.name))) return false;
+                            // 2. Is THIS user (u) in that crew?
+                            const isUserOnDuty = currentShiftCrew.some((a: any) => 
+                                isVeryLenientMatch(a.userCode, u.code) || isVeryLenientMatch(a.userName, u.name)
+                            );
+                            
+                            if (!isUserOnDuty) return;
+
+                            // 3. Did ANYONE in this crew perform ANY check during this shift window?
+                            const isShiftCompletedByCrew = fLogs.some(l => {
+                                // Check if the log inspector is ANYONE from the crew
+                                const isLogByCrewMember = currentShiftCrew.some((a: any) => 
+                                    isVeryLenientMatch(l.inspectorCode, a.userCode) || isVeryLenientMatch(l.inspectorName, a.userName)
+                                );
                                 
+                                if (!isLogByCrewMember) return false;
+
                                 const p = parseTS(l.timestamp);
                                 if (!p) return false;
                                 
@@ -193,7 +202,7 @@ export default function KPIPage() {
                                 return logTime >= shiftStart && logTime <= shiftEnd;
                             });
 
-                            if (hasActivity) {
+                            if (isShiftCompletedByCrew) {
                                 uIn += SCORING_RULES.INSPECTION * 11;
                             }
                         });
@@ -259,7 +268,7 @@ export default function KPIPage() {
                         <div>
                             <div className="flex items-center gap-2">
                                 <h1 className="text-3xl font-black uppercase tracking-tight text-slate-900 mb-1">Bảng Xếp Hạng KPI Điểm Tức Thì</h1>
-                                <span className="bg-blue-600 text-white text-[10px] font-bold px-1.5 py-0.5 rounded shadow-sm">v1.1.8</span>
+                                <span className="bg-blue-600 text-white text-[10px] font-bold px-1.5 py-0.5 rounded shadow-sm">v1.1.9</span>
                             </div>
                             <div className="flex items-center gap-2 text-slate-400 font-bold text-xs uppercase tracking-widest">
                                 <Activity size={14} className="text-blue-500" /> Hệ thống tính điểm Real-time
