@@ -5,7 +5,8 @@ import { useRouter } from 'next/navigation';
 import { ArrowLeft, BarChart2, Medal, TrendingUp, UserCheck, Calendar, AlertTriangle, RotateCcw, Settings } from 'lucide-react';
 import clsx from 'clsx';
 import { useUser } from '@/providers/UserProvider';
-import { subscribeToLogs, subscribeToHistory, subscribeToIncidents, subscribeToMaintenance, getUsers, resetKPIData, subscribeToDuties } from '@/lib/firebase';
+import { subscribeToLogs, subscribeToHistory, subscribeToIncidents, subscribeToMaintenance, getUsers, resetKPIData, subscribeToDuties, subscribeToSystems } from '@/lib/firebase';
+import { SystemCheck } from '@/lib/types';
 
 interface KPIRow {
     userId: number;
@@ -56,6 +57,8 @@ export default function KPIPage() {
     const [tasks, setTasks] = useState<any[]>([]);
     const [allUsers, setAllUsers] = useState<any[]>([]);
     const [duties, setDuties] = useState<any[]>([]);
+    const [systems, setSystems] = useState<SystemCheck[]>([]);
+    const [diagInfo, setDiagInfo] = useState<string[]>([]);
 
     // 1. Subscribe to Data
     useEffect(() => {
@@ -76,6 +79,7 @@ export default function KPIPage() {
         const unsubIncidents = subscribeToIncidents((data) => setIncidents(data));
         const unsubMaintenance = subscribeToMaintenance((data) => setTasks(data));
         const unsubDuties = subscribeToDuties((data) => setDuties(data));
+        const unsubSystems = subscribeToSystems((data) => setSystems(data as SystemCheck[]));
 
         return () => {
             unsubLogs();
@@ -83,6 +87,7 @@ export default function KPIPage() {
             unsubIncidents();
             unsubMaintenance();
             unsubDuties();
+            unsubSystems();
         };
     }, []);
 
@@ -117,6 +122,7 @@ export default function KPIPage() {
                 const [filterYear, filterMonth] = monthFilter.split('-');
                 const targetM = Number(filterMonth);
                 const targetY = Number(filterYear);
+                const diagnostics: string[] = [];
 
                 // =========================================================
                 // UNIVERSAL TIMESTAMP PARSER
@@ -218,16 +224,12 @@ export default function KPIPage() {
                 const filteredIncidents = incidents.filter((i: any) => i.resolvedAt && i.status === 'RESOLVED' && isMonthYearMatch(i.resolvedAt, targetM, targetY));
                 const filteredTasks = tasks.filter((t: any) => t.completedAt && t.status === 'COMPLETED' && isMonthYearMatch(t.completedAt, targetM, targetY));
 
-                // -------- DEBUG: Show ALL timestamps to diagnose parsing issues --------
-                const unparsedLogs = logs.filter((l: any) => !parseTimestamp(l.timestamp));
-                if (unparsedLogs.length > 0) {
-                    console.warn('[KPI ⚠️] Logs với timestamp KHÔNG PARSE ĐƯỢC:', unparsedLogs.map((l: any) => `"${l.timestamp}" by ${l.inspectorName}`));
-                }
-                console.log(`[KPI Debug] filteredLogs: ${filteredLogs.length}/${logs.length} | Tháng ${targetM}/${targetY}`);
-                // Show ALL timestamps for this month to see actual format
-                const allTimestampsThisMonth = filteredLogs.map((l: any) => ({ts: l.timestamp, name: l.inspectorName}));
-                console.log('[KPI Debug] Tất cả timestamps tháng này:', JSON.stringify(allTimestampsThisMonth.slice(0, 20)));
-                // -----------------------------------------------------------------------
+                // -------- DIAGNOSTICS --------
+                const unparsed = logs.filter(l => !parseTimestamp(l.timestamp));
+                diagnostics.push(`Fetched: ${logs.length} logs, ${history.length} history, ${systems.length} systems`);
+                diagnostics.push(`Unparsed Timestamps: ${unparsed.length}`);
+                if (unparsed.length > 0) diagnostics.push(`Example Unparsed: "${unparsed[0].timestamp}"`);
+                // -----------------------------
 
                 // --- Helper to map Log Timestamp string to Duty Date + Shift ---
                 // --- Helper to map Log Timestamp string to candidate Duty Date + Shift pairs ---
@@ -329,14 +331,32 @@ export default function KPIPage() {
                                        shiftTeamNames.some((m: string) => isMatch(m, h.inspectorName));
                             });
 
-                            if (teamLogs.length > 0 || teamHistory.length > 0) {
+                            // FALLBACK Logic: If no logs found (for March 27-28), check Systems current state
+                            const teamSystems = systems.filter(s => {
+                                const systemP = parseTimestamp(s.timestamp || '');
+                                if (!systemP) return false;
+                                // Check if system status timestamp belongs to this duty shift
+                                const sDateStr = `${systemP.y}-${String(systemP.m).padStart(2, '0')}-${String(systemP.d).padStart(2, '0')}`;
+                                if (sDateStr !== dateStr) return false;
+                                
+                                // Check hour
+                                const sh = systemP.h;
+                                let hourMatch = false;
+                                if (shiftType === 'DAY') hourMatch = (sh >= 4 && sh <= 20);
+                                else hourMatch = (sh >= 16 || sh <= 11);
+
+                                if (!hourMatch) return false;
+
+                                // Check user
+                                return shiftTeamMembers.some((m: string) => isMatch(m, s.inspectorCode)) || 
+                                       shiftTeamNames.some((m: string) => isMatch(m, s.inspectorName));
+                            });
+
+                            if (teamLogs.length > 0 || teamHistory.length > 0 || teamSystems.length > 0) {
                                 userInspections += 11;
-                                console.log(`[KPI ✅] ${u.name}: Date=${dateStr}, Shift=${shiftType}, Logs=${teamLogs.length}, History=${teamHistory.length} → +11 điểm`);
-                            } else {
-                                // DEBUG: Show why no match found
-                                const dutyKey = `${dateStr}_${shiftType}`;
-                                const rawShiftLogs = logsByDuty[dutyKey] || [];
-                                console.log(`[KPI ❌] ${u.name}: Date=${dateStr}, Shift=${shiftType}, TeamMembers=[${shiftTeamMembers.join(',')}], TeamNames=[${shiftTeamNames.join(',')}], RawShiftLogs=${rawShiftLogs.length} (inspectors: ${rawShiftLogs.slice(0,3).map((l:any)=>l.inspectorName||l.inspectorCode).join(',')})`);
+                                if (u.code === 'ADMIN') { // Just for debug log
+                                    console.log(`[KPI ✅] Match found for ${u.name} via ${teamLogs.length ? 'Logs' : (teamHistory.length ? 'History' : 'Systems Fallback')}`);
+                                }
                             }
                             
                             const userLogs = shiftLogs.filter((l: any) =>
@@ -441,6 +461,7 @@ export default function KPIPage() {
                     }
                 });
                 setTotalInspectionsCount(globalInspections);
+                setDiagInfo(diagnostics);
 
             } catch (err) {
                 console.error("Error calculating KPI:", err);
@@ -449,7 +470,7 @@ export default function KPIPage() {
 
         calculateStats();
 
-    }, [monthFilter, allUsers, logs, history, incidents, tasks, duties]);
+    }, [monthFilter, allUsers, logs, history, incidents, tasks, duties, systems]);
 
     if (currentUser?.role !== 'ADMIN') {
         return (
@@ -732,9 +753,26 @@ export default function KPIPage() {
                         </table>
                     </div>
                 </div>
-                <div className="mt-4 text-xs text-slate-400 italic text-right">
+                <div className="mt-4 text-xs text-slate-400 italic text-right mb-8">
                     * Bảng điểm được cập nhật tự động theo cơ cấu điểm ở trên.
                 </div>
+
+                {/* DIAGNOSTIC PANEL (Admin Only) */}
+                {currentUser?.role === 'ADMIN' && (
+                    <div className="max-w-6xl mx-auto mt-12 mb-6 bg-slate-800 text-slate-300 p-4 rounded-xl text-[10px] font-mono shadow-lg border border-slate-700">
+                        <div className="flex items-center gap-2 mb-2 text-yellow-500 font-bold uppercase text-[11px]">
+                            <Settings size={14} /> KPI Diagnostic Console (Admin Only)
+                        </div>
+                        <div className="grid grid-cols-1 md:grid-cols-3 gap-x-8 gap-y-2 opacity-80">
+                            {diagInfo.map((info, i) => (
+                                <div key={i} className="border-b border-slate-700/50 pb-1">{info}</div>
+                            ))}
+                        </div>
+                        <div className="mt-4 pt-2 border-t border-slate-700 whitespace-nowrap overflow-x-auto text-[9px] text-blue-300">
+                            <b>Sample Logs Timestamps:</b> {logs.slice(0, 5).map(l => l.timestamp).join(' | ')}
+                        </div>
+                    </div>
+                )}
             </div>
         </div>
     );
