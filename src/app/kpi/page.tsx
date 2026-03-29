@@ -2,8 +2,14 @@
 
 import { useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
-import { ArrowLeft, BarChart2, Medal, TrendingUp, UserCheck, Calendar, AlertTriangle, RotateCcw, Settings } from 'lucide-react';
+
+import { 
+    ArrowLeft, BarChart2, Medal, TrendingUp, UserCheck, Calendar, 
+    AlertTriangle, RotateCcw, Settings, X, FileText, CheckCircle, 
+    ShieldCheck, Briefcase, Activity, Clock
+} from 'lucide-react';
 import clsx from 'clsx';
+import * as XLSX from 'xlsx';
 import { useUser } from '@/providers/UserProvider';
 import { isMatch, normalize } from '@/lib/utils';
 import { subscribeToLogs, subscribeToHistory, subscribeToIncidents, subscribeToMaintenance, getUsers, resetKPIData, subscribeToDuties, subscribeToSystems } from '@/lib/firebase';
@@ -54,6 +60,7 @@ export default function KPIPage() {
     const nowD = new Date();
     const currentYearMonth = `${nowD.getFullYear()}-${String(nowD.getMonth() + 1).padStart(2, '0')}`;
     const [monthFilter, setMonthFilter] = useState(currentYearMonth);
+    const [selectedUser, setSelectedUser] = useState<KPIRow | null>(null);
 
     const [logs, setLogs] = useState<any[]>([]);
     const [history, setHistory] = useState<any[]>([]);
@@ -62,6 +69,7 @@ export default function KPIPage() {
     const [allUsers, setAllUsers] = useState<any[]>([]);
     const [duties, setDuties] = useState<any[]>([]);
     const lastProcessed = useRef("");
+    const [showSettings, setShowSettings] = useState(false);
 
     useEffect(() => {
         getUsers().then(u => setAllUsers(u || [])).catch(e => console.error(e));
@@ -95,201 +103,218 @@ export default function KPIPage() {
                     if (dateMatch) {
                         if (dateMatch[1].length === 4) { y = Number(dateMatch[1]); m = Number(dateMatch[2]); d = Number(dateMatch[3]); }
                         else { d = Number(dateMatch[1]); m = Number(dateMatch[2]); y = Number(dateMatch[3]); }
-                    } else {
-                        const nums = s.match(/\d+/g); if (nums && nums.length >= 3) { d = Number(nums[0]); m = Number(nums[1]); y = Number(nums[2]); if (y < 100) y += 2000; } else return null;
+                        const timeMatch = s.match(/(\d{1,2}):(\d{2})/);
+                        if (timeMatch) h = Number(timeMatch[1]);
+                        return { d, m, y, h };
                     }
-                    const timeMatch = s.match(/(\d{1,2})[:](\d{1,2})/); if (timeMatch) h = Number(timeMatch[1]);
-                    const sL = s.toLowerCase();
-                    if ((sL.includes('ch') || sL.includes('chiều') || /pm/i.test(s)) && h < 12) h += 12;
-                    if ((sL.includes('sa') || sL.includes('sáng') || /am/i.test(s)) && h === 12) h = 0;
-                    if (y < 100) y += 2000;
-                    return d === -1 || m === -1 || y === -1 ? null : { d, m, y, h };
+                    return null;
                 };
 
-                const toDS = (dt: Date) => `${dt.getFullYear()}-${String(dt.getMonth() + 1).padStart(2, '0')}-${String(dt.getDate()).padStart(2, '0')}`;
-                const fLogs = logs.filter(l => { const p = parseTS(l.timestamp); return p ? (p.m === targetM && p.y === targetY) : false; });
-                const fHis = history.filter(h => h.resolvedAt && (parseTS(h.resolvedAt)?.m === targetM));
-                const fInc = incidents.filter(i => i.resolvedAt && (parseTS(i.resolvedAt)?.m === targetM));
-                const fMaintTasks = tasks.filter(t => t.completedAt && (parseTS(t.completedAt)?.m === targetM) && (!t.type || t.type === 'MAINTENANCE'));
-                const fProjTasks = tasks.filter(t => t.completedAt && (parseTS(t.completedAt)?.m === targetM) && t.type === 'PROJECT');
+                const fLogs = logs.filter(l => { const p = parseTS(l.timestamp); return p && p.m === targetM && p.y === targetY; });
+                const fHis = history.filter(h => h.resolvedAt && parseTS(h.resolvedAt)?.m === targetM && parseTS(h.resolvedAt)?.y === targetY);
+                const fInc = incidents.filter(i => i.resolvedAt && parseTS(i.resolvedAt)?.m === targetM && parseTS(i.resolvedAt)?.y === targetY);
+                const fTasks = tasks.filter(t => t.completedAt && parseTS(t.completedAt)?.m === targetM && parseTS(t.completedAt)?.y === targetY);
+                const fDuties = duties.filter(d => { const p = d.date.split('-'); return Number(p[1]) === targetM && Number(p[0]) === targetY; });
 
-                const groupAct = (data: any[], f: string) => {
-                    const m: any = {};
-                    data.forEach(it => {
-                        const p = parseTS(it[f]); if (!p) return;
-                        const lD = new Date(p.y, p.m - 1, p.d);
-                        const candidates = [{ ds: toDS(lD), st: p.h >= 4 && p.h <= 22 ? 'DAY' : null }, { ds: toDS(lD), st: p.h >= 16 ? 'NIGHT' : null }];
-                        if (p.h <= 12) { const prev = new Date(lD); prev.setDate(prev.getDate() - 1); candidates.push({ ds: toDS(prev), st: 'NIGHT' }); }
-                        candidates.filter(c => c.st).forEach(c => { const k = `${c.ds}_${c.st}`; if (!m[k]) m[k] = []; m[k].push(it); });
-                    });
-                    return m;
-                };
+                const logsByD: any = {};
+                fLogs.forEach(l => {
+                    const p = parseTS(l.timestamp);
+                    if (!p) return;
+                    const shift = (p.h >= 6 && p.h < 18) ? 'DAY' : 'NIGHT';
+                    const k = `${p.y}-${String(p.m).padStart(2, '0')}-${String(p.d).padStart(2, '0')}_${shift}`;
+                    if (!logsByD[k]) logsByD[k] = [];
+                    logsByD[k].push(l);
+                });
 
-                const logsByD = groupAct(fLogs, 'timestamp');
-                const hisByD = groupAct(history, 'timestamp');
-                const incByD = groupAct(incidents, 'timestamp');
-                const mByD = groupAct(tasks, 'timestamp');
+                const usersMap = allUsers.reduce((acc, curr) => ({ ...acc, [curr.code]: curr }), {});
 
-                const cStats = allUsers.map(u => {
-                    let uIn = 0, fCC = 0;
-                    duties.forEach(dD => {
-                        const dS = dD.date;
+                const statsData = allUsers.map(u => {
+                    let uIn = 0;
+                    fDuties.forEach(dDuty => {
+                        const dS = dDuty.date;
                         ['DAY', 'NIGHT'].forEach(st => {
-                            const crew = dD.assignments?.filter((a: any) => {
-                                const aS = normalize(a.shift || ''); if (!(aS.includes('ngay') || aS.includes('dem') || aS === normalize(st))) return false;
+                            const crew = dDuty.assignments?.filter((a: any) => {
+                                const aS = normalize(a.shift || '');
+                                if (!(aS.includes('ngay') || aS.includes('dem') || aS === normalize(st))) return false;
                                 return isMatch(a.userCode, u.code) || isMatch(a.userName, u.name);
                             }) || [];
                             if (crew.length === 0) return;
                             const k = `${dS}_${st}`;
-                            if ((logsByD[k]||[]).length > 0 || (hisByD[k]||[]).length > 0 || (incByD[k]||[]).length > 0 || (mByD[k]||[]).length > 0) uIn += 11;
-                            (logsByD[k] || []).filter((l: any) => isMatch(l.inspectorCode, u.code)).forEach((l: any) => { if (l.duration < 30) fCC++; });
+                            if ((logsByD[k] || []).length > 0) uIn += SCORING_RULES.INSPECTION * 11;
                         });
                     });
 
                     const fixCount = fHis.filter(h => isMatch(h.resolverCode, u.code) || isMatch(h.resolverName, u.name)).length;
-                    const incidentCount = fInc.filter(i => isMatch(i.resolvedBy, u.code) || isMatch(i.resolvedBy, u.name) || (i.participants || []).some((p: string) => isMatch(p, u.code) || isMatch(p, u.name))).length;
-                    const maintenanceCount = fMaintTasks.filter(t => (Array.isArray(t.assignees) ? t.assignees : [t.assignees]).some((a: any) => isMatch(a, u.code) || isMatch(a, u.name))).length;
-                    const faultFoundCount = history.filter(h => isMatch(h.inspectorCode, u.code) || isMatch(h.inspectorName, u.name)).length;
-                    const projectExecCount = fProjTasks.filter(t => (t.assignees || []).some((a: any) => isMatch(a, u.code) || isMatch(a, u.name))).length;
-                    const projectSupCount = fProjTasks.filter(t => (t.supervisors || []).some((s: any) => isMatch(s, u.code) || isMatch(s, u.name))).length;
+                    const faultFoundCount = fLogs.filter(l => l.result === 'NOK' && isMatch(l.inspectorCode, u.code)).length;
+                    const incidentCount = fInc.filter(i => isMatch(i.resolvedBy, u.code) || (i.participants || []).some((p: string) => isMatch(p, u.code))).length;
+                    const maintCount = fTasks.filter(t => t.type !== 'PROJECT' && (t.assignees || []).some((a: string) => isMatch(a, u.name) || isMatch(a, u.code))).length;
+                    const pExecCount = fTasks.filter(t => t.type === 'PROJECT' && (t.assignees || []).some((a: string) => isMatch(a, u.name) || isMatch(a, u.code))).length;
+                    const pSupCount = fTasks.filter(t => t.type === 'PROJECT' && (t.supervisors || []).some((s: string) => isMatch(s, u.name) || isMatch(s, u.code))).length;
+                    const negligenceCount = fLogs.filter(l => l.isFastCheck && isMatch(l.inspectorCode, u.code)).length;
 
-                    const score = (uIn * SCORING_RULES.INSPECTION) +
-                                 (fixCount * SCORING_RULES.FIX) +
-                                 (incidentCount * SCORING_RULES.INCIDENT) +
-                                 (maintenanceCount * SCORING_RULES.MAINTENANCE) +
-                                 (projectExecCount * SCORING_RULES.PROJECT_EXEC) +
-                                 (projectSupCount * SCORING_RULES.PROJECT_SUP) +
-                                 (faultFoundCount * SCORING_RULES.FAULT_FOUND) +
-                                 (fCC * SCORING_RULES.NEGLIGENCE);
+                    const score = uIn + (fixCount * SCORING_RULES.FIX) + (faultFoundCount * SCORING_RULES.FAULT_FOUND) + (incidentCount * SCORING_RULES.INCIDENT) + (maintCount * SCORING_RULES.MAINTENANCE) + (pExecCount * SCORING_RULES.PROJECT_EXEC) + (pSupCount * SCORING_RULES.PROJECT_SUP) + (negligenceCount * SCORING_RULES.NEGLIGENCE);
 
                     return {
-                        userId: u.id, code: u.code, name: u.name, inspectionCount: uIn,
-                        fixCount, incidentCount, maintenanceCount, faultFoundCount,
-                        projectExecCount, projectSupCount, fastCheckCount: fCC,
-                        score
+                        userId: u.id, code: u.code, name: u.name,
+                        inspectionCount: uIn, fixCount, incidentCount, maintenanceCount: maintCount,
+                        faultFoundCount, projectExecCount: pExecCount, projectSupCount: pSupCount,
+                        fastCheckCount: negligenceCount, score
                     };
-                });
+                }).sort((a, b) => b.score - a.score);
 
-                cStats.sort((a, b) => b.score - a.score);
-                setStats(cStats);
-                setTotalInspectionsCount(Object.keys(logsByD).length * 11);
-            } catch (e) { console.error("KPI Error", e); }
+                setStats(statsData);
+                setTotalInspectionsCount(fLogs.length);
+            } catch (err) {
+                console.error("KPI Calc Error", err);
+            }
         };
-        calculateStats();
-    }, [monthFilter, allUsers, logs, history, incidents, tasks, duties]);
 
-    if (currentUser?.role !== 'ADMIN') {
-        return (
-            <div className="min-h-screen flex items-center justify-center bg-slate-50 p-6">
-                <div className="text-center max-w-sm">
-                    <h1 className="text-2xl font-bold text-red-600 mb-2">Truy cập bị từ chối</h1>
-                    <p className="text-slate-600 mb-6">Bạn không có quyền quản trị để truy cập dữ liệu này.</p>
-                    <button onClick={() => router.push('/')} className="w-full py-3 bg-blue-600 text-white rounded-xl shadow-lg font-bold">Về trang chủ</button>
-                </div>
-            </div>
-        );
-    }
+        calculateStats();
+    }, [logs, history, incidents, tasks, allUsers, monthFilter, duties]);
+
+    const handleExport = () => {
+        const wb = XLSX.utils.book_new();
+        const data = [
+            ["BẢNG XẾP HẠNG KPI", monthFilter],
+            [],
+            ["Hạng", "Mã NV", "Họ Tên", "Kiểm tra", "Tìm lỗi", "Sửa lỗi", "Sự cố", "Bảo trì", "Thi công", "Giám sát", "Điểm"]
+        ];
+        stats.forEach((s, i) => {
+            data.push([i + 1, s.code, s.name, s.inspectionCount, s.faultFoundCount, s.fixCount, s.incidentCount, s.maintenanceCount, s.projectExecCount, s.projectSupCount, s.score]);
+        });
+        XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(data), "KPI");
+        XLSX.writeFile(wb, `KPI_${monthFilter}.xlsx`);
+    };
+
+    const handleReset = async () => {
+        if (confirm("Cảnh báo: Thao tác này sẽ xóa sạch dữ liệu quá khứ. Bạn có chắc chắn?")) {
+            await resetKPIData();
+            window.location.reload();
+        }
+    };
 
     return (
-        <div className="min-h-screen bg-slate-50 p-4 md:p-8 font-sans text-slate-900 scroll-smooth">
-            <div className="max-w-5xl mx-auto">
-                <header className="mb-6 md:mb-10 flex flex-col md:flex-row justify-between items-center gap-6">
-                    <div className="flex items-center gap-4 w-full">
-                        <button onClick={() => router.push('/')} className="p-3 bg-white rounded-full border border-slate-200 shadow-sm active:scale-95 transition">
-                            <ArrowLeft size={20} className="text-slate-600" />
+        <div className="min-h-screen bg-slate-50 p-4 font-sans text-slate-900 pb-20">
+            <div className="max-w-6xl mx-auto">
+                <header className="mb-8 flex flex-col md:flex-row justify-between items-center gap-6">
+                    <div className="flex items-center gap-4">
+                        <button onClick={() => router.push('/')} className="p-3 bg-white rounded-2xl border border-slate-200 shadow-sm hover:bg-slate-50 transition">
+                            <ArrowLeft size={24} className="text-slate-600" />
                         </button>
-                        <div className="min-w-0">
-                            <h1 className="text-xl md:text-2xl font-black uppercase text-slate-800 flex items-center gap-2 truncate">
-                                <BarChart2 className="text-blue-600 shrink-0" />
-                                <span className="truncate">Dashboard KPI Đội Ngũ</span>
-                            </h1>
-                            <p className="text-slate-500 text-xs md:text-sm font-medium">Báo cáo hiệu suất tự động</p>
+                        <div>
+                            <h1 className="text-3xl font-black uppercase tracking-tight text-slate-900 mb-1">Bảng Xếp Hạng KPI</h1>
+                            <div className="flex items-center gap-2 text-slate-400 font-bold text-xs uppercase tracking-widest">
+                                <Activity size={14} className="text-blue-500" /> Hệ thống tính điểm v1.0.6
+                            </div>
                         </div>
                     </div>
-                    <div className="w-full md:w-auto flex flex-col sm:flex-row items-center gap-3">
-                        <div className="w-full sm:w-auto bg-white p-1 rounded-xl border border-slate-200 shadow-sm flex items-center">
-                            <div className="p-2 text-slate-400"><Calendar size={18} /></div>
-                            <input type="month" value={monthFilter} onChange={(e) => setMonthFilter(e.target.value)} className="w-full sm:w-32 outline-none text-slate-800 font-bold bg-transparent pr-4 py-2 cursor-pointer" />
+
+                    <div className="flex items-center gap-3">
+                        <div className="bg-white p-1 rounded-2xl border border-slate-200 shadow-sm flex items-center">
+                            <Calendar size={18} className="ml-3 text-slate-400" />
+                            <input
+                                type="month"
+                                value={monthFilter}
+                                onChange={(e) => setMonthFilter(e.target.value)}
+                                className="bg-transparent border-none outline-none px-3 py-2 font-black text-slate-700"
+                            />
                         </div>
-                        <button onClick={async () => {
-                            if (confirm("CẢNH BÁO: Hành động này sẽ XÓA TOÀN BỘ dữ liệu KPI.\nBạn có chắc chắn muốn tiếp tục không?")) {
-                                try { await resetKPIData(); alert("Đã xóa toàn bộ dữ liệu."); } catch (e) { alert("Lỗi khi reset"); }
-                            }
-                        }} className="w-full sm:w-auto bg-red-50 hover:bg-red-100 text-red-600 px-4 py-3 rounded-xl font-black text-xs flex items-center justify-center gap-2 transition active:scale-95">
-                            <RotateCcw size={16} /> RESET DỮ LIỆU
+                        <button onClick={handleExport} className="bg-green-600 hover:bg-green-700 text-white font-black px-6 py-3 rounded-2xl shadow-xl shadow-green-500/20 transition flex items-center gap-2">
+                            <FileText size={20} /> <span className="hidden sm:inline">Xuất Excel</span>
+                        </button>
+                        <button onClick={() => setShowSettings(!showSettings)} className="p-3 bg-white rounded-2xl border border-slate-200 shadow-sm hover:rotate-90 transition-transform duration-500">
+                            <Settings size={24} className="text-slate-400" />
                         </button>
                     </div>
                 </header>
 
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-6 mb-8">
-                    <div className="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm flex items-center gap-4 transition hover:shadow-md cursor-default">
-                        <div className="p-4 bg-blue-100 text-blue-600 rounded-2xl shrink-0"><UserCheck size={28} /></div>
-                        <div><div className="text-[10px] text-slate-400 font-black uppercase tracking-widest mb-1">Tổng kiểm tra</div><div className="text-3xl font-black text-slate-800">{totalInspectionsCount}</div></div>
+                {showSettings && (
+                    <div className="mb-8 p-6 bg-red-50 border border-red-100 rounded-3xl animate-in fade-in slide-in-from-top-4 duration-300">
+                        <h3 className="text-red-800 font-black uppercase text-sm mb-4 flex items-center gap-2">
+                            <AlertTriangle size={18} /> Khu vực quản trị (Nguy hiểm)
+                        </h3>
+                        <button onClick={handleReset} className="bg-red-600 hover:bg-red-700 text-white font-black px-6 py-3 rounded-2xl transition flex items-center gap-2 shadow-lg shadow-red-500/20">
+                            <RotateCcw size={20} /> Reset toàn bộ dữ liệu Logs & History
+                        </button>
                     </div>
-                    <div className="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm flex items-center gap-4 transition hover:shadow-md cursor-default">
-                        <div className="p-4 bg-green-100 text-green-600 rounded-2xl shrink-0"><TrendingUp size={28} /></div>
-                        <div><div className="text-[10px] text-slate-400 font-black uppercase tracking-widest mb-1">Lỗi đã sửa</div><div className="text-3xl font-black text-slate-800">{stats.reduce((acc, curr) => acc + curr.fixCount, 0)}</div></div>
-                    </div>
-                    <div className="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm flex items-center gap-4 sm:col-span-2 lg:col-span-1 border-b-4 border-b-amber-400 transition hover:shadow-md cursor-default">
-                        <div className="p-4 bg-amber-100 text-amber-600 rounded-2xl shrink-0"><Medal size={28} /></div>
-                        <div className="min-w-0"><div className="text-[10px] text-slate-400 font-black uppercase tracking-widest mb-1">Nhân viên Top 1</div><div className="text-xl font-black text-slate-800 truncate">{stats.length > 0 ? stats[0].name : '-'}</div></div>
-                    </div>
-                </div>
+                )}
 
-                <div className="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden mb-8">
-                    <div className="p-4 bg-slate-50 border-b border-slate-200 font-black text-xs text-slate-500 flex items-center gap-2 uppercase tracking-widest"><Settings size={14} /> Cơ cấu tính điểm</div>
-                    <div className="overflow-x-auto scrollbar-hide"><div className="grid grid-cols-4 lg:grid-cols-8 min-w-[800px] gap-px bg-slate-100">
-                        {Object.entries(SCORING_RULES).map(([k, v]) => (
-                            <div key={k} className="bg-white p-4 text-center">
-                                <div className="text-[9px] text-slate-400 uppercase font-black mb-1 truncate px-1">{RULE_LABELS[k] || k}</div>
-                                <div className={clsx("font-black text-xl", v < 0 ? "text-red-500" : "text-blue-600")}>{v > 0 ? `+${v}` : v}</div>
-                            </div>
-                        ))}
-                    </div></div>
-                    <div className="p-3 bg-slate-50 text-[10px] text-slate-400 text-center italic border-t border-slate-200">Dữ liệu được lấy trực tiếp từ nhật ký hiện trường.</div>
-                </div>
-
-                <div className="space-y-4">
-                    <div className="flex justify-between items-center px-4">
-                        <h2 className="text-xs font-black uppercase text-slate-500 tracking-[0.2em]">Bảng Xếp Hạng Hiệu Suất</h2>
-                        <span className="text-[10px] text-slate-400 font-bold uppercase">{stats.length} Nhân viên</span>
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-10">
+                    <div className="bg-gradient-to-br from-blue-600 to-blue-800 p-8 rounded-[2.5rem] text-white shadow-2xl relative overflow-hidden group">
+                        <div className="absolute top-0 right-0 p-8 opacity-10 group-hover:scale-110 transition-transform duration-700"><CheckCircle size={120} /></div>
+                        <div className="text-blue-100 font-bold uppercase text-xs tracking-widest mb-2">Tổng lượt kiểm tra</div>
+                        <div className="text-5xl font-black mb-4">{totalInspectionsCount}</div>
+                        <div className="text-blue-200/80 text-sm font-medium">Hoàn thành trong tháng {monthFilter.split('-')[1]}</div>
                     </div>
                     
+                    <div className="bg-white p-8 rounded-[2.5rem] border border-slate-200 shadow-sm relative overflow-hidden">
+                        <div className="text-slate-400 font-bold uppercase text-xs tracking-widest mb-2">Nhân viên tích cực</div>
+                        <div className="text-4xl font-black text-slate-900 mb-2">{stats[0]?.name || '-'}</div>
+                        <div className="flex items-center gap-2 text-amber-500 font-black">
+                            <Medal size={20} /> Quán quân hiện tại
+                        </div>
+                    </div>
+
+                    <div className="bg-white p-8 rounded-[2.5rem] border border-slate-200 shadow-sm">
+                        <div className="text-slate-400 font-bold uppercase text-xs tracking-widest mb-6">Cơ cấu tính điểm</div>
+                        <div className="grid grid-cols-2 gap-x-4 gap-y-3">
+                            {Object.entries(SCORING_RULES).filter(([key]) => key !== 'NEGLIGENCE').map(([key, val]) => (
+                                <div key={key} className="flex justify-between items-center py-1 border-b border-slate-50">
+                                    <span className="text-[11px] font-bold text-slate-500 uppercase">{RULE_LABELS[key]}</span>
+                                    <span className="text-sm font-black text-blue-600">{val > 0 ? `+${val}` : val}</span>
+                                </div>
+                            ))}
+                        </div>
+                    </div>
+                </div>
+
+                <div className="w-full">
                     {/* MOBILE CARD VIEW */}
                     <div className="md:hidden space-y-4 pb-12">
                         {stats.map((row, idx) => (
-                            <div key={row.userId} className={clsx("bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden transition active:scale-[0.98]", idx === 0 ? "ring-2 ring-amber-400 border-transparent" : "")}>
+                            <div key={row.userId} onClick={() => setSelectedUser(row)} className={clsx("bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden transition active:scale-[0.98] cursor-pointer", idx === 0 ? "ring-2 ring-amber-400 border-transparent" : "")}>
                                 <div className="p-5 flex items-center justify-between border-b border-slate-50 bg-slate-50/50">
                                     <div className="flex items-center gap-4">
                                         <div className={clsx("w-10 h-10 rounded-full flex items-center justify-center font-black text-white shadow-lg", idx === 0 ? "bg-amber-400 rotate-12" : idx === 1 ? "bg-slate-400" : idx === 2 ? "bg-amber-700" : "bg-slate-200 text-slate-500 shadow-none")}>{idx + 1}</div>
-                                        <div><div className="font-black text-slate-800 text-lg">{row.name}</div><div className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">{row.code}</div></div>
+                                        <div>
+                                            <div className="font-black text-slate-900">{row.name}</div>
+                                            <div className="text-[10px] font-bold text-slate-300 uppercase tracking-widest">{row.code}</div>
+                                        </div>
                                     </div>
-                                    <div className="text-right"><div className="text-2xl font-black text-blue-700">{row.score}</div><div className="text-[8px] text-slate-400 uppercase font-bold tracking-tighter">Tổng điểm</div></div>
+                                    <div className="text-2xl font-black text-slate-900">{row.score}</div>
                                 </div>
-                                <div className="p-5 grid grid-cols-2 sm:grid-cols-4 gap-3">
-                                    <div className="bg-slate-50 p-3 rounded-xl"><div className="text-[9px] text-slate-400 font-black uppercase mb-1">Kiểm tra</div><div className="text-lg font-black text-blue-600">{row.inspectionCount}</div></div>
-                                    <div className="bg-slate-50 p-3 rounded-xl"><div className="text-[9px] text-slate-400 font-black uppercase mb-1">Tìm thấy</div><div className="text-lg font-black text-amber-600">{row.faultFoundCount}</div></div>
-                                    <div className="bg-slate-50 p-3 rounded-xl"><div className="text-[9px] text-slate-400 font-black uppercase mb-1">Sửa lỗi</div><div className="text-lg font-black text-green-600">{row.fixCount}</div></div>
-                                    <div className="bg-slate-50 p-3 rounded-xl"><div className="text-[9px] text-slate-400 font-black uppercase mb-1">Sự cố</div><div className="text-lg font-black text-red-600">{row.incidentCount}</div></div>
-                                    <div className="bg-slate-50 p-3 rounded-xl"><div className="text-[9px] text-slate-400 font-black uppercase mb-1">Bảo dưỡng</div><div className="text-lg font-black text-cyan-600">{row.maintenanceCount}</div></div>
-                                    <div className="bg-slate-50 p-3 rounded-xl"><div className="text-[9px] text-slate-400 font-black uppercase mb-1">Thi công</div><div className="text-lg font-black text-indigo-600">{row.projectExecCount}</div></div>
-                                    <div className="bg-slate-50 p-3 rounded-xl"><div className="text-[9px] text-slate-400 font-black uppercase mb-1">Giám sát</div><div className="text-lg font-black text-purple-600">{row.projectSupCount}</div></div>
-                                    <div className="bg-slate-50 p-3 rounded-xl"><div className="text-[9px] text-slate-400 font-black uppercase mb-1">Làm ẩu</div><div className="text-lg font-black text-slate-400">{row.fastCheckCount ? `-${row.fastCheckCount}` : '-'}</div></div>
+                                <div className="p-5 grid grid-cols-4 gap-2">
+                                    <div className="flex flex-col items-center p-2 bg-blue-50 rounded-xl">
+                                        <div className="text-[9px] font-black text-blue-400 uppercase">Trực</div>
+                                        <div className="text-sm font-black text-blue-700 text-center">{row.inspectionCount}</div>
+                                    </div>
+                                    <div className="flex flex-col items-center p-2 bg-amber-50 rounded-xl">
+                                        <div className="text-[9px] font-black text-amber-400 uppercase">Lỗi</div>
+                                        <div className="text-sm font-black text-amber-700 text-center">{row.faultFoundCount || 0}</div>
+                                    </div>
+                                    <div className="flex flex-col items-center p-2 bg-green-50 rounded-xl">
+                                        <div className="text-[9px] font-black text-green-400 uppercase">Sửa</div>
+                                        <div className="text-sm font-black text-green-700 text-center">{row.fixCount || 0}</div>
+                                    </div>
+                                    <div className="flex flex-col items-center p-2 bg-red-50 rounded-xl">
+                                        <div className="text-[9px] font-black text-red-500 uppercase">Sự cố</div>
+                                        <div className="text-sm font-black text-red-600 text-center">{row.incidentCount || 0}</div>
+                                    </div>
                                 </div>
                             </div>
                         ))}
                     </div>
 
                     {/* DESKTOP TABLE VIEW */}
-                    <div className="hidden md:block bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden mb-12">
-                        <table className="w-full text-left">
-                            <thead className="bg-slate-50 text-[10px] text-slate-400 font-black uppercase tracking-[0.2em] border-b border-slate-200">
-                                <tr>
-                                    <th className="p-4 w-16 text-center">Hạng</th>
-                                    <th className="p-4">Nhân viên</th>
-                                    <th className="p-4 text-center">Kiểm tra</th>
-                                    <th className="p-4 text-center text-amber-600">Tìm thấy</th>
-                                    <th className="p-4 text-center text-green-600">Sửa lỗi</th>
+                    <div className="hidden md:block bg-white rounded-[2.5rem] shadow-sm border border-slate-200 overflow-hidden mb-12">
+                        <table className="w-full border-collapse">
+                            <thead>
+                                <tr className="bg-slate-50/80 text-[10px] font-black uppercase text-slate-400 tracking-[0.2em] border-b border-slate-100 text-center">
+                                    <th className="p-4 w-16">Hạng</th>
+                                    <th className="p-4 text-left">Nhân viên</th>
+                                    <th className="p-4 text-center text-blue-600">Trực ca</th>
+                                    <th className="p-4 text-center text-amber-600">Tìm lỗi</th>
+                                    <th className="p-4 text-center text-green-600">Khắc phục</th>
                                     <th className="p-4 text-center text-red-600">Sự cố</th>
                                     <th className="p-4 text-center text-cyan-600">Bảo trì</th>
                                     <th className="p-4 text-center text-indigo-600">Thi công</th>
@@ -300,9 +325,15 @@ export default function KPIPage() {
                             </thead>
                             <tbody className="divide-y divide-slate-100">
                                 {stats.map((row, idx) => (
-                                    <tr key={row.userId} className={clsx("hover:bg-slate-50/80 transition group", idx === 0 ? "bg-amber-50/30" : "")}>
+                                    <tr key={row.userId} onClick={() => setSelectedUser(row)} className={clsx("hover:bg-slate-50/80 transition group cursor-pointer", idx === 0 ? "bg-amber-50/30" : "")}>
                                         <td className="p-4 text-center"><div className={clsx("w-9 h-9 rounded-full flex items-center justify-center font-black mx-auto shadow-sm", idx === 0 ? "bg-amber-400 text-white" : idx === 1 ? "bg-slate-300 text-white" : idx === 2 ? "bg-amber-600 text-white" : "bg-slate-100 text-slate-400")}>{idx + 1}</div></td>
-                                        <td className="p-4 font-black text-slate-800 text-sm whitespace-nowrap">{row.name}<div className="text-[9px] font-bold text-slate-400 uppercase tracking-widest">{row.code}</div></td>
+                                        <td className="p-4 font-black text-slate-800 text-sm whitespace-nowrap">
+                                            <div className="flex items-center gap-2">
+                                                <span>{row.name}</span>
+                                                {idx < 3 && <Medal size={14} className={idx === 0 ? "text-amber-400" : idx === 1 ? "text-slate-400" : "text-amber-700"} />}
+                                            </div>
+                                            <div className="text-[9px] font-bold text-slate-400 uppercase tracking-widest">{row.code}</div>
+                                        </td>
                                         <td className="p-4 text-center font-black text-blue-600">{row.inspectionCount}</td>
                                         <td className="p-4 text-center font-black text-amber-600">{row.faultFoundCount || '-'}</td>
                                         <td className="p-4 text-center font-black text-green-600">{row.fixCount || '-'}</td>
@@ -311,7 +342,7 @@ export default function KPIPage() {
                                         <td className="p-4 text-center font-black text-indigo-600">{row.projectExecCount || '-'}</td>
                                         <td className="p-4 text-center font-black text-purple-600">{row.projectSupCount || '-'}</td>
                                         <td className="p-4 text-center font-black text-slate-400 text-xs">{row.fastCheckCount || '-'}</td>
-                                        <td className="p-4 text-right pr-6 font-black text-slate-900 text-xl">{row.score}</td>
+                                        <td className="p-4 text-right pr-6 font-black text-slate-900 text-xl group-hover:text-blue-700 transition-colors">{row.score}</td>
                                     </tr>
                                 ))}
                             </tbody>
@@ -319,6 +350,120 @@ export default function KPIPage() {
                     </div>
                 </div>
             </div>
+
+            {/* STAFF PORTFOLIO MODAL */}
+            {selectedUser && (
+                <div className="fixed inset-0 z-[100] bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-2 sm:p-4 animate-in fade-in duration-200" onClick={() => setSelectedUser(null)}>
+                    <div className="bg-white w-full max-w-4xl max-h-[90vh] rounded-3xl shadow-2xl overflow-hidden flex flex-col animate-in zoom-in-95 duration-300 border border-white/20" onClick={e => e.stopPropagation()}>
+                        {/* Header */}
+                        <div className="p-6 bg-slate-800 text-white flex justify-between items-center bg-gradient-to-r from-slate-900 to-slate-800">
+                            <div className="flex items-center gap-4">
+                                <div className="w-14 h-14 bg-blue-600 rounded-2xl flex items-center justify-center text-2xl font-black shadow-lg shadow-blue-500/20">{selectedUser.name.charAt(0)}</div>
+                                <div>
+                                    <h3 className="text-xl font-black">{selectedUser.name}</h3>
+                                    <p className="text-xs text-slate-400 font-bold uppercase tracking-[0.2em]">{selectedUser.code} • THÁNG {monthFilter.split('-')[1]}/{monthFilter.split('-')[0]}</p>
+                                </div>
+                            </div>
+                            <button onClick={() => setSelectedUser(null)} className="p-2 bg-white/10 hover:bg-white/20 rounded-xl transition text-white">
+                                <X size={24} />
+                            </button>
+                        </div>
+
+                        {/* Content */}
+                        <div className="flex-1 overflow-y-auto scrollbar-hide">
+                            <div className="p-6 grid grid-cols-2 md:grid-cols-4 gap-4 bg-slate-50/50">
+                                <div className="p-4 bg-white rounded-2xl border border-slate-100 shadow-sm">
+                                    <div className="text-[10px] text-slate-400 uppercase font-black mb-1">Xếp hạng</div>
+                                    <div className="text-2xl font-black text-amber-500">#{stats.findIndex(s => s.userId === selectedUser.userId) + 1}</div>
+                                </div>
+                                <div className="p-4 bg-white rounded-2xl border border-slate-100 shadow-sm">
+                                    <div className="text-[10px] text-slate-400 uppercase font-black mb-1">Tổng điểm KPI</div>
+                                    <div className="text-2xl font-black text-blue-700">{selectedUser.score || 0}</div>
+                                </div>
+                                <div className="p-4 bg-white rounded-2xl border border-slate-100 shadow-sm">
+                                    <div className="text-[10px] text-slate-400 uppercase font-black mb-1">Số lượt kiểm tra</div>
+                                    <div className="text-2xl font-black text-slate-800">{selectedUser.inspectionCount || 0}</div>
+                                </div>
+                                <div className="p-4 bg-white rounded-2xl border border-slate-100 shadow-sm">
+                                    <div className="text-[10px] text-slate-400 uppercase font-black mb-1">Công việc khác</div>
+                                    <div className="text-2xl font-black text-green-600">{(selectedUser.fixCount || 0) + (selectedUser.maintenanceCount || 0) + (selectedUser.incidentCount || 0) + (selectedUser.projectExecCount || 0) + (selectedUser.projectSupCount || 0)}</div>
+                                </div>
+                            </div>
+
+                            <div className="p-6 space-y-6">
+                                <div>
+                                    <h4 className="text-xs font-black uppercase text-slate-500 tracking-[0.2em] mb-4 flex items-center gap-2">
+                                        <Activity size={14} /> Minh chứng công việc (Month Evidence)
+                                    </h4>
+                                    <div className="space-y-3">
+                                        {(() => {
+                                            const [y, m] = monthFilter.split('-');
+                                            const uLogs = logs.filter(l => l.timestamp.includes(`/${m}/`) && isMatch(l.inspectorCode, selectedUser.code));
+                                            const uHistory = history.filter(h => h.resolvedAt && h.resolvedAt.includes(`/${m}/`) && (isMatch(h.resolverCode, selectedUser.code) || isMatch(h.inspectorCode, selectedUser.code)));
+                                            const uIncidents = incidents.filter(i => i.resolvedAt?.includes(`/${m}/`) && (isMatch(i.resolvedBy, selectedUser.code) || (i.participants || []).some((p: string) => isMatch(p, selectedUser.code))));
+                                            const uTasks = tasks.filter(t => t.completedAt?.includes(`/${m}/`) && (t.assignees || []).some((a: string) => isMatch(a, selectedUser.code)));
+
+                                            const allActions = [
+                                                ...uLogs.map(l => ({ t: l.timestamp, type: 'Kiểm tra', detail: `Kiểm tra ${l.systemName}`, pts: '+1', color: 'blue' })),
+                                                ...uHistory.map(h => ({ t: h.resolvedAt || h.timestamp, type: isMatch(h.resolverCode, selectedUser.code) ? 'Sửa lỗi' : 'Báo lỗi', detail: h.systemName, pts: isMatch(h.resolverCode, selectedUser.code) ? '+4' : '+3', color: isMatch(h.resolverCode, selectedUser.code) ? 'green' : 'amber' })),
+                                                ...uIncidents.map(i => ({ t: i.resolvedAt || i.createdAt, type: 'Sự cố', detail: i.systemName, pts: '+5', color: 'red' })),
+                                                ...uTasks.map(t => ({ t: t.completedAt || t.createdAt, type: t.type === 'PROJECT' ? 'Dự án' : 'Bảo trì', detail: t.title, pts: t.type === 'PROJECT' ? '+10' : '+8', color: t.type === 'PROJECT' ? 'indigo' : 'cyan' }))
+                                            ].sort((a,b) => b.t.localeCompare(a.t));
+
+                                            if (allActions.length === 0) return <div className="p-8 text-center text-slate-400 italic">Không có dữ liệu trong tháng</div>;
+                                            return allActions.map((act, i) => (
+                                                <div key={i} className="flex items-center gap-4 bg-white p-4 rounded-2xl border border-slate-100 shadow-sm transition hover:border-blue-200">
+                                                    <div className={clsx("w-2 h-2 rounded-full", act.color === 'blue' ? "bg-blue-500" : act.color === 'green' ? "bg-green-500" : act.color === 'amber' ? "bg-amber-500" : act.color === 'red' ? "bg-red-500" : "bg-indigo-500")} />
+                                                    <div className="font-mono text-[10px] text-slate-400 w-24 whitespace-nowrap">{act.t.split(' ')[0]}</div>
+                                                    <div className="flex-1">
+                                                        <div className="text-xs font-black text-slate-800">{act.type}</div>
+                                                        <div className="text-[11px] text-slate-500 truncate max-w-[150px] sm:max-w-md">{act.detail}</div>
+                                                    </div>
+                                                    <div className="font-black text-slate-700 shrink-0">{act.pts}</div>
+                                                </div>
+                                            ));
+                                        })()}
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div className="p-6 bg-slate-50 border-t border-slate-100 flex flex-col sm:flex-row gap-3">
+                            <button 
+                                onClick={() => {
+                                    const [y, m] = monthFilter.split('-');
+                                    const uLogs = logs.filter(l => l.timestamp.includes(`/${m}/`) && isMatch(l.inspectorCode, selectedUser.code));
+                                    const uHistory = history.filter(h => h.resolvedAt && h.resolvedAt.includes(`/${m}/`) && (isMatch(h.resolverCode, selectedUser.code) || isMatch(h.inspectorCode, selectedUser.code)));
+                                    const uIncidents = incidents.filter(i => i.resolvedAt?.includes(`/${m}/`) && (isMatch(i.resolvedBy, selectedUser.code) || (i.participants || []).some((p: string) => isMatch(p, selectedUser.code))));
+                                    const uTasks = tasks.filter(t => t.completedAt?.includes(`/${m}/`) && (t.assignees || []).some((a: string) => isMatch(a, selectedUser.code)));
+                                    
+                                    const dataExp = [
+                                        ["BÁO CÁO CÁ NHÂN", selectedUser.name],
+                                        ["Mã Nhân Viên", selectedUser.code],
+                                        ["Tháng", `${m}/${y}`],
+                                        ["Tổng Điểm", selectedUser.score],
+                                        [],
+                                        ["Thời gian", "Hạng mục", "Chi tiết", "Điểm"]
+                                    ];
+                                    const reportRows = [
+                                        ...uLogs.map(l => [l.timestamp, "Kiểm tra", l.systemName, "1"]),
+                                        ...uHistory.map(h => [h.resolvedAt || h.timestamp, isMatch(h.resolverCode, selectedUser.code) ? "Sửa lỗi" : "Báo lỗi", h.systemName, isMatch(h.resolverCode, selectedUser.code) ? "4" : "3"]),
+                                        ...uIncidents.map(i => [i.resolvedAt || i.createdAt, "Sự cố", i.systemName, "5"]),
+                                        ...uTasks.map(t => [t.completedAt || t.createdAt, t.type === 'PROJECT' ? "Dự án" : "Bảo trì", t.title, t.type === 'PROJECT' ? "10" : "8"])
+                                    ].sort((a,b) => b[0].localeCompare(a[0]));
+                                    const wb = XLSX.utils.book_new();
+                                    XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet([...dataExp, ...reportRows]), "KPI");
+                                    XLSX.writeFile(wb, `KPI_${selectedUser.code}_${m}_${y}.xlsx`);
+                                }}
+                                className="flex-1 bg-blue-700 hover:bg-blue-800 text-white font-black py-4 rounded-2xl flex items-center justify-center gap-2 shadow-lg shadow-blue-500/20 active:scale-95 transition"
+                            >
+                                <FileText size={18} /> XUẤT PHIẾU CÁ NHÂN (XLSX)
+                            </button>
+                            <button onClick={() => setSelectedUser(null)} className="sm:hidden bg-slate-200 py-4 rounded-2xl font-black text-slate-700 px-6">QUAY LẠI</button>
+                        </div>
+                    </div>
+                </div>
+            )}
         </div>
     );
 }
