@@ -2,7 +2,7 @@
 
 // Import the functions you need from the SDKs you need
 import { initializeApp, getApps, getApp } from "firebase/app";
-import { getFirestore, collection, getDocs, doc, setDoc, updateDoc, deleteDoc, query, where, onSnapshot, getDoc, addDoc, limit } from "firebase/firestore";
+import { getFirestore, collection, getDocs, doc, setDoc, updateDoc, deleteDoc, query, where, onSnapshot, getDoc, addDoc, limit, orderBy } from "firebase/firestore";
 import { getStorage, ref, uploadBytes, getDownloadURL } from "firebase/storage";
 
 // TODO: Thay thế phần bên dưới bằng Config từ Firebase Console
@@ -114,7 +114,8 @@ export const addLog = async (log: any) => {
 };
 
 export const subscribeToLogs = (callback: (data: any[]) => void) => {
-    const q = query(collection(db, "logs"));
+    // Recent logs first, limit to 2000 for mobile performance
+    const q = query(collection(db, "logs"), orderBy("createdAt", "desc"), limit(2000));
     return onSnapshot(q, (querySnapshot) => {
         const items: any[] = [];
         querySnapshot.forEach((doc) => {
@@ -146,7 +147,7 @@ export const saveMaintenance = async (task: any) => {
 };
 
 export const subscribeToMaintenance = (callback: (data: any[]) => void) => {
-    const q = query(collection(db, "maintenance"));
+    const q = query(collection(db, "maintenance"), limit(500));
     return onSnapshot(q, (querySnapshot) => {
         const items: any[] = [];
         querySnapshot.forEach((doc) => {

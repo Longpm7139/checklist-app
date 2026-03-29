@@ -277,7 +277,7 @@ export default function KPIPage() {
                         <div className="absolute top-0 right-0 p-8 opacity-10 group-hover:scale-110 transition-transform duration-700"><CheckCircle size={120} /></div>
                         <div className="text-blue-100 font-bold uppercase text-xs tracking-widest mb-2">Tổng lượt kiểm tra</div>
                         <div className="text-5xl font-black mb-4">{totalInspectionsCount}</div>
-                        <div className="text-blue-200/80 text-sm font-medium">Hoàn thành trong tháng {monthFilter.split('-')[1]}</div>
+                        <div className="text-blue-200/80 text-[10px] font-medium uppercase tracking-tighter">Đã ghi nhận {logs.length} bản ghi (Sync)</div>
                     </div>
                     
                     <div className="bg-white p-8 rounded-[2.5rem] border border-slate-200 shadow-sm relative overflow-hidden">
