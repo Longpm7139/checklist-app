@@ -511,6 +511,30 @@ export default function Home() {
     const myNokItems = systems.filter(s => s.status === 'NOK' && s.inspectorCode === user?.code);
     const newlyInteractedNokItems = myNokItems.filter(s => sessionInteractedNokIds.has(s.id));
 
+    // v1.1.5 Fix: Audit logs for all systems touched by THIS user to ensure KPI points
+    const touchedSystems = systems.filter(s => s.inspectorCode === user?.code && s.status !== 'NA');
+    if (touchedSystems.length > 0) {
+      const nowStr = new Date().toLocaleString('vi-VN', { 
+        hour: '2-digit', minute: '2-digit', day: '2-digit', month: '2-digit', year: 'numeric', hour12: false 
+      });
+      // Use a for...of loop for async sequence
+      (async () => {
+        for (const sys of touchedSystems) {
+          await addLog({
+            id: `SAVE_${sys.id}_${Date.now()}_${Math.random().toString(36).substr(2, 5)}`,
+            timestamp: nowStr,
+            inspectorName: user?.name,
+            inspectorCode: user?.code,
+            systemId: sys.id,
+            systemName: sys.name,
+            result: sys.status,
+            note: `Lưu kết quả kiểm tra: ${sys.status}`,
+            duration: 15
+          });
+        }
+      })();
+    }
+
     if (newlyInteractedNokItems.length > 0) {
       sessionStorage.setItem('pendingNokChecks', JSON.stringify(newlyInteractedNokItems.map(s => s.id)));
       router.push(`/check/${newlyInteractedNokItems[0].id}`);
