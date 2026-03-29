@@ -52,7 +52,7 @@ const RULE_LABELS: Record<string, string> = {
     NEGLIGENCE: 'Kiểm tra ẩu'
 };
 
-const parseTS = (ts: string) => {
+const parseTS = (ts: string): { d: number, m: number, y: number, h: number, min: number } | null => {
     if (!ts || typeof ts !== 'string') return null;
     const s = ts.trim();
     let d = -1, m = -1, y = -1, h = 0;
@@ -61,8 +61,12 @@ const parseTS = (ts: string) => {
         if (dateMatch[1].length === 4) { y = Number(dateMatch[1]); m = Number(dateMatch[2]); d = Number(dateMatch[3]); }
         else { d = Number(dateMatch[1]); m = Number(dateMatch[2]); y = Number(dateMatch[3]); }
         const timeMatch = s.match(/(\d{1,2}):(\d{2})/);
-        if (timeMatch) h = Number(timeMatch[1]);
-        return { d, m, y, h };
+        let min = 0;
+        if (timeMatch) {
+            h = Number(timeMatch[1]);
+            min = Number(timeMatch[2]);
+        }
+        return { d, m, y, h, min };
     }
     return null;
 };
@@ -151,17 +155,48 @@ export default function KPIPage() {
 
                 const statsData = allUsers.map(u => {
                     let uIn = 0;
+                    
                     fDuties.forEach(dDuty => {
-                        const dS = dDuty.date;
+                        const dS = dDuty.date; // YYYY-MM-DD
                         ['DAY', 'NIGHT'].forEach(st => {
+                            // 1. Is user assigned to this shift on this day?
                             const crew = dDuty.assignments?.filter((a: any) => {
                                 const aS = normalize(a.shift || '');
                                 if (!(aS.includes('ngay') || aS.includes('dem') || aS === normalize(st))) return false;
                                 return isMatch(a.userCode, u.code) || isMatch(a.userName, u.name);
                             }) || [];
+                            
                             if (crew.length === 0) return;
-                            const k = `${dS}_${st}`;
-                            if ((logsByD[k] || []).length > 0) uIn += SCORING_RULES.INSPECTION * 11;
+
+                            // 2. Did this specific user perform ANY log check during this shift window?
+                            // DAY: 05:00 - 20:00 | NIGHT: 17:00 - 09:00 (Next Day)
+                            const hasActivity = fLogs.some(l => {
+                                if (!(isMatch(l.inspectorCode, u.code) || isMatch(l.inspectorName, u.name))) return false;
+                                
+                                const p = parseTS(l.timestamp);
+                                if (!p) return false;
+                                
+                                // Create Date objects for shift windows
+                                const [y, m, d] = dS.split('-').map(Number);
+                                const shiftStart = new Date(y, m - 1, d);
+                                const shiftEnd = new Date(y, m - 1, d);
+                                
+                                if (st === 'DAY') {
+                                    shiftStart.setHours(5, 0, 0);
+                                    shiftEnd.setHours(20, 0, 0);
+                                } else {
+                                    shiftStart.setHours(17, 0, 0);
+                                    shiftEnd.setDate(shiftEnd.getDate() + 1);
+                                    shiftEnd.setHours(9, 0, 0);
+                                }
+                                
+                                const logTime = new Date(p.y, p.m - 1, p.d, p.h, p.min);
+                                return logTime >= shiftStart && logTime <= shiftEnd;
+                            });
+
+                            if (hasActivity) {
+                                uIn += SCORING_RULES.INSPECTION * 11;
+                            }
                         });
                     });
 
@@ -225,7 +260,7 @@ export default function KPIPage() {
                         <div>
                             <div className="flex items-center gap-2">
                                 <h1 className="text-3xl font-black uppercase tracking-tight text-slate-900 mb-1">Bảng Xếp Hạng KPI Điểm Tức Thì</h1>
-                                <span className="bg-blue-600 text-white text-[10px] font-bold px-1.5 py-0.5 rounded shadow-sm">v1.1.6</span>
+                                <span className="bg-blue-600 text-white text-[10px] font-bold px-1.5 py-0.5 rounded shadow-sm">v1.1.7</span>
                             </div>
                             <div className="flex items-center gap-2 text-slate-400 font-bold text-xs uppercase tracking-widest">
                                 <Activity size={14} className="text-blue-500" /> Hệ thống tính điểm Real-time
