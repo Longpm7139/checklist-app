@@ -201,6 +201,22 @@ export default function KPIPage() {
                 const incidentsByDuty = groupActivity(incidents, 'timestamp');
                 const maintenanceByDuty = groupActivity(tasks, 'timestamp');
 
+                                // FINAL HIGH-VISIBILITY DEBUG
+                const traceK = "2026-03-26_NIGHT";
+                const traceLogsForShift = logsByDuty[traceK] || [];
+                const dutyForTrace = duties.find(d => d.date === '2026-03-26');
+                const crewForTrace = dutyForTrace?.assignments?.filter((a: any) => normalize(a.shift).includes('dem') || normalize(a.shift) === 'night') || [];
+                
+                diagnostics.push(`DEBUG 26 NIGHT: L:${traceLogsForShift.length} CrewSize:${crewForTrace.length}`);
+                if (traceLogsForShift.length > 0 && crewForTrace.length > 0) {
+                    const sampleLog = traceLogsForShift[0];
+                    const sampleCrew = crewForTrace[0];
+                    diagnostics.push(`LOG Sample: ${sampleLog.inspectorName} (${sampleLog.inspectorCode})`);
+                    diagnostics.push(`CREW Sample: ${sampleCrew.userName} (${sampleCrew.userCode})`);
+                    const matchResult = isMatch(sampleLog.inspectorCode, sampleCrew.userCode) || isMatch(sampleLog.inspectorName, sampleCrew.userName);
+                    diagnostics.push(`MATCH RESULT? ${matchResult ? 'YES' : 'NO'}`);
+                }
+
                 diag.push(`Data: L:${filteredLogs.length} H:${filteredHistory.length} D:${duties.length}`);
 
                 const calculatedStats = allUsers.map(u => {
