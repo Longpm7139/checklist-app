@@ -211,7 +211,16 @@ export default function KPIPage() {
                 const incidentsByDuty = groupActivity(incidents, 'timestamp');
                 const maintenanceByDuty = groupActivity(tasks, 'timestamp');
 
+                                // Trace specific shift for debugging
+                const traceKey = "2026-03-26_NIGHT";
+                const traceLogs = (logsByDuty[traceKey] || []).length;
+                const traceHistory = (historyByDuty[traceKey] || []).length;
+                const traceIncidents = (incidentsByDuty[traceKey] || []).length;
+                const traceTasks = (maintenanceByDuty[traceKey] || []).length;
+                diagnostics.push(`Trace ${traceKey}: L:${traceLogs} H:${traceHistory} I:${traceIncidents} T:${traceTasks}`);
+                
                 diagnostics.push(`Incidents: ${filteredIncidents.length}, Tasks: ${filteredTasks.length}`);
+
                 diagnostics.push(`Logs: ${filteredLogs.length}, Raw: ${logs.length}, Duties: ${duties.length}`);
 
                 const calculatedStats = allUsers.map(u => {
