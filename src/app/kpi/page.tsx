@@ -244,16 +244,22 @@ export default function KPIPage() {
                                 return aS.includes(st === 'DAY' ? 'ngay' : 'dem') || aS === normalize(st);
                             }) || [];
                             
-                            const teamHasActivity = (logsByDuty[key] || []).some(l => crew.some(m => isMatch(m.userCode, l.inspectorCode) || isMatch(m.userName, l.inspectorName))) ||
-                                                    (historyByDuty[key] || []).some(h => crew.some(m => isMatch(m.userCode, h.inspectorCode) || isMatch(m.userName, h.inspectorName))) ||
-                                                    (incidentsByDuty[key] || []).some(i => {
-                                                        const wrks = [...(Array.isArray(i.resolvedByCode)?i.resolvedByCode:[i.resolvedByCode]), ...(Array.isArray(i.participants)?i.participants:[i.participants])].filter(Boolean);
-                                                        return crew.some(m => wrks.some(w => isMatch(m.userCode, w) || isMatch(m.userName, w)));
-                                                    }) ||
-                                                    (maintenanceByDuty[key] || []).some(t => {
-                                                        const asgn = Array.isArray(t.assignees) ? t.assignees : [t.assignees];
-                                                        return crew.some(m => asgn.some(a => isMatch(m.userCode, a) || isMatch(m.userName, a)));
-                                                    });
+                                                        const teamHasActivity = (logsByDuty[key] || []).some(l => {
+                                return crew.some(m => {
+                                    const mC = m.userCode; const mN = m.userName;
+                                    const lC = l.inspectorCode; const lN = l.inspectorName;
+                                    return isMatch(mC, lC) || isMatch(mN, lN) || isMatch(mC, lN) || isMatch(mN, lC);
+                                });
+                            }) || (historyByDuty[key] || []).some(h => {
+                                return crew.some(m => {
+                                    const mC = m.userCode; const mN = m.userName;
+                                    const hC = h.inspectorCode || h.resolverCode; const hN = h.inspectorName || h.resolverName;
+                                    return isMatch(mC, hC) || isMatch(mN, hN) || isMatch(mC, hN) || isMatch(mN, hC);
+                                });
+                            }) || (incidentsByDuty[key] || []).some(i => {
+                                const wrks = [...(Array.isArray(i.resolvedByCode)?i.resolvedByCode:[i.resolvedByCode]), ...(Array.isArray(i.participants)?i.participants:[i.participants])].filter(Boolean);
+                                return crew.some(m => wrks.some(w => isMatch(m.userCode, w) || isMatch(m.userName, w)));
+                            });
 
                             if (teamHasActivity) userInspections += 11;
                             (logsByDuty[key] || []).filter(l => isMatch(l.inspectorCode, u.code)).forEach(l => { if (l.duration < 30) fastChecksCount++; });
@@ -349,22 +355,24 @@ export default function KPIPage() {
                     </div>
                 </header>
 
-                {/* DIAGNOSTIC PANEL (DEBUG MODE) */}
+                {/* DIAGNOSTIC PANEL (VERSION 8.0 - SUPER RESCUE) */}
                 {currentUser?.role === 'ADMIN' && (
-                    <div className="mb-6 bg-slate-900 text-white p-4 rounded-xl text-[10px] font-mono shadow-2xl border-2 border-yellow-500/50">
-                        <div className="flex items-center gap-2 mb-2 text-yellow-400 font-bold uppercase text-[11px]">
-                            <span className="animate-spin text-lg">⚙️</span> KPI Diagnostic Console (VERSION 5.0 - RESCUE READY)
+                    <div className="mb-6 bg-slate-900 text-white p-6 rounded-2xl text-[12px] font-mono shadow-2xl border-4 border-red-500">
+                        <div className="flex items-center gap-2 mb-4 text-red-500 font-bold uppercase text-[14px]">
+                            <span className="animate-ping text-lg font-black">●</span> KPI DIAGNOSTIC (VER 8.0 - PHÚC/TUẤN FIX)
                         </div>
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-2 opacity-80">
+                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-x-8 gap-y-3">
                             {diagInfo.map((info, i) => (
-                                <div key={i} className="border-b border-slate-700 pb-1">{info}</div>
+                                <div key={i} className="border-b border-slate-700 pb-1 flex justify-between">
+                                    <span className="text-slate-500">{i+1}.</span>
+                                    <span className="font-bold">{info}</span>
+                                </div>
                             ))}
-                        </div>
-                        <div className="mt-4 pt-2 border-t border-slate-700 whitespace-nowrap overflow-x-auto text-[9px] text-blue-400">
-                            <b>Sample Logs:</b> {logs.slice(0, 5).map(l => l.timestamp).join(' | ')}
                         </div>
                     </div>
                 )}
+
+                
 
                 {/* Top Statistics Cards (Responsive Stack) */}
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 mb-6">
