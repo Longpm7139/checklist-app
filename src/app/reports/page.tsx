@@ -1,602 +1,405 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
-import { ArrowLeft, Filter, Download, Calendar, User, Search, CheckCircle, XCircle, AlertTriangle } from 'lucide-react';
+import { 
+    ArrowLeft, Download, Calendar, User, Search, CheckCircle, 
+    XCircle, Activity, Clock, Briefcase, AlertOctagon
+} from 'lucide-react';
 import clsx from 'clsx';
 import * as XLSX from 'xlsx';
-import { subscribeToLogs, subscribeToIncidents, subscribeToMaintenance, subscribeToHistory, getUsers, subscribeToDuties } from '@/lib/firebase';
+import { 
+    subscribeToLogs, subscribeToIncidents, subscribeToMaintenance, 
+    subscribeToHistory, getUsers, subscribeToDuties 
+} from '@/lib/firebase';
 import { isMatch, normalize } from '@/lib/utils';
 
-interface LogEntry {
-    id: string;
-    timestamp: string;
-    inspectorName: string;
-    inspectorCode: string;
-    systemId: string;
-    systemName: string;
-    result: 'OK' | 'NOK';
-    note: string;
-}
+// Robust date parser for multiple formats
+const parseTS = (ts: string) => {
+    if (!ts || typeof ts !== 'string') return null;
+    const s = ts.trim();
+    let d = -1, m = -1, y = -1, h = 0;
+    const dateMatch = s.match(/(\d{1,2})[\/.-](\d{1,2})[\/.-](\d{4})/) || s.match(/(\d{4})[\/.-](\d{1,2})[\/.-](\d{1,2})/);
+    if (dateMatch) {
+        if (dateMatch[1].length === 4) { y = Number(dateMatch[1]); m = Number(dateMatch[2]); d = Number(dateMatch[3]); }
+        else { d = Number(dateMatch[1]); m = Number(dateMatch[2]); y = Number(dateMatch[3]); }
+        const timeMatch = s.match(/(\d{1,2}):(\d{2})/);
+        if (timeMatch) h = Number(timeMatch[1]);
+        return { d, m, y, h };
+    }
+    return null;
+};
 
 export default function ReportsPage() {
     const router = useRouter();
 
-    // Data State
+    // -- State --
     const [logs, setLogs] = useState<any[]>([]);
     const [incidents, setIncidents] = useState<any[]>([]);
-    const [maintenance, setMaintenance] = useState<any[]>([]);
+    const [tasks, setTasks] = useState<any[]>([]);
     const [history, setHistory] = useState<any[]>([]);
     const [duties, setDuties] = useState<any[]>([]);
-    const [users, setUsers] = useState<any[]>([]);
+    const [allUsers, setAllUsers] = useState<any[]>([]);
 
-    // Filter State
-    const [dateFilter, setDateFilter] = useState(new Date().toISOString().split('T')[0]); // YYYY-MM-DD
-    const [inspectorFilter, setInspectorFilter] = useState('');
-    const [filteredLogs, setFilteredLogs] = useState<any[]>([]);
-    const [currentPage, setCurrentPage] = useState(1);
-    const ITEMS_PER_PAGE = 10;
+    const nowD = new Date();
+    const currentMonth = `${nowD.getFullYear()}-${String(nowD.getMonth() + 1).padStart(2, '0')}`;
+    const [monthFilter, setMonthFilter] = useState(currentMonth);
+    const [selectedUserCode, setSelectedUserCode] = useState('');
+    
+    const [diary, setDiary] = useState<any[]>([]);
+    const [summary, setSummary] = useState({
+        inspections: 0,
+        fixes: 0,
+        incidents: 0,
+        maintenance: 0,
+        projects: 0
+    });
 
-    // Load Data from Firebase
+    const lastCalc = useRef("");
+
+    // -- Lifecycle: Sync Data --
     useEffect(() => {
-        const fetchUsers = async () => {
-            try {
-                const u = await getUsers();
-                setUsers(u);
-            } catch (err) {
-                console.error("Failed to load users", err);
-            }
-        };
-        fetchUsers();
+        getUsers().then(u => {
+            setAllUsers(u || []);
+            if (!selectedUserCode && u?.length > 0) setSelectedUserCode(u[0].code);
+        });
 
-        const unsubLogs = subscribeToLogs((data) => setLogs(data));
-        const unsubIncidents = subscribeToIncidents((data) => setIncidents(data));
-        const unsubMaintenance = subscribeToMaintenance((data) => setMaintenance(data));
-        const unsubHistory = subscribeToHistory((data) => setHistory(data));
-        const unsubDuties = subscribeToDuties((data) => setDuties(data));
-
-        return () => {
-            unsubLogs();
-            unsubIncidents();
-            unsubMaintenance();
-            unsubHistory();
-            unsubDuties();
-        };
+        const unsubs = [
+            subscribeToLogs(setLogs),
+            subscribeToIncidents(setIncidents),
+            subscribeToMaintenance(setTasks),
+            subscribeToHistory(setHistory),
+            subscribeToDuties(setDuties),
+        ];
+        return () => unsubs.forEach(u => u());
     }, []);
 
-    // Filter Logic
-    // (Removed old useEffect that was wrapping the new code incorrectly)
-
-
-
-
-
-    // Unified Log Data Structure
-    interface UnifiedLogEntry {
-        id: string;
-        timestamp: string; // Sortable
-        type: 'INSPECTION' | 'INCIDENT' | 'MAINTENANCE' | 'FIX';
-        inspectorName: string; // Người phát hiện
-        resolverName: string;  // Người thực hiện
-        inspectorCode: string; // Or user code
-        systemName: string;
-        result: string; // OK/NOK or Status
-        note: string;
-    }
-
-    const [unifiedLogs, setUnifiedLogs] = useState<UnifiedLogEntry[]>([]);
-    const [filteredUnifiedLogs, setFilteredUnifiedLogs] = useState<UnifiedLogEntry[]>([]);
-
-    // Helper to parse date string "HH:mm dd/MM/yyyy" or ISO
-    const isMatchDate = (timestamp: string) => {
-        if (!timestamp) return false;
-        if (!dateFilter) return true;
-        const [filterYear, filterMonth, filterDay] = dateFilter.split('-');
-
-        // Handle "HH:mm dd/MM/yyyy"
-        const parts = timestamp.split(' ');
-        const datePart = parts.find((p: string) => p.includes('/'));
-        if (datePart) {
-            const [d, m, y] = datePart.split('/');
-            return d === filterDay && m === filterMonth && y === filterYear;
-        }
-        // Handle ISO YYYY-MM-DD
-        if (timestamp.startsWith(dateFilter)) return true;
-
-        return false;
-    };
-
+    // -- Processing Logic (Main Journal Engine) --
     useEffect(() => {
-        if (!logs.length && !incidents.length && !maintenance.length && !history.length) return;
+        if (!monthFilter || !selectedUserCode || allUsers.length === 0) return;
 
-        // Group duties by date for easy lookup
-        const dutiesByD: Record<string, any> = {};
-        duties.forEach(d => { dutiesByD[d.date] = d; });
+        const calcKey = JSON.stringify({ 
+            monthFilter, selectedUserCode, 
+            l: logs.length, i: incidents.length, t: tasks.length, h: history.length, d: duties.length 
+        });
+        if (lastCalc.current === calcKey) return;
+        lastCalc.current = calcKey;
 
-        const allEntries: UnifiedLogEntry[] = [];
+        const [y, mStr] = monthFilter.split('-');
+        const targetM = parseInt(mStr);
+        const targetY = parseInt(y);
+        const selUser = allUsers.find(u => u.code === selectedUserCode);
+        if (!selUser) return;
 
-        // 1. Map Inspections (with Crew Attribution)
-        logs.forEach(l => {
-            // Determine shift from timestamp "HH:mm dd/MM/yyyy"
-            let crewStr = l.inspectorName || 'Unknown';
-            const parts = l.timestamp.split(' ');
-            const datePart = parts.find((p: string) => p.includes('/'));
-            if (datePart) {
-                const [d, m, y] = datePart.split('/');
-                const key = `${y}-${m}-${d}`;
-                const dailyDuty = dutiesByD[key];
-                if (dailyDuty) {
-                    const timePart = parts.find((p: string) => p.includes(':')) || '00:00';
-                    const hour = parseInt(timePart.split(':')[0]);
-                    const shift = (hour >= 6 && hour < 18) ? 'DAY' : 'NIGHT';
-                    const crew = dailyDuty.assignments?.filter((a: any) => {
-                        const aS = normalize(a.shift || '');
-                        return aS.includes('ngay') || aS.includes('dem') || aS === normalize(shift);
-                    }).map((a: any) => a.userName) || [];
-                    if (crew.length > 0) crewStr = crew.join(', ');
+        // 1. Filter all activities for this user and this month
+        const uLogs = logs.filter(l => {
+            const p = parseTS(l.timestamp);
+            return p && p.m === targetM && p.y === targetY && isMatch(l.inspectorCode, selUser.code);
+        });
+
+        const uHistory = history.filter(h => {
+            const p = h.resolvedAt ? parseTS(h.resolvedAt) : null;
+            return p && p.m === targetM && p.y === targetY && (isMatch(h.resolverCode, selUser.code) || isMatch(h.inspectorCode, selUser.code));
+        });
+
+        const uIncidents = incidents.filter(i => {
+            const ts = i.resolvedAt || i.createdAt;
+            const p = parseTS(ts);
+            return p && p.m === targetM && p.y === targetY && (isMatch(i.resolvedBy, selUser.code) || (i.participants || []).some((p: string) => isMatch(p, selUser.code)));
+        });
+
+        const uTasks = tasks.filter(t => {
+            const ts = t.completedAt || t.createdAt;
+            const p = parseTS(ts);
+            const isAssigned = (t.assignees || []).some((a: string) => isMatch(a, selUser.code) || isMatch(a, selUser.name));
+            const isSupervised = (t.supervisors || []).some((s: string) => isMatch(s, selUser.code) || isMatch(s, selUser.name));
+            return p && p.m === targetM && p.y === targetY && (isAssigned || isSupervised);
+        });
+
+        const uDuties = duties.filter(d => {
+            const dParts = d.date.split('-');
+            if (parseInt(dParts[0]) !== targetY || parseInt(dParts[1]) !== targetM) return false;
+            return (d.assignments || []).some((a: any) => isMatch(a.userCode, selUser.code) || isMatch(a.userName, selUser.name));
+        });
+
+        // 2. Group by Day
+        const daysInMonth = new Date(targetY, targetM, 0).getDate();
+        const grouped: any[] = [];
+        let totalStats = { inspections: 0, fixes: 0, incidents: 0, maintenance: 0, projects: 0 };
+
+        for (let i = 1; i <= daysInMonth; i++) {
+            const dateStr = `${targetY}-${String(targetM).padStart(2,'0')}-${String(i).padStart(2,'0')}`;
+            const dayActions: any[] = [];
+            
+            // Check Duty (Team Presence)
+            const duty = uDuties.find(d => d.date === dateStr);
+            if (duty) {
+                const shifts = duty.assignments?.filter((a: any) => isMatch(a.userCode, selUser.code) || isMatch(a.userName, selUser.name)) || [];
+                shifts.forEach((s: any) => {
+                    const shiftType = normalize(s.shift || '').includes('ngay') ? 'DAY' : 'NIGHT';
+                    const hasTeamLogs = logs.some(l => {
+                        const p = parseTS(l.timestamp);
+                        if (!p || p.d !== i || p.m !== targetM || p.y !== targetY) return false;
+                        const lShift = (p.h >= 6 && p.h < 18) ? 'DAY' : 'NIGHT';
+                        return lShift === shiftType;
+                    });
+                    dayActions.push({ 
+                        type: 'DUTY', 
+                        label: `Trực ca ${s.shift}`, 
+                        detail: hasTeamLogs ? `Hoàn thành kiểm tra hệ thống cùng đội` : `Ca trực được phân công`,
+                        time: '-',
+                        status: hasTeamLogs ? 'OK' : 'PENDING'
+                    });
+                    if (hasTeamLogs) totalStats.inspections += 11;
+                });
+            }
+
+            // Individual Logs
+            uLogs.filter(l => parseTS(l.timestamp)?.d === i).forEach(l => {
+                dayActions.push({ type: 'LOG', label: 'Kiểm tra', detail: l.systemName, time: l.timestamp.split(' ')[1], status: l.result });
+            });
+
+            // History (Fixes)
+            uHistory.filter(h => parseTS(h.resolvedAt || h.timestamp || '')?.d === i).forEach(h => {
+                const isResolver = isMatch(h.resolverCode, selUser.code);
+                dayActions.push({ 
+                    type: isResolver ? 'FIX' : 'FAULT', 
+                    label: isResolver ? 'Khắc phục' : 'Phát hiện lỗi', 
+                    detail: h.systemName, 
+                    time: (h.resolvedAt || h.timestamp).split(' ')[1] || '-', 
+                    status: 'OK',
+                    note: h.issueContent
+                });
+                if (isResolver) totalStats.fixes++;
+            });
+
+            // Incidents
+            uIncidents.filter(inc => parseTS(inc.resolvedAt || inc.createdAt)?.d === i).forEach(inc => {
+                const isResolved = inc.status === 'RESOLVED';
+                dayActions.push({ 
+                    type: 'INCIDENT', 
+                    label: 'Sự cố', 
+                    detail: inc.systemName, 
+                    time: (inc.resolvedAt || inc.createdAt).split(' ')[1] || '-', 
+                    status: inc.status,
+                    note: inc.description
+                });
+                if (isResolved) totalStats.incidents++;
+            });
+
+            // Maintenance / Projects
+            uTasks.filter(t => parseTS(t.completedAt || t.createdAt)?.d === i).forEach(t => {
+                const isComplete = t.status === 'COMPLETED';
+                dayActions.push({ 
+                    type: t.type === 'PROJECT' ? 'PROJECT' : 'MAINT', 
+                    label: t.type === 'PROJECT' ? 'Dự án' : 'Bảo trì', 
+                    detail: t.title, 
+                    time: (t.completedAt || t.createdAt).split(' ')[1] || '-', 
+                    status: t.status,
+                    note: t.description
+                });
+                if (isComplete) {
+                    if (t.type === 'PROJECT') totalStats.projects++;
+                    else totalStats.maintenance++;
                 }
-            }
-
-            allEntries.push({
-                id: `log_${l.id}`,
-                timestamp: l.timestamp,
-                type: 'INSPECTION',
-                inspectorName: crewStr, // Show entire crew for inspections
-                resolverName: '-',
-                inspectorCode: l.inspectorCode,
-                systemName: l.systemName,
-                result: l.result,
-                note: l.note
-            });
-        });
-
-        // 2. Map Incidents (Report & Resolve)
-        incidents.forEach(inc => {
-            allEntries.push({
-                id: `inc_report_${inc.id}`,
-                timestamp: inc.createdAt,
-                type: 'INCIDENT',
-                inspectorName: inc.reportedBy,
-                resolverName: '-',
-                inspectorCode: 'ADMIN',
-                systemName: inc.systemName,
-                result: 'OPEN',
-                note: `Báo cáo: ${inc.description}`
             });
 
-            if (inc.status === 'RESOLVED' && inc.resolvedAt) {
-                let performersList = [inc.resolvedBy];
-                if (inc.participants && Array.isArray(inc.participants)) {
-                    performersList = Array.from(new Set([...performersList, ...inc.participants]));
-                }
-                const performers = performersList.filter(Boolean).join(', ') || 'Unknown';
-
-                allEntries.push({
-                    id: `inc_resolve_${inc.id}`,
-                    timestamp: inc.resolvedAt,
-                    type: 'INCIDENT',
-                    inspectorName: inc.reportedBy,
-                    resolverName: performers,
-                    inspectorCode: '',
-                    systemName: inc.systemName,
-                    result: 'RESOLVED',
-                    note: `Xử lý: ${inc.resolutionNote}`
-                });
+            if (dayActions.length > 0) {
+                grouped.push({ day: i, date: dateStr, actions: dayActions });
             }
-        });
-
-        // 3. Map Maintenance
-        maintenance.forEach(task => {
-            allEntries.push({
-                id: `maint_create_${task.id}`,
-                timestamp: task.createdAt,
-                type: 'MAINTENANCE',
-                inspectorName: task.assignedByName,
-                resolverName: '-',
-                inspectorCode: 'ADMIN',
-                systemName: task.title,
-                result: 'PENDING',
-                note: 'Giao việc bảo trì'
-            });
-
-            if (task.status === 'COMPLETED' && task.completedAt) {
-                allEntries.push({
-                    id: `maint_done_${task.id}`,
-                    timestamp: task.completedAt,
-                    type: 'MAINTENANCE',
-                    inspectorName: task.assignedByName,
-                    resolverName: task.assigneeNames?.join(', ') || 'Team',
-                    inspectorCode: '',
-                    systemName: task.title,
-                    result: 'COMPLETED',
-                    note: `Kết quả: ${task.completedNote || ''}. Tồn tại: ${task.remainingIssues || 'Không'}`
-                });
-            }
-        });
-
-        // 4. Map History
-        history.forEach(h => {
-            if (h.resolvedAt) {
-                allEntries.push({
-                    id: `fix_${h.id}`,
-                    timestamp: h.resolvedAt,
-                    type: 'FIX',
-                    inspectorName: h.inspectorName || 'Unknown',
-                    resolverName: h.resolverName || 'Unknown',
-                    inspectorCode: h.inspectorCode || '',
-                    systemName: h.systemName,
-                    result: 'RESOLVED',
-                    note: `Sửa lỗi: ${h.issueContent}. Nội dung: ${h.actionNote}`
-                });
-            }
-        });
-
-        setUnifiedLogs(allEntries);
-
-    }, [logs, incidents, maintenance, history, duties]);
-
-
-    // Filter Logic Refined for Unified Logs
-    useEffect(() => {
-        if (!dateFilter) return;
-        const [filterYear, filterMonth, filterDay] = dateFilter.split('-');
-
-        // Helper to parse date string "HH:mm dd/MM/yyyy" or ISO
-        const isMatchDate = (timestamp: string) => {
-            if (!timestamp) return false;
-            // Handle "HH:mm dd/MM/yyyy"
-            const parts = timestamp.split(' ');
-            const datePart = parts.find((p: string) => p.includes('/'));
-            if (datePart) {
-                const [d, m, y] = datePart.split('/');
-                return d === filterDay && m === filterMonth && y === filterYear;
-            }
-            // Handle ISO YYYY-MM-DD
-            if (timestamp.startsWith(dateFilter)) return true;
-
-            return false;
-        };
-
-        let result = unifiedLogs.filter(l => isMatchDate(l.timestamp));
-
-        if (inspectorFilter) {
-            result = result.filter(l =>
-                isMatch(l.inspectorName, inspectorFilter) ||
-                isMatch(l.resolverName, inspectorFilter)
-            );
         }
 
-        // Reset to page 1 when filters change
-        setCurrentPage(1);
+        setDiary(grouped.sort((a,b) => b.day - a.day));
+        setSummary(totalStats);
 
-        // Sort by timestamp desc
-        result.sort((a, b) => {
-            // Parse "HH:mm dd/MM/yyyy" for comparison
-            const parseTime = (t: string) => {
-                const parts = t.split(' ');
-                const datePart = parts.find((p: string) => p.includes('/'));
-                if (datePart) {
-                    const [d, m, y] = datePart.split('/');
-                    const timePart = parts.find((p: string) => p.includes(':')) || '00:00';
-                    return new Date(`${y}-${m}-${d}T${timePart}:00`).getTime();
-                }
-                return new Date().getTime();
-            };
-            return parseTime(b.timestamp) - parseTime(a.timestamp);
-        });
+    }, [logs, incidents, tasks, history, duties, monthFilter, selectedUserCode, allUsers]);
 
-        setFilteredUnifiedLogs(result);
-
-    }, [unifiedLogs, dateFilter, inspectorFilter]);
-
-    // Pagination Logic
-    const totalPages = Math.ceil(filteredUnifiedLogs.length / ITEMS_PER_PAGE);
-    const paginatedLogs = filteredUnifiedLogs.slice(
-        (currentPage - 1) * ITEMS_PER_PAGE,
-        currentPage * ITEMS_PER_PAGE
-    );
-
-    // Statistics Calculation (Keep old logic for stats or update? Let's update to use unified where possible or keep distinct)
-    // Actually, distinct stats are better for the summary cards. We keeps 'stats' derived from 'filteredLogs' (Inspections only) for now
-    // OR we update stats to reflect current filter? 
-    // Let's keep stats focusing on INSPECTIONS as that's the primary KPI.
-    // We will just calculate checking stats from the filteredUnifiedLogs where type is INSPECTION
-
-    const inspectionLogs = filteredUnifiedLogs.filter(l => l.type === 'INSPECTION');
-
-    const stats = {
-        totalChecks: inspectionLogs.length,
-        okCount: inspectionLogs.filter(l => l.result === 'OK').length,
-        nokCount: inspectionLogs.filter(l => l.result === 'NOK').length,
-        systems: new Set(inspectionLogs.map(l => l.systemName)).size
-    };
-
+    // -- Export --
     const handleExport = () => {
-        // Prepare Data for Excel
-        const [filterYear, filterMonth] = dateFilter.split('-');
-
-        // 1. Logs Sheet
-        const logData = logs.filter(l => { // Export ALL logs for the month? Or match screen filter? usually export matches screen filter logic but month-based
-            // Let's stick to the screen filter logic for consistency with "Export Report" button usually expecting "Current View" or "Month View"
-            // The user asked for "Unified Table", export can remain as separated sheets or unified. 
-            // Let's keep existing Export logic which exports EVERYTHING for the selected *Month* (implicit in code before)
-            // The previous code filtered export by Month derived from dateFilter.
-            return true; // Simplified for now, reusing previous logic logic ideally.
-        }).map(l => ({
-            "Thời gian": l.timestamp,
-            "Người thực hiện": l.inspectorName,
-            "Mã NV": l.inspectorCode,
-            "Hệ thống": l.systemName,
-            "Kết quả": l.result,
-            "Ghi chú": l.note
-        }));
-
-        // Re-implementing the month filter logic for export as previous code block did
-        // ... (Keep existing export logic essentially, just ensuring variables are available)
-        // For brevity in diff, I am assuming the imports and setup allow me to keep the handleExport mostly as is, 
-        // just updated to use state variables correctly.
-
-        // ... [Existing Export Logic assumed preserved/restored if I don't overwrite it fully] ...
-        // Wait, I strictly need to output the full file content or replace specific parts. 
-        // I will rewrite handleExport to be safe.
+        const selUser = allUsers.find(u => u.code === selectedUserCode);
+        if (!selUser) return;
+        const [y, mStr] = monthFilter.split('-');
 
         const wb = XLSX.utils.book_new();
+        const dataArr: any[][] = [
+            ["BÁO CÁO CÔNG VIỆC CHI TIẾT", ""],
+            ["Nhân viên:", selUser.name],
+            ["Mã nhân viên:", selUser.code],
+            ["Tháng báo cáo:", `${mStr}/${y}`],
+            [],
+            ["TỔNG HỢP HIỆU SUẤT"],
+            ["Lượt kiểm tra hệ thống", summary.inspections],
+            ["Số lỗi đã khắc phục", summary.fixes],
+            ["Sự cố đã xử lý", summary.incidents],
+            ["Số vụ bảo trì", summary.maintenance],
+            ["Dự án thi công", summary.projects],
+            [],
+            ["CHI TIẾT NHẬT KÝ HÀNG NGÀY"],
+            ["Ngày", "Hạng mục", "Chi tiết công việc", "Thời gian", "Kết quả"]
+        ];
 
-        // Unified Export Sheet? Or Separate? Separate is often better for analysis.
-        // Let's export what is currently visible in the Unified List as one sheet, and then raw data as others.
+        [...diary].sort((a,b) => a.day - b.day).forEach(entry => {
+            entry.actions.forEach((act: any, idx: number) => {
+                dataArr.push([
+                    idx === 0 ? `Ngày ${entry.day}` : "",
+                    act.label,
+                    act.detail + (act.note ? ` (${act.note})` : ""),
+                    act.time,
+                    act.status
+                ]);
+            });
+        });
 
-        const unifiedSheetData = filteredUnifiedLogs.map((l, idx) => ({
-            "STT": idx + 1,
-            "Loại": l.type === 'INSPECTION' ? 'Kiểm tra' : l.type === 'INCIDENT' ? 'Sự cố' : l.type === 'FIX' ? 'Sửa chữa' : 'Bảo trì',
-            "Thời gian": l.timestamp,
-            "Người phát hiện": l.inspectorName,
-            "Người thực hiện": l.resolverName,
-            "Hệ thống / CV": l.systemName,
-            "Kết quả / Trạng thái": l.result,
-            "Ghi chú": l.note
-        }));
-
-        XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(unifiedSheetData), "NhatKy_TongHop");
-        XLSX.writeFile(wb, `BaoCao_TongHop_${dateFilter}.xlsx`);
+        XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(dataArr), "NhatKy_CaNhan");
+        XLSX.writeFile(wb, `NhatKy_${selUser.code}_${mStr}_${y}.xlsx`);
     };
 
     return (
-        <div className="min-h-screen bg-slate-50 p-4 font-sans text-slate-900">
-            <div className="max-w-6xl mx-auto">
-                <header className="mb-6 flex flex-col md:flex-row justify-between items-center gap-4">
+        <div className="min-h-screen bg-slate-50 p-4 font-sans text-slate-900 pb-20">
+            <div className="max-w-4xl mx-auto">
+                <header className="mb-8 flex items-center justify-between">
                     <div className="flex items-center gap-4">
-                        <button onClick={() => router.push('/')} className="p-2 bg-white rounded-full border border-slate-200 hover:bg-slate-100">
-                            <ArrowLeft size={20} className="text-slate-600" />
+                        <button onClick={() => router.push('/')} className="p-3 bg-white rounded-2xl shadow-sm border border-slate-200 hover:bg-slate-100 transition">
+                            <ArrowLeft size={24} className="text-slate-600" />
                         </button>
-                        <h1 className="text-2xl font-bold uppercase text-slate-800">Nhật Ký Hoạt Động (Tổng Hợp)</h1>
+                        <div>
+                            <div className="flex items-center gap-2">
+                                <h1 className="text-2xl font-black uppercase text-slate-800">Nhật Ký Công Việc Chi Tiết</h1>
+                                <span className="bg-slate-200 text-slate-500 text-[10px] font-bold px-1.5 py-0.5 rounded">v1.0.9</span>
+                            </div>
+                            <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Hồ sơ hoạt động & Bằng chứng cá nhân</p>
+                        </div>
                     </div>
                 </header>
 
                 {/* Filters */}
-                <div className="bg-white p-4 rounded-xl shadow-sm border border-slate-200 mb-6 grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div className="bg-white p-6 rounded-[2rem] shadow-sm border border-slate-200 mb-8 grid grid-cols-1 md:grid-cols-3 gap-6">
                     <div>
-                        <label className="block text-sm font-semibold text-slate-700 mb-1 flex items-center gap-1"><Calendar size={14} /> Chọn Ngày</label>
-                        <input
-                            type="date"
-                            value={dateFilter}
-                            onChange={(e) => setDateFilter(e.target.value)}
-                            className="w-full bg-slate-50 border border-slate-300 rounded px-3 py-2 outline-none focus:ring-2 focus:ring-blue-500"
-                        />
-                    </div>
-
-                    <div>
-                        <label className="block text-sm font-semibold text-slate-700 mb-1 flex items-center gap-1"><User size={14} /> Nhân viên</label>
-                        <select
-                            value={inspectorFilter}
-                            onChange={(e) => setInspectorFilter(e.target.value)}
-                            className="w-full bg-slate-50 border border-slate-300 rounded px-3 py-2 outline-none focus:ring-2 focus:ring-blue-500"
+                        <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2">Chọn nhân viên</label>
+                        <select 
+                            value={selectedUserCode}
+                            onChange={(e) => setSelectedUserCode(e.target.value)}
+                            className="w-full bg-slate-50 border border-slate-200 rounded-2xl px-4 py-3 font-bold text-slate-700 outline-none focus:ring-2 focus:ring-blue-500 transition"
                         >
-                            <option value="">-- Tất cả nhân viên --</option>
-                            {users.map(u => (
-                                <option key={u.id} value={u.name}>{u.name} ({u.code})</option>
+                            {allUsers.map(u => (
+                                <option key={u.code} value={u.code}>{u.name} ({u.code})</option>
                             ))}
                         </select>
                     </div>
-
-                    <div className="flex items-end justify-end">
-                        <button
+                    <div>
+                        <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2">Chọn tháng</label>
+                        <input 
+                            type="month"
+                            value={monthFilter}
+                            onChange={(e) => setMonthFilter(e.target.value)}
+                            className="w-full bg-slate-50 border border-slate-200 rounded-2xl px-4 py-3 font-bold text-slate-700 outline-none focus:ring-2 focus:ring-blue-500 transition"
+                        />
+                    </div>
+                    <div className="flex items-end">
+                        <button 
                             onClick={handleExport}
-                            className="w-full md:w-auto bg-green-600 hover:bg-green-700 text-white font-bold py-2 px-4 rounded flex items-center justify-center gap-2 shadow transition"
+                            className="w-full bg-blue-700 hover:bg-blue-800 text-white font-black py-3.5 rounded-2xl shadow-lg shadow-blue-500/20 transition flex items-center justify-center gap-2"
                         >
-                            <Download size={18} /> Xuất Báo Cáo Excel
+                            <Download size={20} /> XUẤT BÁO CÁO (XLSX)
                         </button>
                     </div>
                 </div>
 
-                {/* Statistics Summary (Focus on Inspections) */}
-                <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
-                    <div className="bg-blue-50 p-4 rounded-xl border border-blue-100">
-                        <div className="text-xs text-blue-600 font-bold uppercase mb-1">Tổng lượt kiểm tra</div>
-                        <div className="text-2xl font-bold text-slate-800">{stats.totalChecks}</div>
-                    </div>
-                    <div className="bg-purple-50 p-4 rounded-xl border border-purple-100">
-                        <div className="text-xs text-purple-600 font-bold uppercase mb-1">Số hệ thống đã KT</div>
-                        <div className="text-2xl font-bold text-slate-800">{stats.systems}</div>
-                    </div>
-                    <div className="bg-green-50 p-4 rounded-xl border border-green-100">
-                        <div className="text-xs text-green-600 font-bold uppercase mb-1">Kết quả tỐT (OK)</div>
-                        <div className="text-2xl font-bold text-slate-800 max-w-[150px]">{stats.okCount}</div>
-                    </div>
-                    <div className="bg-red-50 p-4 rounded-xl border border-red-100">
-                        <div className="text-xs text-red-600 font-bold uppercase mb-1">Phát hiện lỗi (NOK)</div>
-                        <div className="text-2xl font-bold text-slate-800">{stats.nokCount}</div>
-                    </div>
+                {/* Monthly Summary */}
+                <div className="grid grid-cols-2 sm:grid-cols-5 gap-3 mb-8">
+                    <SummaryCard label="Kiểm tra" val={summary.inspections} icon={<Activity size={18} />} color="blue" />
+                    <SummaryCard label="Khắc phục" val={summary.fixes} icon={<CheckCircle size={18} />} color="green" />
+                    <SummaryCard label="Sự cố" val={summary.incidents} icon={<AlertOctagon size={18} />} color="red" />
+                    <SummaryCard label="Bảo trì" val={summary.maintenance} icon={<Clock size={18} />} color="cyan" />
+                    <SummaryCard label="Dự án" val={summary.projects} icon={<Briefcase size={18} />} color="indigo" />
                 </div>
 
-                {/* Unified Log (Responsive) */}
-                <div className="w-full">
-                    {/* Mobile Card View (hidden on md-up) */}
-                    <div className="block md:hidden space-y-4">
-                        {paginatedLogs.length > 0 ? (
-                            paginatedLogs.map((log, index) => (
-                                <div key={log.id} className="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
-                                    <div className="p-4 bg-slate-50 border-b border-slate-200 flex justify-between items-center">
-                                        <div className="flex flex-col">
-                                            <span className={clsx(
-                                                "w-fit px-2 py-0.5 rounded-full text-[10px] font-black border uppercase mb-1",
-                                                log.type === 'INSPECTION' ? "bg-blue-50 text-blue-700 border-blue-200" :
-                                                    log.type === 'INCIDENT' ? "bg-red-50 text-red-700 border-red-200" :
-                                                        log.type === 'FIX' ? "bg-purple-50 text-purple-700 border-purple-200" :
-                                                            "bg-amber-50 text-amber-700 border-amber-200"
-                                            )}>
-                                                {log.type === 'INSPECTION' ? 'Kiểm tra' : log.type === 'INCIDENT' ? 'Sự cố' : log.type === 'FIX' ? 'Sửa chữa' : 'Bảo trì'}
-                                            </span>
-                                            <div className="text-[10px] font-mono text-slate-400">{log.timestamp}</div>
+                {/* Daily Diary */}
+                <div className="space-y-6">
+                    <h3 className="text-xs font-black uppercase text-slate-400 tracking-[0.2em] px-2 flex items-center gap-2">
+                        <Calendar size={14} /> Dòng thời gian công việc
+                    </h3>
+                    
+                    {diary.length > 0 ? (
+                        diary.map((entry) => (
+                            <div key={entry.date} className="bg-white rounded-[2rem] shadow-sm border border-slate-200 overflow-hidden">
+                                <div className="px-6 py-4 bg-slate-50 border-b border-slate-100 flex justify-between items-center">
+                                    <div className="flex items-center gap-3">
+                                        <div className="bg-white w-10 h-10 rounded-xl border border-slate-200 flex flex-col items-center justify-center shadow-sm">
+                                            <span className="text-[10px] font-bold text-slate-400 leading-none">{monthFilter.split('-')[1]}</span>
+                                            <span className="text-lg font-black text-slate-700 leading-none">{entry.day}</span>
                                         </div>
-                                        <div className={clsx(
-                                            "inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-bold border shadow-sm",
-                                            (log.result === 'OK' || log.result === 'COMPLETED' || log.result === 'RESOLVED') ? "bg-green-50 text-green-700 border-green-200" :
-                                                (log.result === 'NOK' || log.result === 'OPEN') ? "bg-red-50 text-red-700 border-red-200" :
-                                                    "bg-slate-50 text-slate-600 border-slate-200"
-                                        )}>
-                                            {log.result === 'OK' || log.result === 'COMPLETED' || log.result === 'RESOLVED' ? <CheckCircle size={12} /> :
-                                                log.result === 'NOK' || log.result === 'OPEN' ? <XCircle size={12} /> : null}
-                                            {log.result}
-                                        </div>
+                                        <div className="text-sm font-black text-slate-800 uppercase">CÔNG VIỆC NGÀY {entry.day}</div>
                                     </div>
-                                    <div className="p-4 space-y-3">
-                                        <div>
-                                            <div className="text-[10px] text-slate-400 uppercase font-bold tracking-wider mb-0.5">Hệ thống / Công việc</div>
-                                            <div className="font-bold text-slate-800 leading-snug">{log.systemName}</div>
-                                        </div>
-                                        <div className="grid grid-cols-2 gap-4">
-                                            <div>
-                                                <div className="text-[10px] text-slate-400 uppercase font-bold mb-0.5">Người phát hiện</div>
-                                                <div className="text-sm font-medium text-slate-700">{log.inspectorName}</div>
-                                            </div>
-                                            <div>
-                                                <div className="text-[10px] text-blue-400 uppercase font-bold mb-0.5">Người thực hiện</div>
-                                                <div className="text-sm font-bold text-blue-600">{log.resolverName}</div>
-                                            </div>
-                                        </div>
-                                        {log.note && (
-                                            <div className="bg-slate-50 p-3 rounded-lg border border-slate-100 italic text-sm text-slate-600">
-                                                {log.note}
-                                            </div>
-                                        )}
-                                    </div>
+                                    <div className="text-[10px] font-bold text-slate-300 uppercase tracking-widest">{entry.date}</div>
                                 </div>
-                            ))
-                        ) : (
-                            <div className="bg-white p-12 text-center text-slate-500 rounded-xl border border-slate-200 border-dashed">
-                                <div className="flex flex-col items-center gap-2">
-                                    <Search size={32} className="text-slate-300" />
-                                    <span className="italic">Không tìm thấy dữ liệu nào phù hợp.</span>
+                                <div className="p-6 space-y-4">
+                                    {entry.actions.map((act: any, idx: number) => (
+                                        <div key={idx} className="flex gap-4">
+                                            <div className="flex flex-col items-center">
+                                                <div className={clsx(
+                                                    "w-3 h-3 rounded-full mt-1",
+                                                    act.type === 'DUTY' ? "bg-blue-500" :
+                                                    act.type === 'FIX' ? "bg-green-500" :
+                                                    act.type === 'INCIDENT' ? "bg-red-500" :
+                                                    act.type === 'PROJECT' ? "bg-indigo-500" : "bg-cyan-500"
+                                                )} />
+                                                {idx !== entry.actions.length - 1 && <div className="w-0.5 h-full bg-slate-100 mt-1" />}
+                                            </div>
+                                            <div className="flex-1 pb-4">
+                                                <div className="flex justify-between items-start mb-0.5">
+                                                    <span className="text-xs font-black text-slate-800 uppercase tracking-tight">{act.label}</span>
+                                                    <span className="text-[10px] font-mono text-slate-400">{act.time}</span>
+                                                </div>
+                                                <div className="text-[13px] font-bold text-slate-600 leading-snug">{act.detail}</div>
+                                                {act.note && (
+                                                    <div className="mt-2 p-3 bg-slate-50 rounded-xl text-[11px] text-slate-500 italic border border-slate-100">
+                                                        {act.note}
+                                                    </div>
+                                                )}
+                                            </div>
+                                            <div className={clsx(
+                                                "shrink-0 text-[10px] font-black uppercase px-2 py-0.5 rounded-full",
+                                                act.status === 'OK' || act.status === 'COMPLETED' || act.status === 'RESOLVED' ? "text-green-600 bg-green-50" :
+                                                act.status === 'PENDING' || act.status === 'OPEN' ? "text-amber-600 bg-amber-50" : "text-slate-400 bg-slate-100"
+                                            )}>
+                                                {act.status}
+                                            </div>
+                                        </div>
+                                    ))}
                                 </div>
                             </div>
-                        )}
-                    </div>
-
-                    {/* Desktop Table View (hidden on mobile) */}
-                    <div className="hidden md:block bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
-                        <table className="w-full text-left border-collapse">
-                            <thead className="bg-slate-100 text-slate-700 font-bold uppercase text-xs border-b border-slate-200">
-                                <tr>
-                                    <th className="p-4 w-12 text-center">STT</th>
-                                    <th className="p-4 w-32">Thời gian</th>
-                                    <th className="p-4 w-24 text-center">Loại</th>
-                                    <th className="p-4 w-40">Người phát hiện</th>
-                                    <th className="p-4 w-40 text-blue-600">Người thực hiện</th>
-                                    <th className="p-4">Hệ thống / Công việc</th>
-                                    <th className="p-4 w-32 text-center">Kết quả</th>
-                                    <th className="p-4">Ghi chú</th>
-                                </tr>
-                            </thead>
-                            <tbody className="divide-y divide-slate-100 text-sm">
-                                {paginatedLogs.map((log, index) => (
-                                    <tr key={log.id} className="hover:bg-slate-50">
-                                        <td className="p-4 text-center font-medium text-slate-400">
-                                            {(currentPage - 1) * ITEMS_PER_PAGE + index + 1}
-                                        </td>
-                                        <td className="p-4 font-mono text-slate-600 whitespace-nowrap text-xs">{log.timestamp}</td>
-                                        <td className="p-4 text-center">
-                                            <span className={clsx(
-                                                "px-2 py-1 rounded-full text-[10px] font-bold border uppercase",
-                                                log.type === 'INSPECTION' ? "bg-blue-50 text-blue-700 border-blue-200" :
-                                                    log.type === 'INCIDENT' ? "bg-red-50 text-red-700 border-red-200" :
-                                                        log.type === 'FIX' ? "bg-purple-50 text-purple-700 border-purple-200" :
-                                                            "bg-amber-50 text-amber-700 border-amber-200"
-                                            )}>
-                                                {log.type === 'INSPECTION' ? 'Kiểm tra' : log.type === 'INCIDENT' ? 'Sự cố' : log.type === 'FIX' ? 'Sửa chữa' : 'Bảo trì'}
-                                            </span>
-                                        </td>
-                                        <td className="p-4 text-slate-700 font-medium">
-                                            {log.inspectorName}
-                                        </td>
-                                        <td className="p-4 font-bold text-blue-600">
-                                            {log.resolverName}
-                                        </td>
-                                        <td className="p-4 font-medium">{log.systemName}</td>
-                                        <td className="p-4 text-center">
-                                            <span className={clsx(
-                                                "inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-bold border",
-                                                (log.result === 'OK' || log.result === 'COMPLETED' || log.result === 'RESOLVED') ? "bg-green-50 text-green-700 border-green-200" :
-                                                    (log.result === 'NOK' || log.result === 'OPEN') ? "bg-red-50 text-red-700 border-red-200" :
-                                                        "bg-slate-50 text-slate-600 border-slate-200"
-                                            )}>
-                                                {log.result === 'OK' || log.result === 'COMPLETED' || log.result === 'RESOLVED' ? <CheckCircle size={12} /> :
-                                                    log.result === 'NOK' || log.result === 'OPEN' ? <XCircle size={12} /> : null}
-                                                {log.result}
-                                            </span>
-                                        </td>
-                                        <td className="p-4 text-slate-500 italic">
-                                            {log.note || '-'}
-                                        </td>
-                                    </tr>
-                                ))}
-                            </tbody>
-                        </table>
-                    </div>
-                </div>
-
-                {/* Pagination Controls */}
-                {totalPages > 1 && (
-                    <div className="mt-6 flex justify-center items-center gap-2">
-                        <button
-                            onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
-                            disabled={currentPage === 1}
-                            className="px-4 py-2 bg-white border border-slate-200 rounded-lg text-sm font-medium hover:bg-slate-50 disabled:opacity-50 disabled:cursor-not-allowed transition"
-                        >
-                            Trước
-                        </button>
-                        <div className="flex items-center gap-1">
-                            {/* Desktop: Show all pages */}
-                            <div className="hidden sm:flex items-center gap-1">
-                                {Array.from({ length: totalPages }, (_, i) => i + 1).map(page => (
-                                    <button
-                                        key={page}
-                                        onClick={() => setCurrentPage(page)}
-                                        className={clsx(
-                                            "w-10 h-10 rounded-lg text-sm font-bold transition",
-                                            currentPage === page
-                                                ? "bg-blue-600 text-white shadow-md shadow-blue-200"
-                                                : "bg-white border border-slate-200 text-slate-600 hover:bg-slate-50"
-                                        )}
-                                    >
-                                        {page}
-                                    </button>
-                                ))}
-                            </div>
-                            {/* Mobile: Show current/total */}
-                            <div className="flex sm:hidden px-4 text-sm font-bold text-slate-500">
-                                {currentPage} / {totalPages}
+                        ))
+                    ) : (
+                        <div className="bg-white p-12 text-center rounded-[2.5rem] border border-slate-200 border-dashed">
+                            <div className="flex flex-col items-center gap-4 grayscale opacity-40">
+                                <Search size={48} className="text-slate-300" />
+                                <p className="font-black text-slate-500 uppercase text-xs tracking-[0.2em]">Không có dữ liệu công việc trong tháng</p>
                             </div>
                         </div>
-                        <button
-                            onClick={() => setCurrentPage(prev => Math.min(totalPages, prev + 1))}
-                            disabled={currentPage === totalPages}
-                            className="px-4 py-2 bg-white border border-slate-200 rounded-lg text-sm font-medium hover:bg-slate-50 disabled:opacity-50 disabled:cursor-not-allowed transition"
-                        >
-                            Sau
-                        </button>
-                    </div>
-                )}
+                    )}
+                </div>
             </div>
+        </div>
+    );
+}
+
+function SummaryCard({ label, val, icon, color }: { label: string, val: number, icon: any, color: string }) {
+    const colors: any = {
+        blue: "text-blue-600 bg-blue-50 border-blue-100 shadow-blue-500/5",
+        green: "text-green-600 bg-green-50 border-green-100 shadow-green-500/5",
+        red: "text-red-600 bg-red-50 border-red-100 shadow-red-500/5",
+        cyan: "text-cyan-600 bg-cyan-50 border-cyan-100 shadow-cyan-500/5",
+        indigo: "text-indigo-600 bg-indigo-50 border-indigo-100 shadow-indigo-500/5"
+    };
+
+    return (
+        <div className={clsx("p-4 rounded-2xl border shadow-sm transition-all hover:scale-105", colors[color])}>
+            <div className="flex items-center justify-between mb-2">
+                <div className="opacity-80">{icon}</div>
+                <div className="text-xl font-black">{val}</div>
+            </div>
+            <div className="text-[10px] font-black uppercase tracking-widest">{label}</div>
         </div>
     );
 }
