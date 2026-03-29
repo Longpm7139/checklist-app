@@ -314,7 +314,7 @@ export default function KPIPage() {
                         <div>
                             <h1 className="text-2xl font-bold uppercase text-slate-800 flex items-center gap-2">
                                 <BarChart2 className="text-blue-600" />
-                                Dashboard Đánh Giá KPI
+                                Dashboard Đánh Giá KPI (VER_9_0_1774770316808)
                             </h1>
                             <p className="text-slate-500 text-sm">Thống kê hiệu suất làm việc nhân viên</p>
                         </div>
@@ -359,7 +359,7 @@ export default function KPIPage() {
                 {currentUser?.role === 'ADMIN' && (
                     <div className="mb-6 bg-slate-900 text-white p-6 rounded-2xl text-[12px] font-mono shadow-2xl border-4 border-red-500">
                         <div className="flex items-center gap-2 mb-4 text-red-500 font-bold uppercase text-[14px]">
-                            <span className="animate-ping text-lg font-black">●</span> KPI DIAGNOSTIC (VER 8.0 - PHÚC/TUẤN FIX)
+                            <span className="animate-ping text-lg font-black">●</span> KPI DIAGNOSTIC - FINAL RESCUE v9.0 (VER_9_0_1774770316808)
                         </div>
                         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-x-8 gap-y-3">
                             {diagInfo.map((info, i) => (
