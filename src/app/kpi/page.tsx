@@ -118,151 +118,142 @@ export default function KPIPage() {
                 const targetM = Number(filterMonth);
                 const targetY = Number(filterYear);
 
-                // Calculate next month (to include early morning logs of the 1st next month
-                // which belong to the previous month's last night shift)
-                const nextMonthDate = new Date(targetY, targetM, 1); // 1st of next month
+                // =========================================================
+                // UNIVERSAL TIMESTAMP PARSER
+                // Handles all known Vietnamese locale formats:
+                // "19:30 25/03/2026"  (24h, most common)
+                // "07:30 CH 25/03/2026" (12h PM with space)
+                // "07:30CH25/03/2026" (12h PM no space)
+                // "7:30 SA 25/03/2026" (12h AM with space)
+                // "25/03/2026, 19:30" (date first)
+                // "25 thg 3, 2026 7:30 CH" (Vietnamese month name)
+                // =========================================================
+
+                // Convert any timestamp to { day, month, year, hour, minute }
+                const parseTimestamp = (ts: string): { d: number, m: number, y: number, h: number, min: number } | null => {
+                    if (!ts || typeof ts !== 'string') return null;
+                    const s = ts.trim();
+                    
+                    let d = 0, m = 0, y = 0, hRaw = -1, min = 0;
+
+                    // --- Date parsing ---
+                    // Format A: dd/mm/yyyy or dd-mm-yyyy or dd.mm.yyyy
+                    const fmtA = s.match(/(\d{1,2})[\/\-\.](\d{1,2})[\/\-\.](\d{2,4})/);
+                    // Format B: yyyy-mm-dd (ISO)
+                    const fmtB = s.match(/(\d{4})[\/\-\.](\d{1,2})[\/\-\.](\d{1,2})/);
+                    // Format C: "dd thg m yyyy" or "dd tháng m yyyy" (Vietnamese)
+                    const fmtC = s.match(/(\d{1,2})\s+(?:thg|th[aá]ng)\s+(\d{1,2})[,\s]+(\d{4})/i);
+
+                    if (fmtB && !fmtA) {
+                        y = Number(fmtB[1]); m = Number(fmtB[2]); d = Number(fmtB[3]);
+                    } else if (fmtA) {
+                        d = Number(fmtA[1]); m = Number(fmtA[2]); y = Number(fmtA[3]);
+                    } else if (fmtC) {
+                        d = Number(fmtC[1]); m = Number(fmtC[2]); y = Number(fmtC[3]);
+                    } else {
+                        return null; // Cannot parse date
+                    }
+                    if (y < 100) y += 2000;
+
+                    // --- Time parsing ---
+                    const timeMatch = s.match(/(\d{1,2}):(\d{1,2})/);
+                    if (!timeMatch) return null;
+                    hRaw = Number(timeMatch[1]);
+                    min = Number(timeMatch[2]);
+
+                    // --- 12h → 24h conversion ---
+                    // Detect CH (chiều = PM) and SA (sáng = AM) in any position/case/spacing
+                    const sLow = s.toLowerCase();
+                    // CH detection: standalone "ch" not surrounded by other letters
+                    const isPM = /(?<![a-záàảãạăắằẳẵặâấầẩẫậéèẻẽẹêếềểễệíìỉĩịóòỏõọôốồổỗộơớờởỡợúùủũụưứừửữựýỳỷỹỵđ])ch(?![a-záàảãạăắằẳẵặâấầẩẫậéèẻẽẹêếềểễệíìỉĩịóòỏõọôốồổỗộơớờởỡợúùủũụưứừửữựýỳỷỹỵđ])/i.test(s) ||
+                                  sLow.includes('chiều') || 
+                                  /\bp\.?m\.?\b/i.test(s);
+                    const isAM = /(?<![a-záàảãạăắằẳẵặâấầẩẫậéèẻẽẹêếềểễệíìỉĩịóòỏõọôốồổỗộơớờởỡợúùủũụưứừửữựýỳỷỹỵđ])sa(?![a-záàảãạăắằẳẵặâấầẩẫậéèẻẽẹêếềểễệíìỉĩịóòỏõọôốồổỗộơớờởỡợúùủũụưứừửữựýỳỷỹỵđ])/i.test(s) ||
+                                  sLow.includes('sáng') || 
+                                  /\ba\.?m\.?\b/i.test(s);
+
+                    let h = hRaw;
+                    if (isPM && hRaw < 12) h = hRaw + 12;
+                    else if (isAM && hRaw === 12) h = 0;
+
+                    return { d, m, y, h, min };
+                };
+
+                // Month/year filter using new parser
+                const isMonthYearMatch = (timestamp: string, targetMonth: number, targetYear: number): boolean => {
+                    const p = parseTimestamp(timestamp);
+                    if (!p) return false;
+                    return p.m === targetMonth && p.y === targetYear;
+                };
+
+                // Get actual hour (handles 12h format correctly)
+                const getTimestampHour = (timestamp: string): number => {
+                    const p = parseTimestamp(timestamp);
+                    return p ? p.h : -1;
+                };
+
+                // Next month vars (for end-of-month night shift overflow)
+                const nextMonthDate = new Date(targetY, targetM, 1);
                 const nextM = nextMonthDate.getMonth() + 1;
                 const nextY = nextMonthDate.getFullYear();
 
-                // Improved date extraction using regex (handles '.', '/', and '-' delimiters)
-                const isMonthYearMatch = (timestamp: string, targetMonth: number, targetYear: number) => {
-                    if (!timestamp) return false;
-                    const dateMatch = timestamp.match(/(\d{1,2})[\/\-\.](\d{1,2})[\/\-\.](\d{2,4})/);
-                    const isoMatch = timestamp.match(/(\d{4})[\/\-\.](\d{1,2})[\/\-\.](\d{1,2})/);
-
-                    let m, y;
-                    if (dateMatch) {
-                        [, , m, y] = dateMatch;
-                    } else if (isoMatch) {
-                        [, y, m] = isoMatch;
-                    } else {
-                        return false; 
-                    }
-
-                    let yearNum = Number(y);
-                    if (yearNum < 100) yearNum += 2000;
-                    return Number(m) === targetMonth && yearNum === targetYear;
-                };
-
-                // Parse timestamp to get actual hour (handles 12h CH/SA format)
-                const getTimestampHour = (timestamp: string): number => {
-                    const timeMatch = timestamp.match(/(\d{1,2}):(\d{1,2})/);
-                    if (!timeMatch) return -1;
-                    let h = Number(timeMatch[1]);
-                    const tl = timestamp.toLowerCase();
-                    const isPM = / ch[\s\/\d]/.test(tl) || /\bch\b/.test(tl) || tl.includes('chiều') || / pm/.test(tl);
-                    const isAM = / sa[\s\/\d]/.test(tl) || /\bsa\b/.test(tl) || tl.includes('sáng') || / am/.test(tl);
-                    if (isPM && h !== 12) h += 12;
-                    else if (isAM && h === 12) h = 0;
-                    return h;
-                };
-
                 // Extended log filter: include current month AND
                 // early morning (00:00-07:59) logs of the 1st day of next month
-                // (these belong to the last night shift of the current month)
                 const filteredLogs = logs.filter((l: any) => {
                     if (isMonthYearMatch(l.timestamp, targetM, targetY)) return true;
-                    // Include day-1 of next month if it's early morning (night shift overflow)
                     if (isMonthYearMatch(l.timestamp, nextM, nextY)) {
-                        const hour = getTimestampHour(l.timestamp);
-                        // Check if this is day 1 of next month
-                        const dateMatch = l.timestamp.match(/(\d{1,2})[\/\-\.](\d{1,2})[\/\-\.](\d{2,4})/);
-                        const isoMatch = l.timestamp.match(/(\d{4})[\/\-\.](\d{1,2})[\/\-\.](\d{1,2})/);
-                        let dayNum = -1;
-                        if (dateMatch) dayNum = Number(dateMatch[1]);
-                        else if (isoMatch) dayNum = Number(isoMatch[3]);
-                        if (dayNum === 1 && hour >= 0 && hour < 8) return true;
+                        const p = parseTimestamp(l.timestamp);
+                        if (p && p.d === 1 && p.h >= 0 && p.h < 8) return true;
                     }
                     return false;
                 });
-                
+
                 const filteredHistory = history.filter((h: any) => h.resolvedAt && isMonthYearMatch(h.resolvedAt, targetM, targetY));
-                
                 const filteredHistoryCreated = history.filter((h: any) => isMonthYearMatch(h.timestamp, targetM, targetY));
-
                 const filteredIncidents = incidents.filter((i: any) => i.resolvedAt && i.status === 'RESOLVED' && isMonthYearMatch(i.resolvedAt, targetM, targetY));
-
                 const filteredTasks = tasks.filter((t: any) => t.completedAt && t.status === 'COMPLETED' && isMonthYearMatch(t.completedAt, targetM, targetY));
 
-                // Debug: log counts for admin
-                console.log(`[KPI Debug] Month: ${monthFilter}, filteredLogs: ${filteredLogs.length} (raw: ${logs.length}), duties: ${duties.length}`);
-                if (filteredLogs.length > 0) {
-                    console.log('[KPI Debug] Sample timestamps:', filteredLogs.slice(0, 3).map((l: any) => l.timestamp));
+                // -------- DEBUG: Show ALL timestamps to diagnose parsing issues --------
+                const unparsedLogs = logs.filter((l: any) => !parseTimestamp(l.timestamp));
+                if (unparsedLogs.length > 0) {
+                    console.warn('[KPI ⚠️] Logs với timestamp KHÔNG PARSE ĐƯỢC:', unparsedLogs.map((l: any) => `"${l.timestamp}" by ${l.inspectorName}`));
                 }
+                console.log(`[KPI Debug] filteredLogs: ${filteredLogs.length}/${logs.length} | Tháng ${targetM}/${targetY}`);
+                // Show ALL timestamps for this month to see actual format
+                const allTimestampsThisMonth = filteredLogs.map((l: any) => ({ts: l.timestamp, name: l.inspectorName}));
+                console.log('[KPI Debug] Tất cả timestamps tháng này:', JSON.stringify(allTimestampsThisMonth.slice(0, 20)));
+                // -----------------------------------------------------------------------
 
                 // --- Helper to map Log Timestamp string to Duty Date + Shift ---
                 // --- Helper to map Log Timestamp string to candidate Duty Date + Shift pairs ---
                 // We use overlapping windows (+/- 1 hour) because staff often arrive early or stay late.
                 const getLogDutyCandidates = (timestamp: string) => {
-                    if (!timestamp) return [];
-                    
-                    const dateMatch = timestamp.match(/(\d{1,2})[\/\-\.](\d{1,2})[\/\-\.](\d{2,4})/);
-                    const isoMatch = timestamp.match(/(\d{4})[\/\-\.](\d{1,2})[\/\-\.](\d{1,2})/);
-                    const timeMatch = timestamp.match(/(\d{1,2}):(\d{1,2})/);
-                    
-                    let d, m, y;
-                    if (dateMatch) [, d, m, y] = dateMatch;
-                    else if (isoMatch) [, y, m, d] = isoMatch;
-                    else return [];
+                    const p = parseTimestamp(timestamp);
+                    if (!p) return [];
 
-                    // Convert to 4-digit year if 2-digit
-                    let yearNum = Number(y);
-                    if (yearNum < 100) yearNum += 2000;
-                    
-                    if (!timeMatch) return [];
-                    const [, hhRaw, min] = timeMatch.map(Number);
-                    
-                    // *** CRITICAL FIX: Handle 12-hour format ***
-                    // Vietnamese locale on some devices saves timestamps as:
-                    // "07:30 CH 25/03/2026" (CH=chiều=PM) instead of "19:30 25/03/2026"
-                    // "07:30 SA 25/03/2026" (SA=sáng=AM)
-                    let hh = hhRaw;
-                    const tLower = timestamp.toLowerCase();
-                    // Detect PM markers: "ch" (chiều), "pm", or "chiều"
-                    const isPM = / ch[\s\/\d]/.test(tLower) || 
-                                 /\bch\b/.test(tLower) || 
-                                 / pm[\s\/\d]/.test(tLower) ||
-                                 tLower.includes('chiều');
-                    // Detect AM markers: "sa" (sáng), "am", "sáng"  
-                    const isAM = / sa[\s\/\d]/.test(tLower) ||
-                                 /\bsa\b/.test(tLower) ||
-                                 / am[\s\/\d]/.test(tLower) ||
-                                 tLower.includes('sáng');
-                    if (isPM && hhRaw !== 12) {
-                        hh = hhRaw + 12; // e.g. "07:30 CH" → hour=19
-                    } else if (isAM && hhRaw === 12) {
-                        hh = 0; // midnight "12:xx SA" → hour=0
-                    }
-                    
+                    const hh = p.h;
                     const candidates: { dutyDateStr: string, shift: 'DAY' | 'NIGHT' }[] = [];
-                    const logDate = new Date(yearNum, Number(m) - 1, Number(d));
+                    const logDate = new Date(p.y, p.m - 1, p.d);
+                    const toDateStr = (dt: Date) =>
+                        `${dt.getFullYear()}-${String(dt.getMonth() + 1).padStart(2, '0')}-${String(dt.getDate()).padStart(2, '0')}`;
 
-                    // Day Shift Window: 06:00 - 19:00 (Official 07:00 - 19:00)
-                    // Note: we stop at 19:00 (exclusive) so 19:xx logs only go to NIGHT
+                    // Day Shift: 06:00 – 18:59
                     if (hh >= 6 && hh < 19) {
-                        const dateStr = `${logDate.getFullYear()}-${String(logDate.getMonth() + 1).padStart(2, '0')}-${String(logDate.getDate()).padStart(2, '0')}`;
-                        candidates.push({ dutyDateStr: dateStr, shift: 'DAY' });
+                        candidates.push({ dutyDateStr: toDateStr(logDate), shift: 'DAY' });
                     }
-
-                    // Night Shift Window: 19:00 (Day X) - 07:00 (Day X+1)
-                    // case 1: evening of the day (19:00 - 23:59) - strictly night shift hours
-                    if (hh >= 19) {
-                        const dateStr = `${logDate.getFullYear()}-${String(logDate.getMonth() + 1).padStart(2, '0')}-${String(logDate.getDate()).padStart(2, '0')}`;
-                        candidates.push({ dutyDateStr: dateStr, shift: 'NIGHT' });
-                    }
-                    // case 2: early morning (00:00 - 07:59) -> belongs to previous day's night duty
-                    if (hh < 8) {
-                        const dutyDate = new Date(logDate);
-                        dutyDate.setDate(dutyDate.getDate() - 1);
-                        const dateStr = `${dutyDate.getFullYear()}-${String(dutyDate.getMonth() + 1).padStart(2, '0')}-${String(dutyDate.getDate()).padStart(2, '0')}`;
-                        candidates.push({ dutyDateStr: dateStr, shift: 'NIGHT' });
-                    }
-                    // Buffer: 18:00 - 19:00 can be either shift (handover period)
+                    // Handover hour 18:xx – also try NIGHT
                     if (hh === 18) {
-                        const dateStr = `${logDate.getFullYear()}-${String(logDate.getMonth() + 1).padStart(2, '0')}-${String(logDate.getDate()).padStart(2, '0')}`;
-                        // Also add as NIGHT candidate for the handover hour
-                        const alreadyNight = candidates.some(c => c.dutyDateStr === dateStr && c.shift === 'NIGHT');
-                        if (!alreadyNight) candidates.push({ dutyDateStr: dateStr, shift: 'NIGHT' });
+                        candidates.push({ dutyDateStr: toDateStr(logDate), shift: 'NIGHT' });
+                    }
+                    // Night Shift evening: 19:00 – 23:59
+                    if (hh >= 19) {
+                        candidates.push({ dutyDateStr: toDateStr(logDate), shift: 'NIGHT' });
+                    }
+                    // Night Shift early morning: 00:00 – 07:59 → previous day's NIGHT
+                    if (hh < 8) {
+                        const prev = new Date(logDate);
+                        prev.setDate(prev.getDate() - 1);
+                        candidates.push({ dutyDateStr: toDateStr(prev), shift: 'NIGHT' });
                     }
 
                     return candidates;
