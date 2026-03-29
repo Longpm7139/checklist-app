@@ -114,8 +114,8 @@ export const addLog = async (log: any) => {
 };
 
 export const subscribeToLogs = (callback: (data: any[]) => void) => {
-    // Recent logs first, limit to 2000 for mobile performance
-    const q = query(collection(db, "logs"), orderBy("createdAt", "desc"), limit(2000));
+    // Returning to full data view (no limit/sorting) to restore all historical logs
+    const q = query(collection(db, "logs"));
     return onSnapshot(q, (querySnapshot) => {
         const items: any[] = [];
         querySnapshot.forEach((doc) => {
@@ -147,7 +147,7 @@ export const saveMaintenance = async (task: any) => {
 };
 
 export const subscribeToMaintenance = (callback: (data: any[]) => void) => {
-    const q = query(collection(db, "maintenance"), limit(500));
+    const q = query(collection(db, "maintenance"));
     return onSnapshot(q, (querySnapshot) => {
         const items: any[] = [];
         querySnapshot.forEach((doc) => {
