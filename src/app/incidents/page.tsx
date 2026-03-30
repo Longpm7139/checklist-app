@@ -2,11 +2,13 @@
 
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { ArrowLeft, Siren, CheckCircle, Plus, User as UserIcon, Clock, AlertTriangle, Search, Download, Loader2, Camera, X, Image as ImageIcon } from 'lucide-react';
+import { ArrowLeft, Siren, CheckCircle, Plus, User as UserIcon, Clock, AlertTriangle, Search, Download, Loader2, Camera, X, Image as ImageIcon, Trash2 } from 'lucide-react';
+
 import { useUser } from '@/providers/UserProvider';
 import { IMESafeInput, IMESafeTextArea } from '@/components/IMESafeInput';
 import { Incident, User } from '@/lib/types';
-import { subscribeToIncidents, saveIncident, uploadImage } from '@/lib/firebase';
+import { subscribeToIncidents, saveIncident, uploadImage, deleteIncident } from '@/lib/firebase';
+
 import * as XLSX from 'xlsx';
 
 export default function IncidentsPage() {
@@ -182,6 +184,20 @@ export default function IncidentsPage() {
         setSelectedParticipants(prev =>
             prev.includes(name) ? prev.filter(n => n !== name) : [...prev, name]
         );
+    };
+
+    const handleDeleteIncident = async (id: string, title: string) => {
+        if (!confirm(`Bạn có chắc chắn muốn xóa sự cố "${title}" không? Hành động này không thể hoàn tác.`)) {
+            return;
+        }
+
+        try {
+            await deleteIncident(id);
+            alert("Đã xóa sự cố thành công!");
+        } catch (error: any) {
+            console.error("Lỗi khi xóa sự cố:", error);
+            alert("Lỗi khi xóa sự cố: " + error.message);
+        }
     };
 
     const submitResolve = async () => {
@@ -513,7 +529,18 @@ export default function IncidentsPage() {
                                                 ) : (
                                                     <span className="bg-green-50 text-green-700 text-[10px] font-black px-2 py-0.5 rounded-full border border-green-200 uppercase tracking-tighter shadow-sm">ĐÃ XONG</span>
                                                 )}
+                                                {currentUser?.role === 'ADMIN' && (
+
+                                                    <button
+                                                        onClick={() => handleDeleteIncident(inc.id, inc.title)}
+                                                        className="ml-auto p-1.5 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+                                                        title="Xóa sự cố (Chỉ Admin)"
+                                                    >
+                                                        <Trash2 size={16} />
+                                                    </button>
+                                                )}
                                             </div>
+
                                             <div className="text-[11px] text-slate-400 font-medium flex flex-wrap items-center gap-x-3 gap-y-1">
                                                 <div className="flex items-center gap-1.5 bg-slate-100 px-2 py-0.5 rounded text-slate-600">
                                                     <AlertTriangle size={12} className="text-amber-500" /> {inc.systemName}

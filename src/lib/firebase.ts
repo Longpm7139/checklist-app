@@ -141,6 +141,11 @@ export const saveIncident = async (incident: any) => {
     await setDoc(doc(db, "incidents", incident.id), removeUndefined(incident));
 };
 
+export const deleteIncident = async (id: string) => {
+    await deleteDoc(doc(db, "incidents", id));
+};
+
+
 // Maintenance
 export const saveMaintenance = async (task: any) => {
     await setDoc(doc(db, "maintenance", task.id), removeUndefined(task));
