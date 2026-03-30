@@ -252,14 +252,29 @@ export default function KPIPage() {
 
                     const uIn = dutyShiftCount * SCORING_RULES.DUTY_SHIFT; // 11pt mỗi ca
 
-                    // FIX: Đếm số hệ thống NOK duy nhất (unique systemId) mà user phát hiện
-                    // Tránh đếm trùng do log bị ghi nhiều lần (khi đổi status + khi Lưu)
-                    const nokSystemIds = new Set(
-                        fLogs
-                            .filter(l => l.result === 'NOK' && isMatch(l.inspectorCode, u.code))
-                            .map(l => l.systemId)
-                    );
-                    const faultFoundCount = nokSystemIds.size;
+                    // FIX v2: Mỗi hệ thống NOK chỉ tính cho người phát hiện ĐẦU TIÊN
+                    // Khi người khác bấm "Lưu", hệ thống ghi log NOK dưới tên người Lưu
+                    // → phải lọc theo người có log NOK SỚM NHẤT cho mỗi hệ thống
+                    const nokLogs = fLogs
+                        .filter(l => l.result === 'NOK' && l.systemId && l.timestamp)
+                        .sort((a, b) => {
+                            const pa = parseTS(a.timestamp);
+                            const pb = parseTS(b.timestamp);
+                            if (!pa || !pb) return 0;
+                            return new Date(pa.y, pa.m - 1, pa.d, pa.h, pa.min).getTime()
+                                - new Date(pb.y, pb.m - 1, pb.d, pb.h, pb.min).getTime();
+                        });
+                    // Map systemId → người phát hiện đầu tiên
+                    const firstNokReporter = new Map<string, string>();
+                    nokLogs.forEach(l => {
+                        if (!firstNokReporter.has(l.systemId)) {
+                            firstNokReporter.set(l.systemId, l.inspectorCode || '');
+                        }
+                    });
+                    // Chỉ đếm các hệ thống mà user là người phát hiện đầu tiên
+                    const faultFoundCount = Array.from(firstNokReporter.entries())
+                        .filter(([_, code]) => isMatch(code, u.code))
+                        .length;
 
                     // FIX: Đếm số lần sửa lỗi duy nhất từ history (unique doc id)
                     const fixCount = fHis.filter(h => isMatch(h.resolverCode, u.code) || isMatch(h.resolverName, u.name)).length;
