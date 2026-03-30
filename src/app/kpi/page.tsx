@@ -285,9 +285,24 @@ export default function KPIPage() {
                         isMatch(i.resolvedBy, u.name) || isMatch(i.resolvedBy, u.code) ||
                         (i.participants || []).some((p: string) => isMatch(p, u.name) || isMatch(p, u.code))
                     ).length;
-                    const maintCount = fTasks.filter(t => t.type !== 'PROJECT' && (t.assignees || []).some((a: string) => isMatch(a, u.name) || isMatch(a, u.code))).length;
-                    const pExecCount = fTasks.filter(t => t.type === 'PROJECT' && (t.assignees || []).some((a: string) => isMatch(a, u.name) || isMatch(a, u.code))).length;
-                    const pSupCount = fTasks.filter(t => t.type === 'PROJECT' && (t.supervisors || []).some((s: string) => isMatch(s, u.name) || isMatch(s, u.code))).length;
+                    // FIX: Chỉ tính điểm khi công việc đã HOÀN THÀNH (COMPLETED)
+                    // - Bảo trì/bảo dưỡng: assignees được lưu theo CODE
+                    // - Giám sát: supervisors cũng lưu theo CODE
+                    const maintCount = fTasks.filter(t =>
+                        t.type !== 'PROJECT' &&
+                        t.status === 'COMPLETED' &&
+                        (t.assignees || []).some((a: string) => isMatch(a, u.name) || isMatch(a, u.code))
+                    ).length;
+                    const pExecCount = fTasks.filter(t =>
+                        t.type === 'PROJECT' &&
+                        t.status === 'COMPLETED' &&
+                        (t.assignees || []).some((a: string) => isMatch(a, u.name) || isMatch(a, u.code))
+                    ).length;
+                    // Giám sát áp dụng cho CẢ hai loại (bảo trì lẫn thi công), chỉ tHẠNH (+6đ)
+                    const pSupCount = fTasks.filter(t =>
+                        t.status === 'COMPLETED' &&
+                        (t.supervisors || []).some((s: string) => isMatch(s, u.name) || isMatch(s, u.code))
+                    ).length;
                     // FIX: Đếm số ca làm ẩu duy nhất (unique systemId)
                     const fastCheckSystemIds = new Set(
                         fLogs
