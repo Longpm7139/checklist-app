@@ -27,6 +27,10 @@ export default function IncidentsPage() {
     const [isUploading, setIsUploading] = useState(false);
     const [viewingImage, setViewingImage] = useState<string | null>(null);
 
+    // Severity & auto-suggest
+    const [newSeverity, setNewSeverity] = useState<'CRITICAL' | 'MEDIUM' | 'LOW'>('MEDIUM');
+    const [suggestedIncidents, setSuggestedIncidents] = useState<Incident[]>([]);
+
     const [users, setUsers] = useState<User[]>([]);
     const [resolvingId, setResolvingId] = useState<string | null>(null);
     const [resolutionNote, setResolutionNote] = useState('');
@@ -103,6 +107,7 @@ export default function IncidentsPage() {
                 systemName: newSystem,
                 description: newDesc,
                 status: 'OPEN',
+                severity: newSeverity,
                 assignedTo: assignee,
                 reportedBy: currentUser?.name || 'Admin',
                 createdAt: new Date().toLocaleString('vi-VN', { hour: '2-digit', minute: '2-digit', day: '2-digit', month: '2-digit', year: 'numeric', hour12: false }),
@@ -131,6 +136,8 @@ export default function IncidentsPage() {
             setNewSystem('');
             setNewDesc('');
             setAssignee('');
+            setNewSeverity('MEDIUM');
+            setSuggestedIncidents([]);
             setImageFile(null);
             setImagePreview(null);
             setViewMode('LIST');
@@ -309,14 +316,74 @@ export default function IncidentsPage() {
                     <div className="bg-white p-6 rounded-xl shadow-lg border border-red-100 mb-6">
                         <h2 className="font-bold text-lg mb-4 text-slate-800 border-b pb-2">Thông tin Sự cố mới</h2>
                         <div className="space-y-4">
+                            {/* Severity */}
+                            <div>
+                                <label className="block text-sm font-bold text-slate-700 mb-1">Mức độ nghiêm trọng *</label>
+                                <div className="flex gap-2 flex-wrap">
+                                    {(['CRITICAL', 'MEDIUM', 'LOW'] as const).map(sev => (
+                                        <label key={sev} className={`flex items-center gap-2 px-3 py-2 rounded-lg border-2 cursor-pointer transition ${
+                                            newSeverity === sev
+                                                ? sev === 'CRITICAL' ? 'border-red-500 bg-red-50 text-red-700'
+                                                    : sev === 'MEDIUM' ? 'border-amber-500 bg-amber-50 text-amber-700'
+                                                        : 'border-green-500 bg-green-50 text-green-700'
+                                                : 'border-slate-200 bg-white text-slate-500'
+                                        }`}>
+                                            <input
+                                                type="radio"
+                                                name="severity"
+                                                value={sev}
+                                                checked={newSeverity === sev}
+                                                onChange={() => setNewSeverity(sev)}
+                                                className="hidden"
+                                            />
+                                            <span className="text-sm font-bold">
+                                                {sev === 'CRITICAL' ? '🔴 Khẩn cấp' : sev === 'MEDIUM' ? '🟡 Trung bình' : '🟢 Nhẹ'}
+                                            </span>
+                                        </label>
+                                    ))}
+                                </div>
+                            </div>
                             <div>
                                 <label className="block text-sm font-medium text-slate-700 mb-1">Tên sự cố *</label>
                                 <IMESafeInput
                                     className="w-full border border-slate-300 rounded p-2 focus:border-red-500 outline-none"
                                     placeholder="VD: Cầu thang A5 bị kẹt..."
                                     value={newTitle}
-                                    onChangeValue={(val: string) => setNewTitle(val)}
+                                    onChangeValue={(val: string) => {
+                                        setNewTitle(val);
+                                        // Auto-suggest: tìm sự cố tương tự
+                                        if (val.trim().length > 2) {
+                                            const q = val.toLowerCase();
+                                            const matches = incidents
+                                                .filter(i => i.status === 'RESOLVED' && i.resolutionNote && (
+                                                    (i.title || '').toLowerCase().includes(q) ||
+                                                    (i.systemName || '').toLowerCase().includes(q)
+                                                ))
+                                                .slice(0, 3);
+                                            setSuggestedIncidents(matches);
+                                        } else {
+                                            setSuggestedIncidents([]);
+                                        }
+                                    }}
                                 />
+                                {/* Auto-suggest panel */}
+                                {suggestedIncidents.length > 0 && (
+                                    <div className="mt-2 border border-amber-200 bg-amber-50 rounded-xl overflow-hidden shadow-md">
+                                        <div className="px-3 py-2 bg-amber-100 border-b border-amber-200">
+                                            <p className="text-xs font-black text-amber-700 uppercase tracking-wider">💡 Gợi ý từ sổ tay kinh nghiệm</p>
+                                        </div>
+                                        {suggestedIncidents.map(sug => (
+                                            <div key={sug.id} className="px-3 py-2.5 border-b border-amber-100 last:border-0">
+                                                <p className="text-xs font-bold text-slate-700 mb-0.5">{sug.title} <span className="text-slate-400 font-normal">— {sug.systemName}</span></p>
+                                                <p className="text-xs text-green-700 leading-relaxed line-clamp-2">✅ {sug.resolutionNote}</p>
+                                                {sug.participants && <p className="text-[10px] text-slate-400 mt-0.5">👤 {sug.participants.join(', ')}</p>}
+                                            </div>
+                                        ))}
+                                        <div className="px-3 py-1.5 text-center">
+                                            <button onClick={() => window.open('/knowledge', '_blank')} className="text-[10px] font-bold text-amber-600 hover:text-amber-700">Xem đầy đủ sổ tay kinh nghiệm →</button>
+                                        </div>
+                                    </div>
+                                )}
                             </div>
                             <div>
                                 <label className="block text-sm font-medium text-slate-700 mb-1">Hệ thống / Vị trí *</label>

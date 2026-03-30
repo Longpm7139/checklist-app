@@ -4,8 +4,9 @@ import { useUser } from '@/providers/UserProvider';
 import {
   AlertCircle, Wrench, FileText, ClipboardList, BarChart2, Package,
   QrCode, Users, UserCheck, Save, Lock, LogOut, Search, History as HistoryIcon,
-  Check, Edit2, RotateCcw
+  Check, Edit2, RotateCcw, BookOpen
 } from 'lucide-react';
+
 import clsx from 'clsx';
 import { backupAllData } from '@/lib/firebase';
 
@@ -48,6 +49,13 @@ export default function Header({
           title="Sự Cố Đột Xuất (Báo ngay)"
         >
           <AlertCircle size={16} />
+        </button>
+        <button
+          onClick={() => router.push('/knowledge')}
+          className="p-2 rounded text-sm font-normal flex items-center gap-1 bg-emerald-600 hover:bg-emerald-700 text-white transition"
+          title="Sổ tay kinh nghiệm xử lý sự cố"
+        >
+          <BookOpen size={16} /> Sổ tay
         </button>
         <button
           onClick={() => router.push('/maintenance')}

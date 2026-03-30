@@ -14,7 +14,7 @@ export interface SystemCategory {
 
 export interface SystemCheck {
   id: string; // e.g., 'A1'
-  categoryId: string; // New field to group by category
+  categoryId: string;
   name: string; // e.g., 'Cầu số 1'
   status: Status | null;
   note: string;
@@ -28,7 +28,7 @@ export interface SystemCheck {
 
 export interface ChecklistItem {
   id: string;
-  content: string; // Nội dung kiểm tra
+  content: string;
   status: Status | null;
   note: string;
   timestamp?: string;
@@ -52,35 +52,36 @@ export interface ErrorReport {
 export interface Incident {
   id: string;
   title: string;
-  systemName: string; // e.g., "Cầu hành khách A1"
+  systemName: string;
   description: string;
   status: 'OPEN' | 'RESOLVED';
-  assignedTo?: string; // User Code or Name
-  reportedBy: string; // Admin who created it
+  severity?: 'CRITICAL' | 'MEDIUM' | 'LOW'; // Mức độ nghiêm trọng
+  assignedTo?: string;
+  reportedBy: string;
   createdAt: string;
   resolvedAt?: string;
-  resolvedBy?: string; // User who fixed it
+  resolvedBy?: string;
   resolutionNote?: string;
-  participants?: string[]; // List of names who participated in fixing
+  participants?: string[];
   imageUrl?: string;
   resolutionImageUrl?: string;
 }
 
 export interface MaintenanceTask {
   id: string;
-  title: string; // e.g. "Bảo dưỡng Cầu A1 tháng 10"
-  type?: 'MAINTENANCE' | 'PROJECT'; // Maintenance (Bảo dưỡng) or Project (Thi công)
+  title: string;
+  type?: 'MAINTENANCE' | 'PROJECT';
   description: string;
-  deadline: string; // YYYY-MM-DD
-  assignees: string[]; // Array of User Codes
-  assigneeNames: string[]; // Array of User Names for display
-  supervisors?: string[]; // Array of User Codes (New for KPI)
-  supervisorNames?: string[]; // Array of User Names for display
+  deadline: string;
+  assignees: string[];
+  assigneeNames: string[];
+  supervisors?: string[];
+  supervisorNames?: string[];
   assignedByName: string;
   status: 'PENDING' | 'COMPLETED';
   completedAt?: string;
   completedNote?: string;
-  remainingIssues?: string; // New field for issues after maintenance
+  remainingIssues?: string;
   beforeImageUrl?: string;
   afterImageUrl?: string;
   createdAt: string;
