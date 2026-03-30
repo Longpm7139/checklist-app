@@ -19,7 +19,7 @@ interface KPIRow {
     userId: string;
     code: string;
     name: string;
-    inspectionCount: number;
+    dutyShiftCount: number;   // Số ca trực được phân công + có log
     fixCount: number;
     incidentCount: number;
     maintenanceCount: number;
@@ -31,7 +31,7 @@ interface KPIRow {
 }
 
 const SCORING_RULES = {
-    INSPECTION: 1,
+    DUTY_SHIFT: 11,   // Điểm trực ca (mỗi ca được phân công + có log)
     FAULT_FOUND: 3,
     FIX: 4,
     INCIDENT: 5,
@@ -42,7 +42,7 @@ const SCORING_RULES = {
 };
 
 const RULE_LABELS: Record<string, string> = {
-    INSPECTION: 'Kiểm tra',
+    DUTY_SHIFT: 'Trực ca',
     FAULT_FOUND: 'Tìm thấy lỗi',
     FIX: 'Khắc phục',
     INCIDENT: 'Xử lý sự cố',
@@ -188,64 +188,69 @@ export default function KPIPage() {
                 const usersMap = allUsers.reduce((acc, curr) => ({ ...acc, [curr.code]: curr }), {});
 
                 const statsData = allUsers.map(u => {
-                    let uIn = 0;
-                    
+                    // v2.0: Phương án A – Phải được phân công + ca có ít nhất 1 log
+                    // Mỗi ca (ngày_ca) mà user được assign VÀ ca đó có log → +11pt
+                    let dutyShiftCount = 0;
+
                     fDuties.forEach(dDuty => {
                         const dS = dDuty.date; // YYYY-MM-DD
-                        ['DAY', 'NIGHT'].forEach(st => {
-                            // 1. Resolve the ENTIRE crew for this shift (mapping codes to full profiles)
+                        (['DAY', 'NIGHT'] as const).forEach(st => {
+                            // 1. Tìm tất cả assignments trong ca này
                             const shiftAssignments = dDuty.assignments?.filter((a: any) => {
                                 const aS = normalize(a.shift || '');
-                                return (aS.includes('ngay') || aS.includes('dem') || aS === normalize(st));
+                                if (st === 'DAY') return aS.includes('ngay') || aS === 'day';
+                                return aS.includes('dem') || aS === 'night';
                             }) || [];
 
+                            // 2. Kiểm tra user có được phân công trong ca này không
+                            const isUserAssigned = shiftAssignments.some((a: any) =>
+                                isVeryLenientMatch(a.userCode, u.code) || isVeryLenientMatch(a.userName, u.name)
+                            );
+
+                            if (!isUserAssigned) return;
+
+                            // 3. Resolve toàn bộ crew của ca này
                             const resolvedCrew = shiftAssignments.map((a: any) => {
                                 const found = allUsers.find(au => isVeryLenientMatch(au.code, a.userCode));
                                 return found || { code: a.userCode, name: a.userName || '' };
                             });
 
-                            // 2. Is THIS user (u) in that crew?
-                            const isUserOnDuty = resolvedCrew.some((member: any) => 
-                                isVeryLenientMatch(member.code, u.code) || isVeryLenientMatch(member.name, u.name)
-                            );
-                            
-                            if (!isUserOnDuty) return;
+                            // 4. Xác định khung giờ của ca
+                            const [y, m, d] = dS.split('-').map(Number);
+                            const shiftStart = new Date(y, m - 1, d);
+                            const shiftEnd = new Date(y, m - 1, d);
+                            if (st === 'DAY') {
+                                shiftStart.setHours(5, 0, 0, 0);   // 05:00 (buffer)
+                                shiftEnd.setHours(20, 0, 0, 0);    // 20:00 (buffer)
+                            } else {
+                                shiftStart.setHours(17, 0, 0, 0);  // 17:00 (buffer)
+                                shiftEnd.setDate(shiftEnd.getDate() + 1);
+                                shiftEnd.setHours(9, 0, 0, 0);     // 09:00 hôm sau (buffer)
+                            }
 
-                            // 3. Did ANYONE in this crew perform ANY check?
-                            const isShiftCompletedByCrew = fLogs.some(l => {
-                                const isLogByCrewMember = resolvedCrew.some((member: any) => 
-                                    isVeryLenientMatch(l.inspectorCode, member.code) || 
+                            // 5. Kiểm tra xem ca này có ít nhất 1 log từ bất kỳ thành viên nào không
+                            const shiftHasAnyLog = fLogs.some(l => {
+                                // Bao gồm cả chính user và đồng nghiệp trong ca
+                                const isLogByCrew = resolvedCrew.some((member: any) =>
+                                    isVeryLenientMatch(l.inspectorCode, member.code) ||
                                     isVeryLenientMatch(l.inspectorName, member.name)
                                 );
-                                
-                                if (!isLogByCrewMember) return false;
+                                if (!isLogByCrew) return false;
 
                                 const p = parseTS(l.timestamp);
                                 if (!p) return false;
-                                
-                                const [y, m, d] = dS.split('-').map(Number);
-                                const shiftStart = new Date(y, m - 1, d);
-                                const shiftEnd = new Date(y, m - 1, d);
-                                
-                                if (st === 'DAY') {
-                                    shiftStart.setHours(5, 0, 0);
-                                    shiftEnd.setHours(20, 0, 0);
-                                } else {
-                                    shiftStart.setHours(17, 0, 0);
-                                    shiftEnd.setDate(shiftEnd.getDate() + 1);
-                                    shiftEnd.setHours(9, 0, 0);
-                                }
-                                
                                 const logTime = new Date(p.y, p.m - 1, p.d, p.h, p.min);
                                 return logTime >= shiftStart && logTime <= shiftEnd;
                             });
 
-                            if (isShiftCompletedByCrew) {
-                                uIn += SCORING_RULES.INSPECTION * 11;
+                            // 6. Nếu ca có log → user được 11 điểm trực ca
+                            if (shiftHasAnyLog) {
+                                dutyShiftCount += 1;
                             }
                         });
                     });
 
+                    const uIn = dutyShiftCount * SCORING_RULES.DUTY_SHIFT; // 11pt mỗi ca
                     const fixCount = fHis.filter(h => isMatch(h.resolverCode, u.code) || isMatch(h.resolverName, u.name)).length;
                     const faultFoundCount = fLogs.filter(l => l.result === 'NOK' && isMatch(l.inspectorCode, u.code)).length;
                     const incidentCount = fInc.filter(i => isMatch(i.resolvedBy, u.code) || (i.participants || []).some((p: string) => isMatch(p, u.code))).length;
@@ -254,11 +259,18 @@ export default function KPIPage() {
                     const pSupCount = fTasks.filter(t => t.type === 'PROJECT' && (t.supervisors || []).some((s: string) => isMatch(s, u.name) || isMatch(s, u.code))).length;
                     const negligenceCount = fLogs.filter(l => l.isFastCheck && isMatch(l.inspectorCode, u.code)).length;
 
-                    const score = uIn + (fixCount * SCORING_RULES.FIX) + (faultFoundCount * SCORING_RULES.FAULT_FOUND) + (incidentCount * SCORING_RULES.INCIDENT) + (maintCount * SCORING_RULES.MAINTENANCE) + (pExecCount * SCORING_RULES.PROJECT_EXEC) + (pSupCount * SCORING_RULES.PROJECT_SUP) + (negligenceCount * SCORING_RULES.NEGLIGENCE);
+                    const score = uIn
+                        + (fixCount * SCORING_RULES.FIX)
+                        + (faultFoundCount * SCORING_RULES.FAULT_FOUND)
+                        + (incidentCount * SCORING_RULES.INCIDENT)
+                        + (maintCount * SCORING_RULES.MAINTENANCE)
+                        + (pExecCount * SCORING_RULES.PROJECT_EXEC)
+                        + (pSupCount * SCORING_RULES.PROJECT_SUP)
+                        + (negligenceCount * SCORING_RULES.NEGLIGENCE);
 
                     return {
                         userId: u.id, code: u.code, name: u.name,
-                        inspectionCount: uIn, fixCount, incidentCount, maintenanceCount: maintCount,
+                        dutyShiftCount, fixCount, incidentCount, maintenanceCount: maintCount,
                         faultFoundCount, projectExecCount: pExecCount, projectSupCount: pSupCount,
                         fastCheckCount: negligenceCount, score
                     };
@@ -279,10 +291,10 @@ export default function KPIPage() {
         const dataArr: any[][] = [
             ["BẢNG XẾP HẠNG KPI", monthFilter],
             [],
-            ["Hạng", "Mã NV", "Họ Tên", "Kiểm tra", "Tìm lỗi", "Sửa lỗi", "Sự cố", "Bảo trì", "Thi công", "Giám sát", "Điểm"]
+            ["Hạng", "Mã NV", "Họ Tên", "Số ca trực", "Điểm trực ca", "Tìm lỗi", "Sửa lỗi", "Sự cố", "Bảo trì", "Thi công", "Giám sát", "Điểm"]
         ];
         stats.forEach((s, i) => {
-            dataArr.push([i + 1, s.code, s.name, s.inspectionCount, s.faultFoundCount, s.fixCount, s.incidentCount, s.maintenanceCount, s.projectExecCount, s.projectSupCount, s.score]);
+            dataArr.push([i + 1, s.code, s.name, s.dutyShiftCount, s.dutyShiftCount * SCORING_RULES.DUTY_SHIFT, s.faultFoundCount, s.fixCount, s.incidentCount, s.maintenanceCount, s.projectExecCount, s.projectSupCount, s.score]);
         });
         XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(dataArr), "KPI");
         XLSX.writeFile(wb, `KPI_${monthFilter}.xlsx`);
@@ -379,6 +391,12 @@ export default function KPIPage() {
                                     <span className="text-sm font-black text-blue-600">{val > 0 ? `+${val}` : val}</span>
                                 </div>
                             ))}
+                            <div className="col-span-2 pt-1 border-t border-slate-100">
+                                <div className="flex justify-between items-center py-1">
+                                    <span className="text-[11px] font-bold text-red-400 uppercase">Làm ẩu</span>
+                                    <span className="text-sm font-black text-red-500">{SCORING_RULES.NEGLIGENCE}</span>
+                                </div>
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -390,7 +408,6 @@ export default function KPIPage() {
                             <div 
                                 key={row.userId} 
                                 onClick={() => {
-                                    console.log("Selected User (Mobile):", row.name);
                                     setSelectedUser(row);
                                 }} 
                                 className={clsx("bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden transition active:scale-[0.98] cursor-pointer", idx === 0 ? "ring-2 ring-amber-400 border-transparent" : "")}
@@ -407,8 +424,9 @@ export default function KPIPage() {
                                 </div>
                                 <div className="p-5 grid grid-cols-4 gap-2">
                                     <div className="flex flex-col items-center p-2 bg-blue-50 rounded-xl">
-                                        <div className="text-[9px] font-black text-blue-400 uppercase">Trực</div>
-                                        <div className="text-sm font-black text-blue-700 text-center">{row.inspectionCount}</div>
+                                        <div className="text-[9px] font-black text-blue-400 uppercase">Trực ca</div>
+                                        <div className="text-sm font-black text-blue-700 text-center">{row.dutyShiftCount}</div>
+                                        <div className="text-[8px] text-blue-400">+{row.dutyShiftCount * SCORING_RULES.DUTY_SHIFT}đ</div>
                                     </div>
                                     <div className="flex flex-col items-center p-2 bg-amber-50 rounded-xl">
                                         <div className="text-[9px] font-black text-amber-400 uppercase">Lỗi</div>
@@ -434,7 +452,7 @@ export default function KPIPage() {
                                 <tr className="bg-slate-50/80 text-[10px] font-black uppercase text-slate-400 tracking-[0.2em] border-b border-slate-100 text-center">
                                     <th className="p-4 w-16">Hạng</th>
                                     <th className="p-4 text-left">Nhân viên</th>
-                                    <th className="p-4 text-center text-blue-600">Trực ca</th>
+                                    <th className="p-4 text-center text-blue-600">Số ca trực<br/><span className="text-[9px] font-normal opacity-70">(×11đ mỗi ca)</span></th>
                                     <th className="p-4 text-center text-amber-600">Tìm lỗi</th>
                                     <th className="p-4 text-center text-green-600">Khắc phục</th>
                                     <th className="p-4 text-center text-red-600">Sự cố</th>
@@ -463,7 +481,10 @@ export default function KPIPage() {
                                             </div>
                                             <div className="text-[9px] font-bold text-slate-400 uppercase tracking-widest">{row.code}</div>
                                         </td>
-                                        <td className="p-4 text-center font-black text-blue-600">{row.inspectionCount}</td>
+                                        <td className="p-4 text-center font-black text-blue-600">
+                                            <div>{row.dutyShiftCount} ca</div>
+                                            <div className="text-xs text-blue-400 font-bold">+{row.dutyShiftCount * SCORING_RULES.DUTY_SHIFT}đ</div>
+                                        </td>
                                         <td className="p-4 text-center font-black text-amber-600">{row.faultFoundCount || '-'}</td>
                                         <td className="p-4 text-center font-black text-green-600">{row.fixCount || '-'}</td>
                                         <td className="p-4 text-center font-black text-red-600">{row.incidentCount || '-'}</td>
@@ -510,8 +531,9 @@ export default function KPIPage() {
                                     <div className="text-2xl font-black text-blue-700">{selectedUser.score || 0}</div>
                                 </div>
                                 <div className="p-4 bg-white rounded-2xl border border-slate-100 shadow-sm">
-                                    <div className="text-[10px] text-slate-400 uppercase font-black mb-1">Số lượt kiểm tra</div>
-                                    <div className="text-2xl font-black text-slate-800">{selectedUser.inspectionCount || 0}</div>
+                                    <div className="text-[10px] text-slate-400 uppercase font-black mb-1">Số ca trực</div>
+                                    <div className="text-2xl font-black text-blue-700">{selectedUser.dutyShiftCount || 0} ca</div>
+                                    <div className="text-xs text-blue-400 font-bold mt-1">+{(selectedUser.dutyShiftCount || 0) * SCORING_RULES.DUTY_SHIFT}đ</div>
                                 </div>
                                 <div className="p-4 bg-white rounded-2xl border border-slate-100 shadow-sm">
                                     <div className="text-[10px] text-slate-400 uppercase font-black mb-1">Công việc khác</div>
@@ -529,38 +551,63 @@ export default function KPIPage() {
                                             const [y, m] = monthFilter.split('-');
                                             const targetM = Number(m), targetY = Number(y);
                                             
-                                            // 1. Logs by this user directly
-                                            const uLogs = logs.filter(l => l.timestamp.includes(`/${m}/`) && isMatch(l.inspectorCode, selectedUser.code));
-                                            
-                                            // 2. Team-based Inspections (From Duties)
+                                            // v2.0: Phương án A – Phải được phân công + ca có log
                                             const teamDuties: any[] = [];
                                             duties.filter(d => {
                                                 const p = d.date.split('-');
                                                 return Number(p[1]) === targetM && Number(p[0]) === targetY;
                                             }).forEach(dDuty => {
-                                                ['DAY', 'NIGHT'].forEach(st => {
-                                                    const crew = dDuty.assignments?.filter((a: any) => {
+                                                (['DAY', 'NIGHT'] as const).forEach(st => {
+                                                    // Kiểm tra user có được assign trong ca này không
+                                                    const userAssignment = dDuty.assignments?.filter((a: any) => {
                                                         const aS = normalize(a.shift || '');
-                                                        if (!(aS.includes('ngay') || aS.includes('dem') || aS === normalize(st))) return false;
+                                                        const isCorrectShift = st === 'DAY'
+                                                            ? (aS.includes('ngay') || aS === 'day')
+                                                            : (aS.includes('dem') || aS === 'night');
+                                                        if (!isCorrectShift) return false;
                                                         return isMatch(a.userCode, selectedUser.code) || isMatch(a.userName, selectedUser.name);
                                                     }) || [];
-                                                    if (crew.length === 0) return;
-                                                    
-                                                    // Check if this shift actually happened (has logs)
-                                                    const hasLogs = logs.some(l => {
+                                                    if (userAssignment.length === 0) return;
+
+                                                    // Lấy toàn bộ crew của ca này
+                                                    const allCrewInShift = dDuty.assignments?.filter((a: any) => {
+                                                        const aS = normalize(a.shift || '');
+                                                        return st === 'DAY'
+                                                            ? (aS.includes('ngay') || aS === 'day')
+                                                            : (aS.includes('dem') || aS === 'night');
+                                                    }) || [];
+
+                                                    // Xác định khung giờ ca
+                                                    const [y, mm, dd] = dDuty.date.split('-').map(Number);
+                                                    const shiftStart = new Date(y, mm - 1, dd);
+                                                    const shiftEnd = new Date(y, mm - 1, dd);
+                                                    if (st === 'DAY') {
+                                                        shiftStart.setHours(5, 0, 0, 0);
+                                                        shiftEnd.setHours(20, 0, 0, 0);
+                                                    } else {
+                                                        shiftStart.setHours(17, 0, 0, 0);
+                                                        shiftEnd.setDate(shiftEnd.getDate() + 1);
+                                                        shiftEnd.setHours(9, 0, 0, 0);
+                                                    }
+
+                                                    // Kiểm tra ca có ít nhất 1 log từ crew
+                                                    const shiftHasLog = logs.some(l => {
+                                                        const isCrewLog = allCrewInShift.some((a: any) =>
+                                                            isMatch(l.inspectorCode, a.userCode) || isMatch(l.inspectorName, a.userName)
+                                                        );
+                                                        if (!isCrewLog) return false;
                                                         const p = parseTS(l.timestamp);
                                                         if (!p) return false;
-                                                        const lD = `${p.y}-${String(p.m).padStart(2, '0')}-${String(p.d).padStart(2, '0')}`;
-                                                        const lShift = (p.h >= 6 && p.h < 18) ? 'DAY' : 'NIGHT';
-                                                        return lD === dDuty.date && lShift === st;
+                                                        const logTime = new Date(p.y, p.m - 1, p.d, p.h, p.min);
+                                                        return logTime >= shiftStart && logTime <= shiftEnd;
                                                     });
 
-                                                    if (hasLogs) {
-                                                        const [y, mm, dd] = dDuty.date.split('-');
+                                                    if (shiftHasLog) {
+                                                        const [yy, mo, dy] = dDuty.date.split('-');
                                                         teamDuties.push({
-                                                            t: `${dd}/${mm}/${y} 00:00`,
+                                                            t: `${dy}/${mo}/${yy} 00:00`,
                                                             type: 'Trực ca',
-                                                            detail: `Trực ca ${st === 'DAY' ? 'Ngày' : 'Đêm'} (Cùng nhóm)`,
+                                                            detail: `Trực ca ${st === 'DAY' ? 'Ngày (07:00–19:00)' : 'Đêm (19:00–07:00)'} – Được phân công`,
                                                             pts: '+11',
                                                             color: 'blue'
                                                         });
