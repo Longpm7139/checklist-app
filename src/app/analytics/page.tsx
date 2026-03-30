@@ -48,10 +48,28 @@ export default function AnalyticsPage() {
     const stats = useMemo(() => {
         const [year, month] = selectedMonth.split('-');
 
+        // Helper: parse timestamp to Date
+        const parseTS = (ts: string): Date | null => {
+            if (!ts) return null;
+            try {
+                const parts = ts.split(/[/, : ]+/).filter(Boolean);
+                const yearIdx = parts.findIndex(p => p.length === 4);
+                if (yearIdx === -1) return null;
+                let d: number, m: number, y: number, h = 0, min = 0;
+                if (yearIdx === 4) {
+                    h = parseInt(parts[0]); min = parseInt(parts[1]);
+                    d = parseInt(parts[2]); m = parseInt(parts[3]) - 1; y = parseInt(parts[4]);
+                } else {
+                    d = parseInt(parts[0]); m = parseInt(parts[1]) - 1; y = parseInt(parts[2]);
+                    h = parseInt(parts[3] || '0'); min = parseInt(parts[4] || '0');
+                }
+                return new Date(y, m, d, h, min);
+            } catch { return null; }
+        };
+
         // 1. Filter logs for the selected month
         const monthLogs = logs.filter(log => {
             if (!log.timestamp) return false;
-            // Handle "HH:mm dd/MM/yyyy"
             const parts = log.timestamp.split(' ');
             const datePart = parts.find((p: string) => p.includes('/'));
             if (datePart) {
@@ -61,38 +79,64 @@ export default function AnalyticsPage() {
             return false;
         });
 
-        // 2. Filter for NOKs
+        // FIX 1: Tổng lượt kiểm tra = số ca duy nhất × 11 (không phải số log)
+        const shiftKeys = new Set<string>();
+        monthLogs.forEach(log => {
+            const d = parseTS(log.timestamp);
+            if (!d) return;
+            const h = d.getHours();
+            const shift = (h >= 7 && h < 19) ? 'DAY' : 'NIGHT';
+            // Ca đêm 00:00-06:59 thuộc ngày hôm trước
+            const dayRef = new Date(d);
+            if (h < 7) dayRef.setDate(dayRef.getDate() - 1);
+            const key = `${dayRef.getFullYear()}-${String(dayRef.getMonth() + 1).padStart(2, '0')}-${String(dayRef.getDate()).padStart(2, '0')}_${shift}`;
+            shiftKeys.add(key);
+        });
+        const totalInspections = shiftKeys.size * 11;
+
+        // FIX 2: NOK logs chỉ lấy trong tháng
         const nokLogs = monthLogs.filter(log => log.result === 'NOK');
 
-        // 3. Aggregate by System
-        const systemCounts: Record<string, { id: string, name: string, count: number, categoryId: string, lastFault: string }> = {};
-        nokLogs.forEach(log => {
+        // FIX 3: Mỗi hệ thống NOK chỉ tính cho người phát hiện ĐẦU TIÊN
+        // (tránh đếm trùng khi nhiều người "Lưu" tạo log NOK dưới tên mình)
+        const nokLogsSorted = [...nokLogs]
+            .filter(l => l.systemId && l.timestamp)
+            .sort((a, b) => {
+                const da = parseTS(a.timestamp);
+                const db = parseTS(b.timestamp);
+                return (da?.getTime() || 0) - (db?.getTime() || 0);
+            });
+
+        // Map systemId → lần phát hiện đầu tiên (chỉ đếm 1 lần / hệ thống trong tháng)
+        const firstNokOccurrence = new Map<string, { name: string; timestamp: string; categoryId: string }>();
+        nokLogsSorted.forEach(log => {
             const sysId = log.systemId || 'unknown';
-            if (!systemCounts[sysId]) {
-                systemCounts[sysId] = {
-                    id: sysId,
-                    name: log.systemName || sysId,
-                    count: 0,
-                    categoryId: '',
-                    lastFault: log.timestamp
-                };
-                // Find categoryId from systems list
+            if (!firstNokOccurrence.has(sysId)) {
                 const sys = systems.find(s => s.id === sysId);
-                if (sys) systemCounts[sysId].categoryId = sys.categoryId;
+                firstNokOccurrence.set(sysId, {
+                    name: log.systemName || sysId,
+                    timestamp: log.timestamp,
+                    categoryId: sys?.categoryId || ''
+                });
             }
-            systemCounts[sysId].count++;
-            // Simplified last fault check
-            systemCounts[sysId].lastFault = log.timestamp;
         });
 
-        const sortedSystems = Object.values(systemCounts).sort((a, b) => b.count - a.count);
+        // FIX 4: Số lần phát hiện lỗi = số hệ thống duy nhất bị NOK (không phải số log)
+        const uniqueNokCount = firstNokOccurrence.size;
 
-        // 4. Aggregate by Category
+        // FIX 5: Xếp hạng hệ thống theo số lần (unique occurrences per system, not log count)
+        const sortedSystems = Array.from(firstNokOccurrence.entries()).map(([id, info]) => ({
+            id,
+            name: info.name,
+            count: 1, // Mỗi hệ thống chỉ đếm 1 lần phát hiện trong tháng
+            categoryId: info.categoryId,
+            lastFault: info.timestamp
+        })).sort((a, b) => b.count - a.count);
+
+        // FIX 6: Thống kê nhóm = số hệ thống duy nhất bị NOK trong nhóm
         const catCounts: Record<string, { id: string, name: string, count: number }> = {};
-        nokLogs.forEach(log => {
-            const sysId = log.systemId;
-            const sys = systems.find(s => s.id === sysId);
-            const catId = sys?.categoryId || 'unknown';
+        firstNokOccurrence.forEach((info) => {
+            const catId = info.categoryId || 'unknown';
             if (!catCounts[catId]) {
                 const cat = categories.find(c => c.id === catId);
                 catCounts[catId] = { id: catId, name: cat?.name || 'Chưa phân loại', count: 0 };
@@ -103,8 +147,8 @@ export default function AnalyticsPage() {
         const sortedCategories = Object.values(catCounts).sort((a, b) => b.count - a.count);
 
         return {
-            monthLogsCount: monthLogs.length,
-            nokCount: nokLogs.length,
+            monthLogsCount: totalInspections,    // Số ca × 11
+            nokCount: uniqueNokCount,             // Số hệ thống NOK duy nhất
             sortedSystems,
             sortedCategories,
             topSystem: sortedSystems[0] || null,
