@@ -511,7 +511,12 @@ export default function Home() {
     const myNokItems = systems.filter(s => s.status === 'NOK' && s.inspectorCode === user?.code);
     const newlyInteractedNokItems = myNokItems.filter(s => sessionInteractedNokIds.has(s.id));
 
-    const touchedSystems = systems.filter(s => s.status && s.status !== 'NA');
+    // FIX: Chỉ ghi log cho các hệ thống mà NGƯỜI HIỆN TẠI đã tự kiểm tra
+    // Không ghi log cho NOK cũ từ ca trước (inspectorCode khác user hiện tại)
+    // Điều này ngăn việc "thổi phồng" số lỗi trong KPI và Phân tích xu hướng
+    const touchedSystems = systems.filter(s =>
+      s.status && s.status !== 'NA' && s.inspectorCode === (user?.code || '')
+    );
     if (touchedSystems.length > 0) {
       const nowStr = new Date().toLocaleString('vi-VN', { 
         hour: '2-digit', minute: '2-digit', day: '2-digit', month: '2-digit', year: 'numeric', hour12: false 
