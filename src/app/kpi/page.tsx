@@ -279,7 +279,12 @@ export default function KPIPage() {
                     // FIX: Đếm số lần sửa lỗi duy nhất từ history (unique doc id)
                     const fixCount = fHis.filter(h => isMatch(h.resolverCode, u.code) || isMatch(h.resolverName, u.name)).length;
 
-                    const incidentCount = fInc.filter(i => isMatch(i.resolvedBy, u.code) || (i.participants || []).some((p: string) => isMatch(p, u.code))).length;
+                    // FIX: incidents lưu resolvedBy và participants là TÊN (không phải CODE)
+                    // Phải match cả theo tên VÀ mã để đảm bảo tính điểm đúng
+                    const incidentCount = fInc.filter(i =>
+                        isMatch(i.resolvedBy, u.name) || isMatch(i.resolvedBy, u.code) ||
+                        (i.participants || []).some((p: string) => isMatch(p, u.name) || isMatch(p, u.code))
+                    ).length;
                     const maintCount = fTasks.filter(t => t.type !== 'PROJECT' && (t.assignees || []).some((a: string) => isMatch(a, u.name) || isMatch(a, u.code))).length;
                     const pExecCount = fTasks.filter(t => t.type === 'PROJECT' && (t.assignees || []).some((a: string) => isMatch(a, u.name) || isMatch(a, u.code))).length;
                     const pSupCount = fTasks.filter(t => t.type === 'PROJECT' && (t.supervisors || []).some((s: string) => isMatch(s, u.name) || isMatch(s, u.code))).length;
