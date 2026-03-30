@@ -251,13 +251,30 @@ export default function KPIPage() {
                     });
 
                     const uIn = dutyShiftCount * SCORING_RULES.DUTY_SHIFT; // 11pt mỗi ca
+
+                    // FIX: Đếm số hệ thống NOK duy nhất (unique systemId) mà user phát hiện
+                    // Tránh đếm trùng do log bị ghi nhiều lần (khi đổi status + khi Lưu)
+                    const nokSystemIds = new Set(
+                        fLogs
+                            .filter(l => l.result === 'NOK' && isMatch(l.inspectorCode, u.code))
+                            .map(l => l.systemId)
+                    );
+                    const faultFoundCount = nokSystemIds.size;
+
+                    // FIX: Đếm số lần sửa lỗi duy nhất từ history (unique doc id)
                     const fixCount = fHis.filter(h => isMatch(h.resolverCode, u.code) || isMatch(h.resolverName, u.name)).length;
-                    const faultFoundCount = fLogs.filter(l => l.result === 'NOK' && isMatch(l.inspectorCode, u.code)).length;
+
                     const incidentCount = fInc.filter(i => isMatch(i.resolvedBy, u.code) || (i.participants || []).some((p: string) => isMatch(p, u.code))).length;
                     const maintCount = fTasks.filter(t => t.type !== 'PROJECT' && (t.assignees || []).some((a: string) => isMatch(a, u.name) || isMatch(a, u.code))).length;
                     const pExecCount = fTasks.filter(t => t.type === 'PROJECT' && (t.assignees || []).some((a: string) => isMatch(a, u.name) || isMatch(a, u.code))).length;
                     const pSupCount = fTasks.filter(t => t.type === 'PROJECT' && (t.supervisors || []).some((s: string) => isMatch(s, u.name) || isMatch(s, u.code))).length;
-                    const negligenceCount = fLogs.filter(l => l.isFastCheck && isMatch(l.inspectorCode, u.code)).length;
+                    // FIX: Đếm số ca làm ẩu duy nhất (unique systemId)
+                    const fastCheckSystemIds = new Set(
+                        fLogs
+                            .filter(l => l.isFastCheck && isMatch(l.inspectorCode, u.code))
+                            .map(l => l.systemId)
+                    );
+                    const negligenceCount = fastCheckSystemIds.size;
 
                     const score = uIn
                         + (fixCount * SCORING_RULES.FIX)
