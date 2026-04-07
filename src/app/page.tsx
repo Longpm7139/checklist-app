@@ -116,6 +116,19 @@ export default function Home() {
   const [history, setHistory] = useState<any[]>([]);
   const [isHandoffModalOpen, setIsHandoffModalOpen] = useState(false);
   const [showReminder, setShowReminder] = useState(true);
+  const [expandedCategories, setExpandedCategories] = useState<Set<string>>(new Set());
+
+  const toggleCategory = (catId: string) => {
+    setExpandedCategories(prev => {
+      const next = new Set(prev);
+      if (next.has(catId)) {
+        next.delete(catId);
+      } else {
+        next.add(catId);
+      }
+      return next;
+    });
+  };
 
   // --- SHIFT REMINDER LOGIC ---
   const isLastHourOfShift = useMemo(() => {
@@ -665,179 +678,233 @@ export default function Home() {
         )}
 
         <div className="p-4 md:hidden">
-          {categories.map(cat => {
-            const catSystems = systems.filter(s => {
-              const matchesCategory = s.categoryId === cat.id;
-              if (!matchesCategory) return false;
-              if (!searchQuery.trim()) return true;
-              const q = removeAccents(searchQuery.toLowerCase());
+          {/* Accordion selector: show category list first, then expand selected */}
+          <div className="mb-4 rounded-xl border border-slate-200 overflow-hidden shadow-sm bg-white">
+            {categories.map((cat, idx) => {
+              const catSystems = systems.filter(s => s.categoryId === cat.id);
+              if (catSystems.length === 0 && !isEditMode) return null;
+              const okCount = catSystems.filter(s => s.status === 'OK').length;
+              const nokCount = catSystems.filter(s => s.status === 'NOK').length;
+              const naCount = catSystems.filter(s => s.status === 'NA' || !s.status).length;
+              const isExpanded = expandedCategories.has(cat.id);
+              const hasIssues = nokCount > 0;
+              const allDone = naCount === 0 && catSystems.length > 0;
+
               return (
-                removeAccents((s.name ?? '').toLowerCase()).includes(q) ||
-                removeAccents((s.note ?? '').toLowerCase()).includes(q) ||
-                removeAccents((s.id ?? '').toLowerCase()).includes(q) ||
-                removeAccents((s.status ?? '').toLowerCase()).includes(q)
-              );
-            });
-
-            if (catSystems.length === 0 && !isEditMode) return null;
-
-            return (
-              <div key={cat.id} id={`category-${cat.id}`} className="mb-6 scroll-mt-20">
-                <div className="bg-blue-600 text-white px-4 py-2 font-bold uppercase text-sm tracking-widest shadow-sm rounded-t-lg flex justify-between items-center group">
-                  {isEditMode ? (
-                    <div className="flex items-center gap-2 w-full">
-                      <IMESafeInput
-                        value={cat.name}
-                        onChangeValue={(val: string) => handleUpdateCategoryName(cat.id, val)}
-                        className="bg-blue-700 border-none text-white px-2 py-1 rounded w-full outline-none focus:ring-1 focus:ring-white/50"
-                      />
-                      <button
-                        onClick={() => handleDeleteCategory(cat.id)}
-                        className="p-1 hover:bg-red-500 rounded transition-colors text-white/70 hover:text-white"
-                        title="Xóa nhóm"
-                      >
-                        <Trash2 size={16} />
-                      </button>
-                    </div>
-                  ) : (
-                    <span>{cat.name}</span>
-                  )}
-                </div>
-                <div className="bg-white border-x border-b border-slate-200 rounded-b-lg overflow-hidden divide-y divide-slate-100 shadow-sm">
-                  {catSystems.map(sys => (
-                    <div key={sys.id} className="p-4 active:bg-slate-50 transition-colors">
-                      <div className="flex justify-between items-start mb-3">
-                        <div className="flex-1">
+                <div key={cat.id} className={clsx("border-b border-slate-100 last:border-b-0", isExpanded && "bg-blue-50/30")}>
+                  <button
+                    type="button"
+                    onClick={() => toggleCategory(cat.id)}
+                    className={clsx(
+                      "w-full flex items-center justify-between px-4 py-3 text-left transition-colors active:bg-blue-100",
+                      isExpanded ? "bg-blue-600 text-white" : "bg-white text-slate-800 hover:bg-slate-50"
+                    )}
+                  >
+                    <div className="flex items-center gap-3 flex-1 min-w-0">
+                      <span className={clsx(
+                        "flex-shrink-0 w-7 h-7 rounded-full flex items-center justify-center text-xs font-black",
+                        isExpanded ? "bg-white/20 text-white" :
+                        hasIssues ? "bg-red-100 text-red-700" :
+                        allDone ? "bg-green-100 text-green-700" :
+                        "bg-slate-100 text-slate-500"
+                      )}>
+                        {cat.name.match(/^([A-K])/)?.[1] || (idx + 1)}
+                      </span>
+                      <div className="flex flex-col min-w-0">
+                        <span className={clsx("font-semibold text-sm truncate", isExpanded ? "text-white" : "text-slate-800")}>
                           {isEditMode ? (
                             <IMESafeInput
-                              value={sys.name}
-                              onChangeValue={(val: string) => handleUpdateSystemName(sys.id, val)}
-                              className="border border-slate-300 rounded px-2 py-1 w-full text-sm font-bold focus:border-blue-500 outline-none"
+                              value={cat.name}
+                              onChangeValue={(val: string) => handleUpdateCategoryName(cat.id, val)}
+                              className="bg-transparent border-b border-white/50 text-white px-0 py-0 outline-none w-full"
+                              onClick={(e: React.MouseEvent) => e.stopPropagation()}
                             />
-                          ) : (
-                            <div className="font-bold text-slate-800 flex flex-wrap items-center justify-between gap-2 w-full">
-                              <div className="flex flex-wrap items-center gap-2 break-words max-w-full">
-                                <span className="break-words">{highlightText(sys.name, searchQuery)}</span> <span className="flex-shrink-0 text-[10px] bg-slate-100 px-1.5 py-0.5 rounded text-slate-500 uppercase font-mono">{highlightText(sys.id, searchQuery)}</span>
+                          ) : cat.name}
+                        </span>
+                        <span className={clsx("text-[10px] font-medium", isExpanded ? "text-white/70" : "text-slate-400")}>
+                          {catSystems.length} thiết bị
+                          {okCount > 0 && <span className={clsx("ml-1.5", isExpanded ? "text-green-300" : "text-green-600")}>✓{okCount} OK</span>}
+                          {nokCount > 0 && <span className={clsx("ml-1.5", isExpanded ? "text-red-300" : "text-red-600")}>✗{nokCount} NOK</span>}
+                          {naCount > 0 && <span className={clsx("ml-1.5", isExpanded ? "text-white/50" : "text-slate-400")}>{naCount} chờ</span>}
+                        </span>
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-2 flex-shrink-0 ml-2">
+                      {!allDone && naCount > 0 && !isExpanded && (
+                        <span className="text-[10px] bg-amber-100 text-amber-700 font-bold px-2 py-0.5 rounded-full border border-amber-200">
+                          {naCount} chưa KT
+                        </span>
+                      )}
+                      {hasIssues && !isExpanded && (
+                        <span className="text-[10px] bg-red-100 text-red-700 font-bold px-2 py-0.5 rounded-full border border-red-200">
+                          {nokCount} lỗi
+                        </span>
+                      )}
+                      {isEditMode && (
+                        <button
+                          onClick={(e) => { e.stopPropagation(); handleDeleteCategory(cat.id); }}
+                          className={clsx("p-1 rounded transition-colors", isExpanded ? "hover:bg-red-500 text-white/70 hover:text-white" : "hover:bg-red-100 text-slate-400 hover:text-red-600")}
+                          title="Xóa nhóm"
+                        >
+                          <Trash2 size={14} />
+                        </button>
+                      )}
+                      <svg
+                        className={clsx("w-5 h-5 transition-transform duration-200", isExpanded ? "rotate-180 text-white" : "text-slate-400")}
+                        fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}
+                      >
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" />
+                      </svg>
+                    </div>
+                  </button>
+
+                  {isExpanded && (
+                    <div className="bg-white border-t border-blue-100 divide-y divide-slate-100">
+                      {catSystems.filter(s => {
+                        if (!searchQuery.trim()) return true;
+                        const q = removeAccents(searchQuery.toLowerCase());
+                        return (
+                          removeAccents((s.name ?? '').toLowerCase()).includes(q) ||
+                          removeAccents((s.note ?? '').toLowerCase()).includes(q) ||
+                          removeAccents((s.id ?? '').toLowerCase()).includes(q) ||
+                          removeAccents((s.status ?? '').toLowerCase()).includes(q)
+                        );
+                      }).map(sys => (
+                        <div key={sys.id} className="p-4 active:bg-slate-50 transition-colors">
+                          <div className="flex justify-between items-start mb-3">
+                            <div className="flex-1">
+                              {isEditMode ? (
+                                <IMESafeInput
+                                  value={sys.name}
+                                  onChangeValue={(val: string) => handleUpdateSystemName(sys.id, val)}
+                                  className="border border-slate-300 rounded px-2 py-1 w-full text-sm font-bold focus:border-blue-500 outline-none"
+                                />
+                              ) : (
+                                <div className="font-bold text-slate-800 flex flex-wrap items-center justify-between gap-2 w-full">
+                                  <div className="flex flex-wrap items-center gap-2 break-words max-w-full">
+                                    <span className="break-words">{highlightText(sys.name, searchQuery)}</span> <span className="flex-shrink-0 text-[10px] bg-slate-100 px-1.5 py-0.5 rounded text-slate-500 uppercase font-mono">{highlightText(sys.id, searchQuery)}</span>
+                                  </div>
+                                  {sys.status === 'IN_PROGRESS' && (
+                                    <span className="text-[9px] bg-orange-100 text-orange-700 font-black px-2 py-0.5 rounded-full border border-orange-200 animate-pulse">
+                                      Đang kiểm tra: {sys.inspectorName || 'Nối tiếp'}
+                                    </span>
+                                  )}
+                                  {sys.status !== 'NA' && sys.status !== 'IN_PROGRESS' && sys.inspectorCode && !isMatch(sys.inspectorCode, user?.code) && (
+                                    <span className="text-[10px] bg-amber-100 text-amber-700 font-bold px-2 py-0.5 rounded-full border border-amber-200">
+                                      Khóa: {sys.inspectorName}
+                                    </span>
+                                  )}
+                                </div>
+                              )}
+                            </div>
+                            {isEditMode && (
+                              <div className="flex gap-1 ml-2">
+                                <button onClick={() => handleDeleteSystem(sys.id)} className="p-2 text-red-500 bg-red-50 rounded">
+                                  <Trash2 size={16} />
+                                </button>
                               </div>
-                              {sys.status === 'IN_PROGRESS' && (
-                                <span className="text-[9px] bg-orange-100 text-orange-700 font-black px-2 py-0.5 rounded-full border border-orange-200 animate-pulse">
-                                  Đang kiểm tra: {sys.inspectorName || 'Nối tiếp'}
-                                </span>
-                              )}
-                              {sys.status !== 'NA' && sys.status !== 'IN_PROGRESS' && sys.inspectorCode && !isMatch(sys.inspectorCode, user?.code) && (
-                                <span className="text-[10px] bg-amber-100 text-amber-700 font-bold px-2 py-0.5 rounded-full border border-amber-200">
-                                  Khóa: {sys.inspectorName}
-                                </span>
-                              )}
+                            )}
+                          </div>
+
+                          <div className={clsx(
+                            "grid grid-cols-3 gap-2 mb-3",
+                            (!isUserOnDuty || isEditMode ||
+                              (user?.role !== 'ADMIN' && (
+                                (sys.status === 'NOK' && !sys.inspectorCode) ||
+                                (sys.status === 'IN_PROGRESS' && !isMatch(sys.inspectorCode, user?.code)) ||
+                                (sys.status !== 'NA' && sys.status !== 'IN_PROGRESS' && sys.inspectorCode && !isMatch(sys.inspectorCode, user?.code))
+                              ))
+                            ) && "opacity-50 pointer-events-none"
+                          )}>
+                            {(['OK', 'NOK', 'NA'] as Status[]).map(st => (
+                              <button
+                                key={st}
+                                onClick={() => handleStatusChange(sys.id, st)}
+                                className={clsx(
+                                  "py-3 rounded-lg font-bold text-sm border shadow-sm transition active:scale-95 flex items-center justify-center",
+                                  sys.status === st || (st === 'NA' && !sys.status)
+                                    ? (st === 'OK' ? "bg-green-600 text-white border-green-700" :
+                                      st === 'NOK' ? "bg-red-600 text-white border-red-700" :
+                                        "bg-slate-600 text-white border-slate-700")
+                                    : "bg-white text-slate-500 border-slate-300"
+                                )}
+                              >
+                                {st}
+                              </button>
+                            ))}
+                          </div>
+
+                          <div className="relative">
+                            {(() => {
+                              const isLocked = !!(!isUserOnDuty || isEditMode ||
+                                (user?.role !== 'ADMIN' && (
+                                  sys.status === 'OK' ||
+                                  (sys.status === 'NOK' && !sys.inspectorCode) ||
+                                  (sys.status === 'IN_PROGRESS' && !isMatch(sys.inspectorCode, user?.code)) ||
+                                  (sys.status !== 'NA' && sys.status !== 'IN_PROGRESS' && sys.inspectorCode && !isMatch(sys.inspectorCode, user?.code))
+                                )));
+                              return (
+                                <IMESafeInput
+                                  disabled={isLocked}
+                                  className={clsx(
+                                    "w-full p-3 border rounded-lg text-sm outline-none transition-all",
+                                    errors.has(sys.id) ? "border-red-500 bg-red-50 ring-2 ring-red-200" : "border-slate-200 focus:border-blue-500 bg-slate-50/50",
+                                    isLocked && "bg-slate-100 text-slate-400 cursor-not-allowed opacity-60"
+                                  )}
+                                  placeholder={errors.has(sys.id) ? "⚠️ Bắt buộc nhập ghi chú!" : (sys.status === 'OK' ? "✅ OK - Không ghi chú" : "📝 Ghi chú...")}
+                                  value={sys.note}
+                                  onChangeValue={(val: string) => handleNoteChange(sys.id, val)}
+                                />
+                              );
+                            })()}
+                          </div>
+                          {sys.status === 'NOK' && (
+                            <div className="mt-3 flex justify-center border-t border-slate-100 pt-3">
+                               {sys.imageUrl ? (
+                                 <div className="flex flex-col items-center gap-1 animate-in fade-in zoom-in duration-300">
+                                   <img 
+                                     src={sys.imageUrl} 
+                                     alt="Ảnh lỗi" 
+                                     className="w-20 h-20 object-cover rounded-lg border-2 border-slate-300 shadow-sm cursor-pointer hover:scale-105 transition-transform"
+                                     onClick={() => window.open(sys.imageUrl, '_blank')}
+                                   />
+                                   <span className="text-[9px] text-slate-500 font-bold uppercase">Bằng chứng lỗi hiện tại</span>
+                                 </div>
+                               ) : (
+                                 <ImageUpload 
+                                  value={sys.imageUrl}
+                                  onChange={async (url) => {
+                                     const target = systems.find(s => s.id === sys.id);
+                                     if (target) {
+                                         try {
+                                           await saveSystem(sys.id, { ...target, imageUrl: url });
+                                         } catch (dbErr: any) {
+                                           alert("Lỗi khi lưu link ảnh vào hệ thống: " + dbErr.message);
+                                         }
+                                      }
+                                  }}
+                                  path={`systems/${sys.id}_${Date.now()}.jpg`}
+                                  disabled={!isUserOnDuty || isEditMode}
+                                />
+                               )}
                             </div>
                           )}
                         </div>
-                        {isEditMode && (
-                          <div className="flex gap-1 ml-2">
-                            <button onClick={() => handleDeleteSystem(sys.id)} className="p-2 text-red-500 bg-red-50 rounded">
-                              <Trash2 size={16} />
-                            </button>
-                          </div>
-                        )}
-                      </div>
-
-                      <div className={clsx(
-                        "grid grid-cols-3 gap-2 mb-3",
-                        (!isUserOnDuty || isEditMode ||
-                          (user?.role !== 'ADMIN' && (
-                            (sys.status === 'NOK' && !sys.inspectorCode) ||
-                            (sys.status === 'IN_PROGRESS' && !isMatch(sys.inspectorCode, user?.code)) ||
-                            (sys.status !== 'NA' && sys.status !== 'IN_PROGRESS' && sys.inspectorCode && !isMatch(sys.inspectorCode, user?.code))
-                          ))
-                        ) && "opacity-50 pointer-events-none"
-                      )}>
-                        {(['OK', 'NOK', 'NA'] as Status[]).map(st => (
-                          <button
-                            key={st}
-                            onClick={() => handleStatusChange(sys.id, st)}
-                            className={clsx(
-                              "py-3 rounded-lg font-bold text-sm border shadow-sm transition active:scale-95 flex items-center justify-center",
-                              sys.status === st || (st === 'NA' && !sys.status)
-                                ? (st === 'OK' ? "bg-green-600 text-white border-green-700" :
-                                  st === 'NOK' ? "bg-red-600 text-white border-red-700" :
-                                    "bg-slate-600 text-white border-slate-700")
-                                : "bg-white text-slate-500 border-slate-300"
-                            )}
-                          >
-                            {st}
-                          </button>
-                        ))}
-                      </div>
-
-                      <div className="relative">
-                        {(() => {
-                          const isLocked = !!(!isUserOnDuty || isEditMode ||
-                            (user?.role !== 'ADMIN' && (
-                              sys.status === 'OK' ||
-                              (sys.status === 'NOK' && !sys.inspectorCode) ||
-                              (sys.status === 'IN_PROGRESS' && !isMatch(sys.inspectorCode, user?.code)) ||
-                              (sys.status !== 'NA' && sys.status !== 'IN_PROGRESS' && sys.inspectorCode && !isMatch(sys.inspectorCode, user?.code))
-                            )));
-                          return (
-                            <IMESafeInput
-                              disabled={isLocked}
-                              className={clsx(
-                                "w-full p-3 border rounded-lg text-sm outline-none transition-all",
-                                errors.has(sys.id) ? "border-red-500 bg-red-50 ring-2 ring-red-200" : "border-slate-200 focus:border-blue-500 bg-slate-50/50",
-                                isLocked && "bg-slate-100 text-slate-400 cursor-not-allowed opacity-60"
-                              )}
-                              placeholder={errors.has(sys.id) ? "⚠️ Bắt buộc nhập ghi chú!" : (sys.status === 'OK' ? "✅ OK - Không ghi chú" : "📝 Ghi chú...")}
-                              value={sys.note}
-                              onChangeValue={(val: string) => handleNoteChange(sys.id, val)}
-                            />
-                          );
-                        })()}
-                      </div>
-                      {sys.status === 'NOK' && (
-                        <div className="mt-3 flex justify-center border-t border-slate-100 pt-3">
-                           {sys.imageUrl ? (
-                             <div className="flex flex-col items-center gap-1 animate-in fade-in zoom-in duration-300">
-                               <img 
-                                 src={sys.imageUrl} 
-                                 alt="Ảnh lỗi" 
-                                 className="w-20 h-20 object-cover rounded-lg border-2 border-slate-300 shadow-sm cursor-pointer hover:scale-105 transition-transform"
-                                 onClick={() => window.open(sys.imageUrl, '_blank')}
-                               />
-                               <span className="text-[9px] text-slate-500 font-bold uppercase">Bằng chứng lỗi hiện tại</span>
-                             </div>
-                           ) : (
-                             <ImageUpload 
-                              value={sys.imageUrl}
-                              onChange={async (url) => {
-                                 const target = systems.find(s => s.id === sys.id);
-                                 if (target) {
-                                     try {
-                                       await saveSystem(sys.id, { ...target, imageUrl: url });
-                                     } catch (dbErr: any) {
-                                       alert("Lỗi khi lưu link ảnh vào hệ thống: " + dbErr.message);
-                                     }
-                                  }
-                              }}
-                              path={`systems/${sys.id}_${Date.now()}.jpg`}
-                              disabled={!isUserOnDuty || isEditMode}
-                            />
-                           )}
-                        </div>
+                      ))}
+                      {isEditMode && (
+                        <button
+                          onClick={() => handleAddSystem(cat.id)}
+                          className="w-full py-4 text-blue-600 font-bold text-sm bg-slate-50 hover:bg-blue-50 transition border-t border-slate-100 flex items-center justify-center gap-2"
+                        >
+                          <Plus size={18} /> Thêm hệ thống mới
+                        </button>
                       )}
                     </div>
-                  ))}
-                  {isEditMode && (
-                    <button
-                      onClick={() => handleAddSystem(cat.id)}
-                      className="w-full py-4 text-blue-600 font-bold text-sm bg-slate-50 hover:bg-blue-50 transition border-t border-slate-100 flex items-center justify-center gap-2"
-                    >
-                      <Plus size={18} /> Thêm hệ thống mới
-                    </button>
                   )}
                 </div>
-              </div>
-            );
-          })}
+              );
+            })}
+          </div>
           {isEditMode && (
             <button
               onClick={handleAddCategory}
@@ -875,35 +942,60 @@ export default function Home() {
 
                 if (catSystems.length === 0 && !isEditMode) return null;
 
+                const isExpandedDesktop = expandedCategories.has(cat.id);
                 return (
                   <React.Fragment key={cat.id}>
-                    <tr id={`category-${cat.id}`} className="bg-blue-50 group scroll-mt-20">
-                      <td colSpan={4} className="p-3 border border-slate-300 font-bold text-blue-800">
+                    <tr id={`category-${cat.id}`} className="bg-blue-600 text-white group scroll-mt-20 cursor-pointer select-none" onClick={() => toggleCategory(cat.id)}>
+                      <td colSpan={4} className="p-3 border border-blue-700 font-bold">
                         <div className="flex justify-between items-center">
-                          {isEditMode ? (
-                            <div className="flex items-center gap-2 w-full">
-                              <IMESafeInput
-                                value={cat.name}
-                                onChangeValue={(val: string) => handleUpdateCategoryName(cat.id, val)}
-                                className="bg-white border border-blue-200 rounded px-2 py-1 w-full max-w-md outline-none focus:border-blue-500"
-                              />
-                            </div>
-                          ) : (
-                            <span>{cat.name}</span>
-                          )}
-                          {isEditMode && (
-                            <button
-                              onClick={() => handleDeleteCategory(cat.id)}
-                              className="text-red-500 hover:text-red-700 p-1 bg-red-50 rounded"
-                              title="Xóa nhóm"
+                          <div className="flex items-center gap-3">
+                            <svg
+                              className={clsx("w-4 h-4 transition-transform duration-200 flex-shrink-0", isExpandedDesktop ? "rotate-90" : "")}
+                              fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}
                             >
-                              <Trash2 size={18} />
-                            </button>
-                          )}
+                              <path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" />
+                            </svg>
+                            {isEditMode ? (
+                              <div className="flex items-center gap-2 w-full" onClick={e => e.stopPropagation()}>
+                                <IMESafeInput
+                                  value={cat.name}
+                                  onChangeValue={(val: string) => handleUpdateCategoryName(cat.id, val)}
+                                  className="bg-blue-700 border border-blue-500 text-white rounded px-2 py-1 w-full max-w-md outline-none focus:border-blue-300"
+                                />
+                              </div>
+                            ) : (
+                              <span>{cat.name}</span>
+                            )}
+                          </div>
+                          <div className="flex items-center gap-3">
+                            {(() => {
+                              const total = catSystems.length;
+                              const ok = catSystems.filter(s => s.status === 'OK').length;
+                              const nok = catSystems.filter(s => s.status === 'NOK').length;
+                              const na = catSystems.filter(s => s.status === 'NA' || !s.status).length;
+                              return (
+                                <div className="flex items-center gap-1.5 text-xs font-medium">
+                                  <span className="bg-white/20 px-2 py-0.5 rounded-full">{total} thiết bị</span>
+                                  {ok > 0 && <span className="bg-green-500 px-2 py-0.5 rounded-full">✓{ok}</span>}
+                                  {nok > 0 && <span className="bg-red-400 px-2 py-0.5 rounded-full">✗{nok}</span>}
+                                  {na > 0 && <span className="bg-white/30 px-2 py-0.5 rounded-full">{na} chờ</span>}
+                                </div>
+                              );
+                            })()}
+                            {isEditMode && (
+                              <button
+                                onClick={(e) => { e.stopPropagation(); handleDeleteCategory(cat.id); }}
+                                className="text-white/70 hover:text-white hover:bg-red-500 p-1 rounded transition-colors"
+                                title="Xóa nhóm"
+                              >
+                                <Trash2 size={16} />
+                              </button>
+                            )}
+                          </div>
                         </div>
                       </td>
                     </tr>
-                    {catSystems.map(sys => (
+                    {isExpandedDesktop && catSystems.map(sys => (
                       <tr key={sys.id} className="hover:bg-slate-50">
                         <td className="p-3 border border-slate-300 font-medium pl-8">
                           {isEditMode ? (
@@ -1010,7 +1102,7 @@ export default function Home() {
                         </td>
                       </tr>
                     ))}
-                     {isEditMode && (
+                    {isExpandedDesktop && isEditMode && (
                       <tr className="bg-slate-50">
                         <td colSpan={4} className="p-3 border border-slate-300 pl-8">
                           <button

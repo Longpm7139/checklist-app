@@ -38,6 +38,21 @@ export default function CheckPage() {
     const [errorMessage, setErrorMessage] = useState('');
     const [isLoaded, setIsLoaded] = useState(false);
     const [isDirty, setIsDirty] = useState(false);
+    const [zaloModalMessage, setZaloModalMessage] = useState<string | null>(null);
+
+    // Helper: Send Zalo — works on both mobile and desktop
+    const sendZaloMessage = (message: string) => {
+        if (navigator.clipboard && navigator.clipboard.writeText) {
+            navigator.clipboard.writeText(message).then(() => {
+                // Desktop: clipboard OK, nothing more needed
+            }).catch(() => {
+                // Mobile: clipboard blocked -> show fallback modal
+                setZaloModalMessage(message);
+            });
+        } else {
+            setZaloModalMessage(message);
+        }
+    };
 
     useEffect(() => {
         if (!systemId) {
@@ -214,18 +229,7 @@ export default function CheckPage() {
                         `- Thời gian: ${now}`;
                 }
 
-                let copySuccess = false;
-                if (isFullyComplete && hasNOK) {
-                    try {
-                        await navigator.clipboard.writeText(zaloMessage);
-                        copySuccess = true;
-                    } catch (e) {
-                        console.error("Initial copy failed", e);
-                    }
-                }
-
-                // We no longer call saveHistoryItem here, so NOK items stay only in the Summary table
-                // until they are marked as Fixed in the Summary page.
+                // Save to Firebase first
                 const dbPromises = [];
                 dbPromises.push(saveChecklist(systemId, items));
                 dbPromises.push(saveSystem(systemId, {
@@ -250,16 +254,8 @@ export default function CheckPage() {
                 await Promise.all(dbPromises);
 
                 if (isFullyComplete && hasNOK) {
-                    if (copySuccess) {
-                        alert('Đã hoàn tất hệ thống và ĐÃ SAO CHÉP báo cáo lỗi!\nBạn có thể Dán (Ctrl+V) vào Zalo để gửi.');
-                    } else {
-                        try {
-                            await navigator.clipboard.writeText(zaloMessage);
-                            alert('Đã hoàn tất hệ thống và ĐÃ SAO CHÉP báo cáo lỗi!\nBạn có thể Dán (Ctrl+V) vào Zalo để gửi.');
-                        } catch (e2) {
-                            alert('Đã hoàn tất thành công nhưng sao chép Zalo tự động thất bại.\nVui lòng chụp màn hình hoặc copy thủ công.');
-                        }
-                    }
+                    alert('Đã hoàn tất hệ thống và đang chuẩn bị báo cáo Zalo...');
+                    sendZaloMessage(zaloMessage);
                 } else if (isFullyComplete) {
                     alert('Đã hoàn tất kết quả kiểm tra thành công!');
                 } else {
@@ -334,6 +330,7 @@ export default function CheckPage() {
     if (!isLoaded) return <div className="p-8 text-center">Đang tải dữ liệu...</div>;
 
     return (
+        <>
         <div className="min-h-screen bg-slate-50 p-4 font-sans text-slate-900">
             <div className="max-w-6xl mx-auto bg-white border border-slate-300 shadow-sm">
                 <div className="p-4 bg-slate-800 text-white flex justify-between items-center">
@@ -602,5 +599,61 @@ export default function CheckPage() {
                 </div>
             </div>
         </div>
+
+        {/* Zalo Fallback Modal */}
+        {zaloModalMessage && (
+            <div className="fixed inset-0 bg-black/70 backdrop-blur-sm z-[200] flex items-end sm:items-center justify-center p-4">
+                <div className="bg-white rounded-2xl shadow-2xl w-full max-w-lg animate-in slide-in-from-bottom-4 duration-300">
+                    <div className="p-4 bg-blue-600 rounded-t-2xl flex justify-between items-center">
+                        <div className="flex items-center gap-3">
+                            <span className="text-2xl font-black text-white">Z</span>
+                            <div>
+                                <div className="text-white font-bold text-sm">Gửi báo cáo lỗi Zalo</div>
+                                <div className="text-blue-200 text-[11px]">Sao chép và dán vào nhóm Zalo</div>
+                            </div>
+                        </div>
+                        <button onClick={() => setZaloModalMessage(null)} className="text-white/70 hover:text-white p-1 rounded-full hover:bg-white/20 transition">
+                            <X size={20} />
+                        </button>
+                    </div>
+                    <div className="p-4">
+                        <div className="bg-slate-50 border border-slate-200 rounded-xl p-3 mb-4 max-h-48 overflow-y-auto">
+                            <pre className="text-sm text-slate-800 whitespace-pre-wrap font-sans leading-relaxed">{zaloModalMessage}</pre>
+                        </div>
+                        <div className="flex flex-col gap-3">
+                            <button
+                                onClick={() => {
+                                    if (navigator.clipboard && navigator.clipboard.writeText) {
+                                        navigator.clipboard.writeText(zaloModalMessage!).then(() => {
+                                            alert('Đã sao chép! Hãy mở Zalo và dán vào nhóm chat.');
+                                        }).catch(() => {
+                                            alert('Hãy bôi đen và sao chép đoạn văn bản trên, sau đó dán vào Zalo.');
+                                        });
+                                    } else {
+                                        alert('Hãy bôi đen và sao chép đoạn văn bản trên, sau đó dán vào Zalo.');
+                                    }
+                                }}
+                                className="w-full py-3 bg-blue-600 text-white font-bold rounded-xl flex items-center justify-center gap-2 hover:bg-blue-700 active:scale-95 transition-all shadow-md"
+                            >
+                                📋 Sao chép nội dung
+                            </button>
+                            <a
+                                href="https://zalo.me/"
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                onClick={() => setZaloModalMessage(null)}
+                                className="w-full py-3 bg-green-500 text-white font-bold rounded-xl flex items-center justify-center gap-2 hover:bg-green-600 active:scale-95 transition-all shadow-md text-center"
+                            >
+                                <span className="text-xl font-black">Z</span> Mở Zalo
+                            </a>
+                            <button onClick={() => setZaloModalMessage(null)} className="w-full py-2 text-slate-500 hover:text-slate-700 font-medium text-sm">
+                                Đóng
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        )}
+        </>
     );
 }

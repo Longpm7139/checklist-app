@@ -1,4 +1,4 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import { Inter } from "next/font/google"; // Using Inter as requested for modern look
 import "./globals.css";
 import { UserProvider } from "@/providers/UserProvider";
@@ -9,6 +9,13 @@ export const metadata: Metadata = {
   title: "Checklist App",
   description: "Passenger Boarding Bridge Checklist Application",
   manifest: "/manifest.json",
+};
+
+export const viewport: Viewport = {
+  width: "device-width",
+  initialScale: 1,
+  maximumScale: 1,
+  userScalable: false,
 };
 
 export default function RootLayout({

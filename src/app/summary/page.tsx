@@ -52,6 +52,20 @@ export default function SummaryPage() {
     const [isLoaded, setIsLoaded] = useState(false);
     const [activeRowSelector, setActiveRowSelector] = useState<string | null>(null);
     const [viewingImage, setViewingImage] = useState<string | null>(null);
+    const [zaloModalMessage, setZaloModalMessage] = useState<string | null>(null);
+
+    const sendZaloMessage = (message: string) => {
+        if (navigator.clipboard && navigator.clipboard.writeText) {
+            navigator.clipboard.writeText(message).then(() => {
+                alert('Đã lưu lịch sử và ĐÃ SAO CHÉP báo cáo vào Clipboard! Dán (Ctrl+V) vào nhóm Zalo.');
+                router.push('/fixed');
+            }).catch(() => {
+                setZaloModalMessage(message);
+            });
+        } else {
+            setZaloModalMessage(message);
+        }
+    };
 
     useEffect(() => {
         const fetchUsers = async () => {
@@ -108,13 +122,12 @@ export default function SummaryPage() {
     const handleStatusChange = (id: string, status: SummaryRow['fixStatus']) => {
         setRows(prev => prev.map(r => {
             if (r.id === id) {
-                const isActionable = status === 'Fixed' || status === 'Pending Material';
-                const defaultExecutors = isActionable ? (r.executorNames.length > 0 ? r.executorNames : [user?.name || '']) : [];
                 return {
                     ...r,
                     fixStatus: status,
-                    actionDescription: status === 'Fixed' ? r.actionDescription : (status === 'Pending Material' ? r.actionDescription : ''),
-                    executorNames: defaultExecutors
+                    // Only keep executor/action data when Fixed; clear them otherwise
+                    executorNames: status === 'Fixed' ? r.executorNames : [],
+                    actionDescription: status === 'Fixed' ? r.actionDescription : ''
                 };
             }
             return r;
@@ -161,14 +174,7 @@ export default function SummaryPage() {
             return;
         }
 
-        // 0.5. Validation for Pending Material
-        const invalidMaterial = rows.filter(r => r.fixStatus === 'Pending Material' && !r.actionDescription.trim());
-        if (invalidMaterial.length > 0) {
-            alert(`Vui lòng nhập tên VẬT TƯ cần thay thế cho ${invalidMaterial.length} mục đã chọn 'Pending Material'!`);
-            return;
-        }
-
-        // 1. Validation
+        // Validation: Fixed rows must have actionDescription
         const invalidRows = rows.filter(r => r.fixStatus === 'Fixed' && !r.actionDescription.trim());
         if (invalidRows.length > 0) {
             alert(`Vui lòng nhập nội dung xử lý cho ${invalidRows.length} mục đã chọn 'Fixed'!`);
@@ -178,8 +184,8 @@ export default function SummaryPage() {
         const fixedRows = rows.filter(r => r.fixStatus === 'Fixed');
         const materialRows = rows.filter(r => r.fixStatus === 'Pending Material');
 
-        if (fixedRows.length === 0 && materialRows.length === 0) {
-            alert("Bạn chưa chọn mục nào là 'Fixed' hoặc cần 'Chờ vật tư' để lưu.");
+        if (fixedRows.length === 0) {
+            alert("Bạn chưa chọn mục nào là 'Fixed' để lưu. Các mục đang 'Fixing' hoặc 'Chờ vật tư' sẽ được giữ nguyên trạng thái lỗi.");
             return;
         }
 
@@ -272,13 +278,7 @@ export default function SummaryPage() {
             });
             zaloText += `🕒 Thời gian tổng hợp: ${new Date().toLocaleString('vi-VN', { hour: '2-digit', minute: '2-digit', day: '2-digit', month: '2-digit', year: 'numeric' })}`;
 
-            navigator.clipboard.writeText(zaloText).then(() => {
-                alert("Đã lưu lịch sử và ĐÃ SAO CHÉP báo cáo các lỗi vào Clipboard! Bạn có thể dán (Ctrl+V) vào nhóm Zalo.");
-                router.push('/fixed');
-            }).catch(() => {
-                alert("Đã lưu lịch sử nhưng sao chép tự động thất bại.");
-                router.push('/fixed');
-            });
+            sendZaloMessage(zaloText);
 
         } catch (error) {
             console.error("Error saving report:", error);
@@ -365,11 +365,11 @@ export default function SummaryPage() {
                                             <div
                                                 className={clsx(
                                                     "w-full p-3 rounded-lg border text-sm font-bold text-center transition-all",
-                                                    (row.fixStatus === 'Fixed' || row.fixStatus === 'Pending Material')
-                                                        ? "bg-blue-50 border-blue-200 text-blue-700 active:bg-blue-100"
-                                                        : "bg-slate-50 border-slate-100 text-slate-300 opacity-50 cursor-not-allowed"
+                                                    row.fixStatus === 'Fixed'
+                                                        ? "bg-blue-50 border-blue-200 text-blue-700 active:bg-blue-100 cursor-pointer"
+                                                        : "bg-slate-100 border-slate-200 text-slate-300 cursor-not-allowed select-none"
                                                 )}
-                                                onClick={() => (row.fixStatus === 'Fixed' || row.fixStatus === 'Pending Material') && setActiveRowSelector(activeRowSelector === row.id ? null : row.id)}
+                                                onClick={() => row.fixStatus === 'Fixed' && setActiveRowSelector(activeRowSelector === row.id ? null : row.id)}
                                             >
                                                 {row.executorNames.length > 0 ? row.executorNames.join(', ') : 'Nhấn để chọn người sửa'}
                                             </div>
@@ -400,28 +400,28 @@ export default function SummaryPage() {
                                             )}
                                         </div>
 
-                                        {/* Action Description */}
+                                        {/* Action Description - only enabled when Fixed */}
                                         <div className="space-y-2">
-                                            <div className="text-[10px] text-slate-400 uppercase font-bold tracking-wider">
-                                                {row.fixStatus === 'Pending Material' ? 'Vật tư cần thay thế' : 'Nội dung thực hiện'}
-                                            </div>
-                                            <IMESafeTextArea
-                                                disabled={row.fixStatus !== 'Fixed' && row.fixStatus !== 'Pending Material'}
-                                                className={clsx(
-                                                    "w-full p-3 rounded-lg border text-sm outline-none transition-all focus:ring-2 focus:ring-blue-100",
-                                                    (row.fixStatus === 'Fixed' || row.fixStatus === 'Pending Material')
-                                                        ? "bg-white border-slate-300 focus:border-blue-500"
-                                                        : "bg-slate-50 border-slate-100 text-slate-400 cursor-not-allowed"
+                                            <div className="text-[10px] uppercase font-bold tracking-wider flex items-center gap-1.5">
+                                                {row.fixStatus === 'Fixed' ? (
+                                                    <span className="text-green-600">✅ Nội dung thực hiện (bắt buộc)</span>
+                                                ) : (
+                                                    <span className="text-slate-400">Nội dung thực hiện</span>
                                                 )}
-                                                rows={2}
-                                                placeholder={
-                                                    row.fixStatus === 'Fixed' ? "Nhập chi tiết công việc..." :
-                                                        row.fixStatus === 'Pending Material' ? "Nhập tên vật tư..." :
-                                                            "Chỉ nhập khi Fixed hoặc cần Vật tư"
-                                                }
-                                                value={row.actionDescription}
-                                                onChangeValue={(val: string) => handleActionChange(row.id, val)}
-                                            />
+                                            </div>
+                                            {row.fixStatus !== 'Fixed' ? (
+                                                <div className="w-full p-3 rounded-lg border border-slate-100 bg-slate-50 text-slate-300 text-sm italic cursor-not-allowed select-none min-h-[5rem] flex items-center justify-center">
+                                                    🔒 Chỉ nhập khi chọn Fixed
+                                                </div>
+                                            ) : (
+                                                <IMESafeTextArea
+                                                    className="w-full p-3 rounded-lg border text-sm outline-none transition-all focus:ring-2 focus:ring-blue-100 bg-white border-slate-300 focus:border-blue-500"
+                                                    rows={2}
+                                                    placeholder="Nhập chi tiết công việc đã thực hiện..."
+                                                    value={row.actionDescription}
+                                                    onChangeValue={(val: string) => handleActionChange(row.id, val)}
+                                                />
+                                            )}
                                         </div>
                                     </div>
                                 </div>
@@ -498,9 +498,12 @@ export default function SummaryPage() {
                                             <div
                                                 className={clsx(
                                                     "p-1 rounded transition-colors min-h-[2.5rem] flex items-center justify-center",
-                                                    (row.fixStatus === 'Fixed' || row.fixStatus === 'Pending Material') ? "cursor-pointer hover:bg-slate-100" : "cursor-not-allowed opacity-50"
+                                                    row.fixStatus === 'Fixed'
+                                                        ? "cursor-pointer hover:bg-slate-100 text-blue-600 font-bold"
+                                                        : "cursor-not-allowed opacity-40 text-slate-400"
                                                 )}
-                                                onClick={() => (row.fixStatus === 'Fixed' || row.fixStatus === 'Pending Material') && setActiveRowSelector(activeRowSelector === row.id ? null : row.id)}
+                                                onClick={() => row.fixStatus === 'Fixed' && setActiveRowSelector(activeRowSelector === row.id ? null : row.id)}
+                                                title={row.fixStatus !== 'Fixed' ? 'Chỉ có thể chọn người sửa khi trạng thái là Fixed' : 'Nhấn để chọn người sửa chữa'}
                                             >
                                                 {row.executorNames.length > 0 ? row.executorNames.join(', ') : '-'}
                                             </div>
@@ -529,20 +532,23 @@ export default function SummaryPage() {
                                             )}
                                         </td>
                                         <td className="p-3 border border-slate-300">
-                                            <IMESafeInput
-                                                disabled={row.fixStatus !== 'Fixed' && row.fixStatus !== 'Pending Material'}
-                                                className={clsx(
-                                                    "w-full bg-transparent outline-none",
-                                                    row.fixStatus !== 'Fixed' && row.fixStatus !== 'Pending Material' && "cursor-not-allowed text-slate-400"
-                                                )}
-                                                placeholder={
-                                                    row.fixStatus === 'Fixed' ? "Nhập nội dung xử lý..." :
-                                                        row.fixStatus === 'Pending Material' ? "Nhập tên vật tư..." :
-                                                            "Chỉ nhập khi Fixed hoặc cần Vật tư"
-                                                }
-                                                value={row.actionDescription}
-                                                onChangeValue={(val: string) => handleActionChange(row.id, val)}
-                                            />
+                                            <div className="relative">
+                                            {row.fixStatus !== 'Fixed' ? (
+                                                <div
+                                                    className="w-full bg-slate-50 text-slate-300 text-sm italic cursor-not-allowed px-2 py-1 min-h-[2rem] flex items-center"
+                                                    title="Chỉ nhập khi chọn Fixed"
+                                                >
+                                                    🔒 Chỉ nhập khi Fixed
+                                                </div>
+                                            ) : (
+                                                <IMESafeInput
+                                                    className="w-full bg-transparent outline-none text-slate-800"
+                                                    placeholder="Nhập nội dung xử lý..."
+                                                    value={row.actionDescription}
+                                                    onChangeValue={(val: string) => handleActionChange(row.id, val)}
+                                                />
+                                            )}
+                                        </div>
                                         </td>
                                     </tr>
                                 ))}
@@ -612,6 +618,61 @@ export default function SummaryPage() {
                             alt="Full view" 
                             className="max-w-full max-h-[85vh] object-contain rounded shadow-2xl"
                         />
+                    </div>
+                </div>
+            )}
+
+            {/* Zalo Fallback Modal */}
+            {zaloModalMessage && (
+                <div className="fixed inset-0 bg-black/70 backdrop-blur-sm z-[200] flex items-end sm:items-center justify-center p-4">
+                    <div className="bg-white rounded-2xl shadow-2xl w-full max-w-lg animate-in slide-in-from-bottom-4 duration-300">
+                        <div className="p-4 bg-blue-600 rounded-t-2xl flex justify-between items-center">
+                            <div className="flex items-center gap-3">
+                                <span className="text-2xl font-black text-white">Z</span>
+                                <div>
+                                    <div className="text-white font-bold text-sm">Gửi báo cáo Zalo</div>
+                                    <div className="text-blue-200 text-[11px]">Sao chép và dán vào nhóm Zalo</div>
+                                </div>
+                            </div>
+                            <button onClick={() => { setZaloModalMessage(null); router.push('/fixed'); }} className="text-white/70 hover:text-white p-1 rounded-full hover:bg-white/20 transition">
+                                <span className="text-xl">×</span>
+                            </button>
+                        </div>
+                        <div className="p-4">
+                            <div className="bg-slate-50 border border-slate-200 rounded-xl p-3 mb-4 max-h-48 overflow-y-auto">
+                                <pre className="text-sm text-slate-800 whitespace-pre-wrap font-sans leading-relaxed">{zaloModalMessage}</pre>
+                            </div>
+                            <div className="flex flex-col gap-3">
+                                <button
+                                    onClick={() => {
+                                        if (navigator.clipboard && navigator.clipboard.writeText) {
+                                            navigator.clipboard.writeText(zaloModalMessage!).then(() => {
+                                                alert('Đã sao chép! Hãy mở Zalo và dán vào nhóm chat.');
+                                            }).catch(() => {
+                                                alert('Hãy bôi đen và sao chép đoạn văn bản trên, sau đó dán vào Zalo.');
+                                            });
+                                        } else {
+                                            alert('Hãy bôi đen và sao chép đoạn văn bản trên, sau đó dán vào Zalo.');
+                                        }
+                                    }}
+                                    className="w-full py-3 bg-blue-600 text-white font-bold rounded-xl flex items-center justify-center gap-2 hover:bg-blue-700 active:scale-95 transition-all shadow-md"
+                                >
+                                    📋 Sao chép nội dung
+                                </button>
+                                <a
+                                    href="https://zalo.me/"
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    onClick={() => { setZaloModalMessage(null); router.push('/fixed'); }}
+                                    className="w-full py-3 bg-green-500 text-white font-bold rounded-xl flex items-center justify-center gap-2 hover:bg-green-600 active:scale-95 transition-all shadow-md text-center"
+                                >
+                                    <span className="text-xl font-black">Z</span> Mở Zalo
+                                </a>
+                                <button onClick={() => { setZaloModalMessage(null); router.push('/fixed'); }} className="w-full py-2 text-slate-500 hover:text-slate-700 font-medium text-sm">
+                                    Bỏ qua &amp; Xem lịch sử
+                                </button>
+                            </div>
+                        </div>
                     </div>
                 </div>
             )}

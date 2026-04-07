@@ -76,9 +76,16 @@ ${resolvedToday.map((h: any, i: number) => `   ${i + 1}. ${h.systemName}: ${h.ac
 Chúc ca sau trực tốt!`;
 
   const handleCopy = () => {
-    navigator.clipboard.writeText(summaryText);
-    setCopied(true);
-    setTimeout(() => setCopied(false), 2000);
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(summaryText).then(() => {
+        setCopied(true);
+        setTimeout(() => setCopied(false), 2000);
+      }).catch(() => {
+        alert('Không thể sao chép tự động trên thiết bị này.\nHãy bôi đen nội dung bên trên và sao chép thủ công (giữ nhấn → Sao chép).');
+      });
+    } else {
+      alert('Trình duyệt không hỗ trợ sao chép tự động.\nHãy bôi đen nội dung và sao chép thủ công.');
+    }
   };
 
   const handleExportWord = async () => {

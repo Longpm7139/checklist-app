@@ -1,5 +1,5 @@
-import React from 'react';
-import { AlertTriangle, X, UserCheck, Check, FileText, RotateCcw } from 'lucide-react';
+import React, { useState } from 'react';
+import { AlertTriangle, X, UserCheck, Check, FileText, RotateCcw, ChevronDown } from 'lucide-react';
 import clsx from 'clsx';
 import { SystemCategory, SystemCheck } from '@/lib/types';
 
@@ -32,6 +32,15 @@ export default function ShiftBanner({
   handleStartNewShift,
   isEditMode
 }: ShiftBannerProps) {
+
+  const [showCategories, setShowCategories] = useState(false);
+
+  const doneCount = teamAssignedCategories.filter(cat => {
+    const catSystems = systems.filter(s => s.categoryId === cat.id);
+    return catSystems.length > 0 && catSystems.every(s => s.status && s.status !== 'NA');
+  }).length;
+  const totalCount = teamAssignedCategories.length;
+  const allDone = doneCount === totalCount && totalCount > 0;
 
   return (
     <>
@@ -71,35 +80,66 @@ export default function ShiftBanner({
                 <div className="text-lg font-bold mb-1">
                   {currentShiftAssignments.map((a: any) => a.userName).join(' & ') || 'Chưa trực'}
                 </div>
-                <div className="text-[10px] font-medium opacity-90 border-t border-white/10 pt-1">
-                  Phân công kiểm tra các nhóm:
-                  <div className="flex flex-wrap gap-2 mt-1">
-                    {teamAssignedCategories.map(cat => {
-                      const catSystems = systems.filter(s => s.categoryId === cat.id);
-                      const isDone = catSystems.length > 0 && catSystems.every(s => s.status && s.status !== 'NA');
+                <div className="border-t border-white/10 pt-2 mt-1">
+                  <button
+                    type="button"
+                    onClick={() => setShowCategories(v => !v)}
+                    className={clsx(
+                      "flex items-center gap-2 text-xs font-bold px-3 py-1.5 rounded-lg border transition-all active:scale-95 w-full",
+                      allDone
+                        ? "bg-green-500/80 border-green-400/60 text-white hover:bg-green-500"
+                        : "bg-white/15 border-white/25 text-white hover:bg-white/25"
+                    )}
+                  >
+                    <Check size={13} className={allDone ? "text-white" : "text-white/50"} />
+                    <span className="flex-1 text-left">
+                      Phân công nhóm KT:
+                      <span className={clsx(
+                        "ml-1.5 px-1.5 py-0.5 rounded font-black text-[10px]",
+                        allDone ? "bg-white/30" : "bg-white/20"
+                      )}>
+                        {doneCount}/{totalCount} hoàn tất
+                      </span>
+                    </span>
+                    <ChevronDown
+                      size={14}
+                      className={clsx("transition-transform duration-200 flex-shrink-0", showCategories && "rotate-180")}
+                    />
+                  </button>
 
-                      return (
-                        <button
-                          key={cat.id}
-                          onClick={() => {
-                            const el = document.getElementById(`category-${cat.id}`);
-                            if (el) {
-                              el.scrollIntoView({ behavior: 'smooth', block: 'start' });
-                            }
-                          }}
-                          className={clsx(
-                            "text-xs px-2 py-1 rounded border font-bold transition-all active:scale-95 flex items-center gap-1 shadow-sm",
-                            isDone
-                              ? "bg-green-500 text-white border-green-400 hover:bg-green-400"
-                              : "bg-white/20 text-white border-white/30 hover:bg-white/30"
-                          )}
-                        >
-                          {isDone && <Check size={12} />}
-                          {cat.name}
-                        </button>
-                      );
-                    })}
-                  </div>
+                  {showCategories && (
+                    <div className="mt-2 flex flex-wrap gap-1.5 max-h-32 overflow-y-auto pr-1">
+                      {teamAssignedCategories.map(cat => {
+                        const catSystems = systems.filter(s => s.categoryId === cat.id);
+                        const isDone = catSystems.length > 0 && catSystems.every(s => s.status && s.status !== 'NA');
+                        const shortName = cat.name.replace(/^[A-K]\.\s*Hệ thống\s*/i, '');
+
+                        return (
+                          <button
+                            key={cat.id}
+                            onClick={() => {
+                              const el = document.getElementById(`category-${cat.id}`);
+                              if (el) {
+                                el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                              }
+                              setShowCategories(false);
+                            }}
+                            className={clsx(
+                              "text-[11px] px-2 py-1 rounded border font-bold transition-all active:scale-95 flex items-center gap-1 shadow-sm",
+                              isDone
+                                ? "bg-green-500 text-white border-green-400 hover:bg-green-400"
+                                : "bg-white/20 text-white border-white/30 hover:bg-white/30"
+                            )}
+                          >
+                            {isDone && <Check size={10} />}
+                            <span className="max-w-[6rem] truncate" title={cat.name}>
+                              {cat.name.match(/^([A-K])\./)?.[ 1] || ''}.{shortName}
+                            </span>
+                          </button>
+                        );
+                      })}
+                    </div>
+                  )}
                 </div>
               </div>
             </div>

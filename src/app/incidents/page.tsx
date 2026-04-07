@@ -40,6 +40,24 @@ export default function IncidentsPage() {
     const [resImageFile, setResImageFile] = useState<File | null>(null);
     const [resImagePreview, setResImagePreview] = useState<string | null>(null);
     const [isResUploading, setIsResUploading] = useState(false);
+    const [zaloModalMessage, setZaloModalMessage] = useState<string | null>(null);
+
+    // Helper: Send Zalo message (works on both mobile and desktop)
+    const sendZaloMessage = (message: string) => {
+        // Try clipboard first (works on desktop / HTTPS)
+        if (navigator.clipboard && navigator.clipboard.writeText) {
+            navigator.clipboard.writeText(message).then(() => {
+                // Clipboard OK -> open Zalo
+                window.open('https://zalo.me/', '_blank');
+            }).catch(() => {
+                // Clipboard failed (mobile) -> show fallback modal
+                setZaloModalMessage(message);
+            });
+        } else {
+            // No clipboard API -> show fallback modal directly
+            setZaloModalMessage(message);
+        }
+    };
 
     useEffect(() => {
         // Subscribe to Incidents
@@ -121,14 +139,9 @@ export default function IncidentsPage() {
 
             // Notification Logic
             if (notifyZalo) {
-                const message = `[BÁO CÁO SỰ CỐ KHẨN CẤP] 🚨\n\n📌 Tên sự cố: ${newTitle}\n📍 Hệ thống/Khu vực: ${newSystem}\n📝 Mô tả: ${newDesc || 'Không có mô tả'}\n👤 Người báo: ${currentUser?.name || 'Admin'}${uploadedUrl ? `\n🖼 Ảnh đính kèm: [Xem trực tiếp trong App]` : ''}\n\n👉 Đề nghị kiểm tra xử lý ngay!`;
-
-                navigator.clipboard.writeText(message).then(() => {
-                    alert("Đã tạo sự cố và COPY nội dung thông báo!\nTrang Zalo sẽ được mở ngay sau đây, hãy PASTE vào nhóm chat.");
-                    window.open('https://zalo.me/', '_blank');
-                }).catch(() => {
-                    alert("Đã tạo sự cố nhưng không thể COPY tự động. Vui lòng kiểm tra lại.");
-                });
+                const message = `[BÁO CÁO SỰ CỐ KHẨN CẤP] 🚨\n\n📌 Tên sự cố: ${newTitle}\n📍 Hệ thống/Khu vực: ${newSystem}\n📝 Mô tả: ${newDesc || 'Không có mô tả'}\n👤 Người báo: ${currentUser?.name || 'Admin'}${uploadedUrl ? `\n🖼 Ảnh đính kèm: [Xem trong App]` : ''}\n\n👉 Đề nghị kiểm tra xử lý ngay!`;
+                alert("Đã tạo sự cố thành công!");
+                sendZaloMessage(message);
             } else {
                 alert("Đã tạo sự cố mới!");
             }
@@ -234,11 +247,7 @@ export default function IncidentsPage() {
 
                 const message = `[THÔNG BÁO XỬ LÝ SỰ CỐ] ✅\n📌 Tên sự cố: ${updatedIncident.title}\n📍 Hệ thống: ${updatedIncident.systemName}\n📝 Nội dung xử lý: ${updatedIncident.resolutionNote}\n👤 Người tham gia: ${updatedIncident.participants?.join(', ') || updatedIncident.resolvedBy}\n🕒 Thời gian: ${updatedIncident.resolvedAt}`;
 
-                navigator.clipboard.writeText(message).then(() => {
-                    alert("Đã xác nhận xử lý thành công và ĐÃ SAO CHÉP báo cáo Zalo! Bạn có thể dán (Ctrl+V) vào nhóm.");
-                }).catch(() => {
-                    alert("Đã xác nhận xử lý thành công nhưng quá trình sao chép tự động thất bại.");
-                });
+                sendZaloMessage(message);
             }
 
             setResolvingId(null);
@@ -735,6 +744,78 @@ export default function IncidentsPage() {
                         alt="Full view" 
                         className="max-w-full max-h-full object-contain rounded shadow-2xl animate-scale-in"
                     />
+                </div>
+            )}
+
+            {/* Zalo Fallback Modal - used on mobile where clipboard is blocked */}
+            {zaloModalMessage && (
+                <div className="fixed inset-0 bg-black/70 backdrop-blur-sm z-[200] flex items-end sm:items-center justify-center p-4">
+                    <div className="bg-white rounded-2xl shadow-2xl w-full max-w-lg animate-in slide-in-from-bottom-4 duration-300">
+                        <div className="p-4 bg-blue-600 rounded-t-2xl flex justify-between items-center">
+                            <div className="flex items-center gap-3">
+                                <span className="text-2xl font-black text-white">Z</span>
+                                <div>
+                                    <div className="text-white font-bold text-sm">Gửi tin nhắn Zalo</div>
+                                    <div className="text-blue-200 text-[11px]">Sao chép và dán vào nhóm chat Zalo</div>
+                                </div>
+                            </div>
+                            <button
+                                onClick={() => setZaloModalMessage(null)}
+                                className="text-white/70 hover:text-white p-1 rounded-full hover:bg-white/20 transition"
+                            >
+                                <X size={20} />
+                            </button>
+                        </div>
+
+                        <div className="p-4">
+                            <div className="bg-slate-50 border border-slate-200 rounded-xl p-3 mb-4 max-h-48 overflow-y-auto">
+                                <pre className="text-sm text-slate-800 whitespace-pre-wrap font-sans leading-relaxed">{zaloModalMessage}</pre>
+                            </div>
+
+                            <div className="flex flex-col gap-3">
+                                <button
+                                    onClick={() => {
+                                        if (navigator.clipboard && navigator.clipboard.writeText) {
+                                            navigator.clipboard.writeText(zaloModalMessage).then(() => {
+                                                alert('Đã sao chép! Hãy mở Zalo và dán vào nhóm chat.');
+                                            }).catch(() => {
+                                                // Select text for manual copy
+                                                const el = document.querySelector('.zalo-message-text') as HTMLElement;
+                                                if (el) {
+                                                    const range = document.createRange();
+                                                    range.selectNodeContents(el);
+                                                    const sel = window.getSelection();
+                                                    sel?.removeAllRanges();
+                                                    sel?.addRange(range);
+                                                }
+                                                alert('Hãy bôi đen và sao chép đoạn văn bản trên, sau đó dán vào Zalo.');
+                                            });
+                                        } else {
+                                            alert('Hãy bôi đen và sao chép đoạn văn bản trên, sau đó dán vào Zalo.');
+                                        }
+                                    }}
+                                    className="w-full py-3 bg-blue-600 text-white font-bold rounded-xl flex items-center justify-center gap-2 hover:bg-blue-700 active:scale-95 transition-all shadow-md"
+                                >
+                                    📋 Sao chép nội dung
+                                </button>
+                                <a
+                                    href="https://zalo.me/"
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    onClick={() => setZaloModalMessage(null)}
+                                    className="w-full py-3 bg-green-500 text-white font-bold rounded-xl flex items-center justify-center gap-2 hover:bg-green-600 active:scale-95 transition-all shadow-md text-center"
+                                >
+                                    <span className="text-xl font-black">Z</span> Mở Zalo
+                                </a>
+                                <button
+                                    onClick={() => setZaloModalMessage(null)}
+                                    className="w-full py-2 text-slate-500 hover:text-slate-700 font-medium text-sm"
+                                >
+                                    Đóng
+                                </button>
+                            </div>
+                        </div>
+                    </div>
                 </div>
             )}
         </div>
