@@ -51,7 +51,7 @@ export default function MaintenancePage() {
                     return new Date(`${Y}-${M}-${D}T${hh}:${mm}:00`).getTime();
                 };
                 try {
-                    return parseDate(b.createdAt) - parseDate(a.createdAt);
+                    return parseDate(b.createdAt || '') - parseDate(a.createdAt || '');
                 } catch (e) {
                     return 0;
                 }
