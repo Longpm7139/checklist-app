@@ -364,7 +364,7 @@ export default function SafetyPage() {
                                             <div className="flex items-center gap-2 text-emerald-800 font-bold bg-emerald-50 px-3 py-1 rounded-full border border-emerald-100 text-sm">
                                                 <Calendar size={14} /> {report.createdAt}
                                             </div>
-                                            {(currentUser?.role === 'ADMIN' || currentUser?.name === report.reporter) && (
+                                            {currentUser?.role === 'ADMIN' && (
                                                 <button onClick={(e) => { e.stopPropagation(); handleDeleteReport(report.id); }} className="text-slate-400 hover:text-red-600 transition p-1 hover:bg-red-50 rounded">
                                                     <Trash2 size={16} />
                                                 </button>
