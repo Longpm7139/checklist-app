@@ -84,5 +84,29 @@ export interface MaintenanceTask {
   remainingIssues?: string;
   beforeImageUrl?: string;
   afterImageUrl?: string;
+}
+
+export interface SafetyCriteria {
+  id: string;
+  name: string;
+  method: string;
+  standards: string;
+  frequency: string;
+  result: 'Đạt' | 'Không đạt' | null;
+  note: string;
+}
+
+export interface SafetyReport {
+  id: string;
+  shiftTime: string; // '07:00 – 19:00' | '19:00 – 07:00'
+  dutyOfficer: string;
+  reporter: string;
+  totalWorkers: string;
+  absentWorkers: string;
+  workLocations: string;
+  inspectionLocations: string;
+  criteria: SafetyCriteria[];
+  workerOpinions: string;
   createdAt: string;
+  updatedAt?: string;
 }

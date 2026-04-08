@@ -4,7 +4,7 @@ import { useUser } from '@/providers/UserProvider';
 import {
   AlertCircle, Wrench, FileText, ClipboardList, BarChart2, Package,
   QrCode, Users, UserCheck, Save, Lock, LogOut, Search, History as HistoryIcon,
-  Check, Edit2, RotateCcw, BookOpen
+  Check, Edit2, RotateCcw, BookOpen, ShieldCheck
 } from 'lucide-react';
 
 import clsx from 'clsx';
@@ -63,6 +63,13 @@ export default function Header({
           title="Bảo Trì Định Kỳ"
         >
           <Wrench size={16} />
+        </button>
+        <button
+          onClick={() => router.push('/safety')}
+          className="p-2 rounded text-sm font-bold flex items-center gap-1 bg-emerald-500 hover:bg-emerald-600 text-white transition shadow-sm"
+          title="Quản lý An toàn vệ sinh viên"
+        >
+          <ShieldCheck size={16} /> An Toàn
         </button>
         {user?.role === 'ADMIN' && (
           <>

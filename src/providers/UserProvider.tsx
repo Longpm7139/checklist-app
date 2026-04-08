@@ -38,6 +38,7 @@ export function UserProvider({ children }: { children: ReactNode }) {
     const logout = () => {
         setUser(null);
         localStorage.removeItem('checklist_user');
+        window.location.reload();
     };
 
     if (!isMounted) return null;
