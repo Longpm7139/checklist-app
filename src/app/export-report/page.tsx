@@ -62,7 +62,7 @@ function ExportReportContent() {
 
     // Filter incidents and tasks for that date based on createdAt strings matching DD/MM/YYYY
     const todaysIncidents = incidents.filter(i => i.createdAt.includes(formattedDateString));
-    const todaysTasks = tasks.filter(t => t.createdAt.includes(formattedDateString) || (t.completedAt && t.completedAt.includes(formattedDateString)));
+    const todaysTasks = tasks.filter(t => (t.createdAt && t.createdAt.includes(formattedDateString)) || (t.completedAt && t.completedAt.includes(formattedDateString)));
 
     const generateDocx = async () => {
         setIsGenerating(true);

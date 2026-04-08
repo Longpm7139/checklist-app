@@ -84,6 +84,7 @@ export interface MaintenanceTask {
   remainingIssues?: string;
   beforeImageUrl?: string;
   afterImageUrl?: string;
+  createdAt?: string;
 }
 
 export interface SafetyCriteria {
