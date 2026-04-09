@@ -13,12 +13,12 @@ const APPENDIX_6_ZONES = [
   {
     area: "Nhà ga T1: Khu vực tầng 1 trục 14 đến 27\nKhu vực Boarding gate 9-10-11 + phòng VIP",
     items: [
-      { id: '1-1', name: "Bình chữa cháy MT5", allocated: 0, actual: 0, status: "OK", note: "" },
+      { id: '1-1', name: "Bình chữa cháy MT5", allocated: 0, actual: 0, status: "", note: "" },
       { id: '1-2', name: "Bình chữa cháy MT3", allocated: 2, actual: 2, status: "OK", note: "" },
-      { id: '1-3', name: "Bình chữa cháy MFZ8", allocated: 0, actual: 0, status: "OK", note: "" },
+      { id: '1-3', name: "Bình chữa cháy MFZ8", allocated: 0, actual: 0, status: "", note: "" },
       { id: '1-4', name: "Bình chữa cháy MFZ4", allocated: 1, actual: 1, status: "OK", note: "" },
       { id: '1-5', name: "Bình chữa cháy gốc nước (màu tím)", allocated: 1, actual: 1, status: "OK", note: "" },
-      { id: '1-6', name: "Bình chữa cháy bột ABC 8kg", allocated: 0, actual: 0, status: "OK", note: "" },
+      { id: '1-6', name: "Bình chữa cháy bột ABC 8kg", allocated: 0, actual: 0, status: "", note: "" },
     ]
   },
   {
@@ -27,9 +27,9 @@ const APPENDIX_6_ZONES = [
       { id: '2-1', name: "Bình chữa cháy MT5", allocated: 2, actual: 2, status: "OK", note: "" },
       { id: '2-2', name: "Bình chữa cháy MT3", allocated: 4, actual: 4, status: "OK", note: "" },
       { id: '2-3', name: "Bình chữa cháy MFZ8", allocated: 1, actual: 1, status: "OK", note: "" },
-      { id: '2-4', name: "Bình chữa cháy MFZ4", allocated: 0, actual: 0, status: "OK", note: "" },
+      { id: '2-4', name: "Bình chữa cháy MFZ4", allocated: 0, actual: 0, status: "", note: "" },
       { id: '2-5', name: "Bình chữa cháy gốc nước (màu tím)", allocated: 4, actual: 4, status: "OK", note: "" },
-      { id: '2-6', name: "Bình chữa cháy bột ABC 8kg", allocated: 0, actual: 0, status: "OK", note: "" },
+      { id: '2-6', name: "Bình chữa cháy bột ABC 8kg", allocated: 0, actual: 0, status: "", note: "" },
     ]
   },
   {
@@ -37,43 +37,43 @@ const APPENDIX_6_ZONES = [
     items: [
       { id: '3-1', name: "Bình chữa cháy MT5", allocated: 1, actual: 1, status: "OK", note: "" },
       { id: '3-2', name: "Bình chữa cháy MT3", allocated: 2, actual: 2, status: "OK", note: "" },
-      { id: '3-3', name: "Bình chữa cháy MFZ8", allocated: 0, actual: 0, status: "OK", note: "" },
-      { id: '3-4', name: "Bình chữa cháy MFZ4", allocated: 0, actual: 0, status: "OK", note: "" },
+      { id: '3-3', name: "Bình chữa cháy MFZ8", allocated: 0, actual: 0, status: "", note: "" },
+      { id: '3-4', name: "Bình chữa cháy MFZ4", allocated: 0, actual: 0, status: "", note: "" },
       { id: '3-5', name: "Bình chữa cháy gốc nước (màu tím)", allocated: 1, actual: 1, status: "OK", note: "" },
-      { id: '3-6', name: "Bình chữa cháy bột ABC 8kg", allocated: 0, actual: 0, status: "OK", note: "" },
+      { id: '3-6', name: "Bình chữa cháy bột ABC 8kg", allocated: 0, actual: 0, status: "", note: "" },
     ]
   },
   {
     area: "Phòng Tổ bay Vietjet (Ga đến - Ngoài cửa A4)",
     items: [
-      { id: '4-1', name: "Bình chữa cháy MT5", allocated: 0, actual: 0, status: "OK", note: "" },
+      { id: '4-1', name: "Bình chữa cháy MT5", allocated: 0, actual: 0, status: "", note: "" },
       { id: '4-2', name: "Bình chữa cháy MT3", allocated: 4, actual: 4, status: "OK", note: "" },
-      { id: '4-3', name: "Bình chữa cháy MFZ8", allocated: 0, actual: 0, status: "OK", note: "" },
-      { id: '4-4', name: "Bình chữa cháy MFZ4", allocated: 0, actual: 0, status: "OK", note: "" },
-      { id: '4-5', name: "Bình chữa cháy gốc nước (màu tím)", allocated: 0, actual: 0, status: "OK", note: "" },
-      { id: '4-6', name: "Bình chữa cháy bột ABC 8kg", allocated: 0, actual: 0, status: "OK", note: "" },
+      { id: '4-3', name: "Bình chữa cháy MFZ8", allocated: 0, actual: 0, status: "", note: "" },
+      { id: '4-4', name: "Bình chữa cháy MFZ4", allocated: 0, actual: 0, status: "", note: "" },
+      { id: '4-5', name: "Bình chữa cháy gốc nước (màu tím)", allocated: 0, actual: 0, status: "", note: "" },
+      { id: '4-6', name: "Bình chữa cháy bột ABC 8kg", allocated: 0, actual: 0, status: "", note: "" },
     ]
   },
   {
     area: "Quầy Highland (Ga đến- ngoài Cửa A4) + ATM Vietcombank",
     items: [
       { id: '5-1', name: "Bình chữa cháy MT5", allocated: 4, actual: 4, status: "OK", note: "" },
-      { id: '5-2', name: "Bình chữa cháy MT3", allocated: 0, actual: 0, status: "OK", note: "" },
+      { id: '5-2', name: "Bình chữa cháy MT3", allocated: 0, actual: 0, status: "", note: "" },
       { id: '5-3', name: "Bình chữa cháy MFZ8", allocated: 1, actual: 1, status: "OK", note: "" },
-      { id: '5-4', name: "Bình chữa cháy MFZ4", allocated: 0, actual: 0, status: "OK", note: "" },
-      { id: '5-5', name: "Bình chữa cháy gốc nước (màu tím)", allocated: 0, actual: 0, status: "OK", note: "" },
-      { id: '5-6', name: "Bình chữa cháy bột ABC 8kg", allocated: 0, actual: 0, status: "OK", note: "" },
+      { id: '5-4', name: "Bình chữa cháy MFZ4", allocated: 0, actual: 0, status: "", note: "" },
+      { id: '5-5', name: "Bình chữa cháy gốc nước (màu tím)", allocated: 0, actual: 0, status: "", note: "" },
+      { id: '5-6', name: "Bình chữa cháy bột ABC 8kg", allocated: 0, actual: 0, status: "", note: "" },
     ]
   },
   {
     area: "Nhà hàng Masco",
     items: [
-      { id: '6-1', name: "Bình chữa cháy MT5", allocated: 0, actual: 0, status: "OK", note: "" },
-      { id: '6-2', name: "Bình chữa cháy MT3", allocated: 0, actual: 0, status: "OK", note: "" },
+      { id: '6-1', name: "Bình chữa cháy MT5", allocated: 0, actual: 0, status: "", note: "" },
+      { id: '6-2', name: "Bình chữa cháy MT3", allocated: 0, actual: 0, status: "", note: "" },
       { id: '6-3', name: "Bình chữa cháy MFZ8", allocated: 2, actual: 2, status: "OK", note: "" },
       { id: '6-4', name: "Bình chữa cháy MFZ4", allocated: 3, actual: 3, status: "OK", note: "" },
-      { id: '6-5', name: "Bình chữa cháy gốc nước (màu tím)", allocated: 0, actual: 0, status: "OK", note: "" },
-      { id: '6-6', name: "Bình chữa cháy bột ABC 8kg", allocated: 0, actual: 0, status: "OK", note: "" },
+      { id: '6-5', name: "Bình chữa cháy gốc nước (màu tím)", allocated: 0, actual: 0, status: "", note: "" },
+      { id: '6-6', name: "Bình chữa cháy bột ABC 8kg", allocated: 0, actual: 0, status: "", note: "" },
     ]
   },
   {
@@ -81,31 +81,31 @@ const APPENDIX_6_ZONES = [
     items: [
       { id: '7-1', name: "Bình chữa cháy MT5", allocated: 2, actual: 2, status: "OK", note: "" },
       { id: '7-2', name: "Bình chữa cháy MT3", allocated: 2, actual: 2, status: "OK", note: "" },
-      { id: '7-3', name: "Bình chữa cháy MFZ8", allocated: 0, actual: 0, status: "OK", note: "" },
-      { id: '7-4', name: "Bình chữa cháy MFZ4", allocated: 0, actual: 0, status: "OK", note: "" },
-      { id: '7-5', name: "Bình chữa cháy gốc nước (màu tím)", allocated: 0, actual: 0, status: "OK", note: "" },
-      { id: '7-6', name: "Bình chữa cháy bột ABC 8kg", allocated: 0, actual: 0, status: "OK", note: "" },
+      { id: '7-3', name: "Bình chữa cháy MFZ8", allocated: 0, actual: 0, status: "", note: "" },
+      { id: '7-4', name: "Bình chữa cháy MFZ4", allocated: 0, actual: 0, status: "", note: "" },
+      { id: '7-5', name: "Bình chữa cháy gốc nước (màu tím)", allocated: 0, actual: 0, status: "", note: "" },
+      { id: '7-6', name: "Bình chữa cháy bột ABC 8kg", allocated: 0, actual: 0, status: "", note: "" },
     ]
   },
   {
     area: "Phòng Kỹ thuật điện chân cầu Bến 21,22 và Cầu bến 23",
     items: [
-      { id: '8-1', name: "Bình chữa cháy MT5", allocated: 0, actual: 0, status: "OK", note: "" },
-      { id: '8-2', name: "Bình chữa cháy MT3", allocated: 0, actual: 0, status: "OK", note: "" },
-      { id: '8-3', name: "Bình chữa cháy MFZ8", allocated: 0, actual: 0, status: "OK", note: "" },
-      { id: '8-4', name: "Bình chữa cháy MFZ4", allocated: 0, actual: 0, status: "OK", note: "" },
-      { id: '8-5', name: "Bình chữa cháy gốc nước (màu tím)", allocated: 0, actual: 0, status: "OK", note: "" },
+      { id: '8-1', name: "Bình chữa cháy MT5", allocated: 0, actual: 0, status: "", note: "" },
+      { id: '8-2', name: "Bình chữa cháy MT3", allocated: 0, actual: 0, status: "", note: "" },
+      { id: '8-3', name: "Bình chữa cháy MFZ8", allocated: 0, actual: 0, status: "", note: "" },
+      { id: '8-4', name: "Bình chữa cháy MFZ4", allocated: 0, actual: 0, status: "", note: "" },
+      { id: '8-5', name: "Bình chữa cháy gốc nước (màu tím)", allocated: 0, actual: 0, status: "", note: "" },
       { id: '8-6', name: "Bình chữa cháy bột ABC 8kg", allocated: 2, actual: 2, status: "OK", note: "" },
     ]
   },
   {
     area: "Khu vực phòng làm việc, kho chứa vật tư, công cụ, dụng cụ, nhiên liệu do Đội Cơ khí điện tử khai thác, quản lý, sử dụng.",
     items: [
-      { id: '9-1', name: "Bình chữa cháy MT5", allocated: 0, actual: 0, status: "OK", note: "" },
+      { id: '9-1', name: "Bình chữa cháy MT5", allocated: 0, actual: 0, status: "", note: "" },
       { id: '9-2', name: "Bình chữa cháy MT3", allocated: 1, actual: 1, status: "OK", note: "" },
-      { id: '9-3', name: "Bình chữa cháy MFZ8", allocated: 0, actual: 0, status: "OK", note: "" },
-      { id: '9-4', name: "Bình chữa cháy MFZ4", allocated: 0, actual: 0, status: "OK", note: "" },
-      { id: '9-5', name: "Bình chữa cháy gốc nước (màu tím)", allocated: 0, actual: 0, status: "OK", note: "" },
+      { id: '9-3', name: "Bình chữa cháy MFZ8", allocated: 0, actual: 0, status: "", note: "" },
+      { id: '9-4', name: "Bình chữa cháy MFZ4", allocated: 0, actual: 0, status: "", note: "" },
+      { id: '9-5', name: "Bình chữa cháy gốc nước (màu tím)", allocated: 0, actual: 0, status: "", note: "" },
       { id: '9-6', name: "Bình chữa cháy bột ABC 8kg", allocated: 1, actual: 1, status: "OK", note: "" },
     ]
   }
@@ -322,7 +322,7 @@ export default function PcccReportPage() {
                                                 new TableCell({ children: [new Paragraph({ text: iIdx === 0 ? zone.area : "" })] }),
                                                 new TableCell({ children: [new Paragraph({ text: item.name })] }),
                                                 new TableCell({ children: [new Paragraph({ text: item.actual.toString(), alignment: AlignmentType.CENTER })] }),
-                                                new TableCell({ children: [new Paragraph({ text: item.status || "", alignment: AlignmentType.CENTER })] }),
+                                                new TableCell({ children: [new Paragraph({ text: item.actual > 0 ? (item.status || "") : "", alignment: AlignmentType.CENTER })] }),
                                                 new TableCell({ children: [new Paragraph({ text: item.note || "" })] }),
                                             ]
                                         });
@@ -390,6 +390,12 @@ export default function PcccReportPage() {
                         </div>
                     </div>
                     <div className="flex gap-2">
+                        <button
+                            onClick={() => router.push('/pccc/history')}
+                            className="py-3 px-4 bg-white text-slate-600 font-black rounded-xl shadow border border-slate-200 transition-all flex items-center gap-2 hover:bg-slate-50"
+                        >
+                            <FileText size={20} /> <span className="hidden sm:inline">LỊCH SỬ</span>
+                        </button>
                         <button
                             onClick={handleSaveToDb}
                             className="py-3 px-4 text-white font-black rounded-xl shadow transition-all flex items-center gap-2 bg-slate-700 hover:bg-slate-800"
