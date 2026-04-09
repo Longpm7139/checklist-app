@@ -508,6 +508,12 @@ export default function PcccReportPage() {
                         </div>
                     </div>
                     <div className="overflow-x-auto p-4">
+                        {/* Mobile swipe hint */}
+                        <div className="flex items-center justify-center gap-2 text-xs text-slate-400 mb-2 md:hidden">
+                            <span>←</span>
+                            <span>Vuốt ngang để xem đầy đủ bảng</span>
+                            <span>→</span>
+                        </div>
                         {/* DATA ENTRY MODE - 8 COLUMNS */}
                         <table className="w-full min-w-[900px] border-collapse text-sm">
                             <thead>
