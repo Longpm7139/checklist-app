@@ -180,6 +180,14 @@ export default function PcccReportPage() {
     const updateItem = (zoneIdx: number, itemIdx: number, field: string, value: any) => {
         const newZones = [...zones];
         (newZones[zoneIdx].items[itemIdx] as any)[field] = value;
+        
+        // Rule: If both allocated and actual are 0, status must be empty and note cleared
+        const item = newZones[zoneIdx].items[itemIdx];
+        if ((field === 'actual' || field === 'allocated') && item.actual === 0 && item.allocated === 0) {
+            (newZones[zoneIdx].items[itemIdx] as any).status = '';
+            (newZones[zoneIdx].items[itemIdx] as any).note = '';
+        }
+
         if (field === 'status' && value === 'OK') {
             (newZones[zoneIdx].items[itemIdx] as any).note = '';
         }
@@ -291,7 +299,7 @@ export default function PcccReportPage() {
                         new Paragraph({ text: `Ngày/Tháng kiểm tra: ${day}/${month}` }),
                         new Paragraph({ text: `Người kiểm tra: ${leaderName}`, spacing: { after: 200 } }),
 
-                        // Table Appx 6
+                        // Table Appx 6 (PRINT MODE - 6 COLUMNS)
                         new Table({
                             width: { size: 100, type: WidthType.PERCENTAGE },
                             borders: { top: { style: BorderStyle.SINGLE, size: 1 }, bottom: { style: BorderStyle.SINGLE, size: 1 }, left: { style: BorderStyle.SINGLE, size: 1 }, right: { style: BorderStyle.SINGLE, size: 1 }, insideHorizontal: { style: BorderStyle.SINGLE, size: 1 }, insideVertical: { style: BorderStyle.SINGLE, size: 1 } },
@@ -314,7 +322,7 @@ export default function PcccReportPage() {
                                                 new TableCell({ children: [new Paragraph({ text: iIdx === 0 ? zone.area : "" })] }),
                                                 new TableCell({ children: [new Paragraph({ text: item.name })] }),
                                                 new TableCell({ children: [new Paragraph({ text: item.actual.toString(), alignment: AlignmentType.CENTER })] }),
-                                                new TableCell({ children: [new Paragraph({ text: item.status, alignment: AlignmentType.CENTER })] }),
+                                                new TableCell({ children: [new Paragraph({ text: item.status || "", alignment: AlignmentType.CENTER })] }),
                                                 new TableCell({ children: [new Paragraph({ text: item.note || "" })] }),
                                             ]
                                         });
@@ -432,12 +440,6 @@ export default function PcccReportPage() {
                                 {ROLES.map(r => <option key={r} value={r}>{r}</option>)}
                             </select>
                         </div>
-                        <div className="md:col-span-2">
-                             <label className="block text-sm font-bold text-slate-700 mb-2">Kết quả tự động (Điền vào mục: Kiểm tra các bình chữa cháy):</label>
-                             <div className={clsx("p-4 rounded-xl border font-semibold", hasNok ? "bg-red-50 text-red-700 border-red-200" : "bg-green-50 text-green-700 border-green-200")}>
-                                 {summaryText}
-                             </div>
-                        </div>
                     </div>
                 </div>
 
@@ -450,15 +452,22 @@ export default function PcccReportPage() {
                         </div>
                     </div>
                     <div className="overflow-x-auto p-4">
+                        {/* DATA ENTRY MODE - 8 COLUMNS */}
                         <table className="w-full min-w-[900px] border-collapse text-sm">
                             <thead>
                                 <tr className="bg-slate-100 text-slate-700">
-                                    <th className="border p-3 w-10 text-center">STT</th>
-                                    <th className="border p-3 w-1/4">Khu vực</th>
-                                    <th className="border p-3 w-1/5">TTB PCCC</th>
-                                    <th className="border p-3 w-28 text-center text-xs">Số lượng Thực tế</th>
-                                    <th className="border p-3 w-40 text-center">Tình trạng hiện tại</th>
-                                    <th className="border p-3">Ghi chú</th>
+                                    <th className="border p-2 w-10 text-center" rowSpan={2}>STT</th>
+                                    <th className="border p-2 w-1/4" rowSpan={2}>Khu vực</th>
+                                    <th className="border p-2 w-1/5" rowSpan={2}>TTB PCCC</th>
+                                    <th className="border p-2 text-center text-xs" colSpan={2}>Số lượng</th>
+                                    <th className="border p-2 text-center" colSpan={2}>Tình trạng</th>
+                                    <th className="border p-2" rowSpan={2}>Ghi chú</th>
+                                </tr>
+                                <tr className="bg-slate-50 text-slate-600 text-[10px] uppercase">
+                                    <th className="border p-1 w-12 text-center">P.Bổ</th>
+                                    <th className="border p-1 w-12 text-center">T.Tế</th>
+                                    <th className="border p-1 w-16 text-center text-green-600">OK</th>
+                                    <th className="border p-1 w-16 text-center text-red-600">NOK</th>
                                 </tr>
                             </thead>
                             <tbody>
@@ -466,49 +475,67 @@ export default function PcccReportPage() {
                                     <React.Fragment key={zIdx}>
                                         <tr className="bg-slate-50/80 font-bold border-t-2 border-slate-200">
                                             <td className="border p-2 text-center text-slate-400 bg-slate-100">{zIdx + 1}</td>
-                                            <td className="border p-2 text-slate-800" colSpan={5}>{zone.area.split('\n').map((line, i) => <div key={i}>{line}</div>)}</td>
+                                            <td className="border p-2 text-slate-800" colSpan={7}>{zone.area.split('\n').map((line, i) => <div key={i}>{line}</div>)}</td>
                                         </tr>
-                                        {zone.items.map((item, iIdx) => (
-                                            <tr key={item.id} className="hover:bg-slate-50 transition-colors">
-                                                <td className="border p-2 text-center text-slate-300"></td>
-                                                <td className="border p-2 text-slate-400" ></td>
-                                                <td className="border p-2 font-medium text-slate-700 leading-tight">{item.name}</td>
-                                                <td className="border p-1">
-                                                    <input type="number" min={0} value={item.actual} onChange={e => updateItem(zIdx, iIdx, 'actual', Number(e.target.value))} className="w-full p-1 text-center border-none bg-transparent outline-none focus:bg-white focus:ring-1 focus:ring-blue-200 rounded font-bold" />
-                                                </td>
-                                                <td className="border p-1 text-center bg-slate-50/50">
-                                                    <div className="flex items-center justify-center gap-3">
+                                        {zone.items.map((item, iIdx) => {
+                                            const isQtyZero = item.actual === 0 && item.allocated === 0;
+                                            return (
+                                                <tr key={item.id} className="hover:bg-slate-50 transition-colors">
+                                                    <td className="border p-2 text-center text-slate-300"></td>
+                                                    <td className="border p-2 text-slate-400" ></td>
+                                                    <td className="border p-2 font-medium text-slate-700 leading-tight">{item.name}</td>
+                                                    <td className="border p-1">
+                                                        <input type="number" min={0} value={item.allocated} onChange={e => updateItem(zIdx, iIdx, 'allocated', Number(e.target.value))} className="w-full p-1 text-center border-none bg-transparent outline-none focus:bg-white focus:ring-1 focus:ring-blue-200 rounded" />
+                                                    </td>
+                                                    <td className="border p-1">
+                                                        <input type="number" min={0} value={item.actual} onChange={e => updateItem(zIdx, iIdx, 'actual', Number(e.target.value))} className="w-full p-1 text-center border-none bg-transparent outline-none focus:bg-white focus:ring-1 focus:ring-blue-200 rounded font-bold" />
+                                                    </td>
+                                                    {/* CỘT OK */}
+                                                    <td className="border p-1 text-center bg-green-50/30">
                                                         <button 
+                                                            disabled={isQtyZero}
                                                             onClick={() => updateItem(zIdx, iIdx, 'status', 'OK')}
-                                                            className={clsx("px-3 py-1 rounded-full border-2 text-[10px] font-black tracking-tighter transition-all flex items-center gap-1", item.status === 'OK' ? "bg-green-500 border-green-600 text-white shadow-md scale-105" : "bg-white border-slate-200 text-slate-300 hover:border-green-300")}
+                                                            className={clsx(
+                                                                "w-8 h-8 rounded-full border-2 transition-all flex items-center justify-center mx-auto", 
+                                                                isQtyZero ? "bg-slate-100 border-slate-200 text-slate-200 cursor-not-allowed" :
+                                                                (item.status === 'OK' ? "bg-green-500 border-green-600 text-white shadow-md scale-110" : "bg-white border-slate-200 text-slate-200 hover:border-green-300")
+                                                            )}
                                                         >
-                                                            {item.status === 'OK' && <ShieldCheck size={12} />} OK
+                                                            {item.status === 'OK' && <ShieldCheck size={18} />}
                                                         </button>
+                                                    </td>
+                                                    {/* CỘT NOK */}
+                                                    <td className="border p-1 text-center bg-red-50/30">
                                                         <button 
+                                                            disabled={isQtyZero}
                                                             onClick={() => updateItem(zIdx, iIdx, 'status', 'NOK')}
-                                                            className={clsx("px-3 py-1 rounded-full border-2 text-[10px] font-black tracking-tighter transition-all flex items-center gap-1", item.status === 'NOK' ? "bg-red-500 border-red-600 text-white shadow-md scale-105" : "bg-white border-slate-200 text-slate-300 hover:border-red-300")}
+                                                            className={clsx(
+                                                                "w-8 h-8 rounded-full border-2 transition-all flex items-center justify-center mx-auto", 
+                                                                isQtyZero ? "bg-slate-100 border-slate-200 text-slate-200 cursor-not-allowed" :
+                                                                (item.status === 'NOK' ? "bg-red-500 border-red-600 text-white shadow-md scale-110" : "bg-white border-slate-200 text-slate-200 hover:border-red-300")
+                                                            )}
                                                         >
-                                                            NOK
+                                                            {item.status === 'NOK' && <span className="font-black text-xs">!</span>}
                                                         </button>
-                                                    </div>
-                                                </td>
-                                                <td className="border p-1">
-                                                    <input 
-                                                        type="text" 
-                                                        disabled={item.status === 'OK'}
-                                                        required={item.status === 'NOK'}
-                                                        value={item.note} 
-                                                        onChange={e => updateItem(zIdx, iIdx, 'note', e.target.value)} 
-                                                        placeholder={item.status === 'NOK' ? "Nhập lỗi..." : "---"}
-                                                        className={clsx(
-                                                            "w-full p-1.5 border rounded outline-none transition-all",
-                                                            item.status === 'OK' ? "bg-slate-100/50 border-transparent text-slate-400 italic text-center" : 
-                                                            (item.status === 'NOK' && !item.note.trim() ? "bg-red-50 border-red-300 placeholder-red-300 animate-pulse" : "bg-white border-blue-200")
-                                                        )} 
-                                                    />
-                                                </td>
-                                            </tr>
-                                        ))}
+                                                    </td>
+                                                    <td className="border p-1">
+                                                        <input 
+                                                            type="text" 
+                                                            disabled={item.status === 'OK' || isQtyZero}
+                                                            required={item.status === 'NOK'}
+                                                            value={item.note} 
+                                                            onChange={e => updateItem(zIdx, iIdx, 'note', e.target.value)} 
+                                                            placeholder={item.status === 'NOK' ? "Nhập lỗi..." : (isQtyZero ? "Khóa" : "---")}
+                                                            className={clsx(
+                                                                "w-full p-1.5 border rounded outline-none transition-all",
+                                                                (item.status === 'OK' || isQtyZero) ? "bg-slate-100/50 border-transparent text-slate-400 italic text-center" : 
+                                                                (item.status === 'NOK' && !item.note.trim() ? "bg-red-50 border-red-300 placeholder-red-300 animate-pulse" : "bg-white border-blue-200")
+                                                            )} 
+                                                        />
+                                                    </td>
+                                                </tr>
+                                            );
+                                        })}
                                     </React.Fragment>
                                 ))}
                                 {/* DÒNG TỔNG TỪNG LOẠI BÌNH TRÊN UI - STT 10 */}
@@ -517,7 +544,9 @@ export default function PcccReportPage() {
                                         <td className="border p-2 text-center text-slate-400 bg-slate-100">{idx === 0 ? "10" : ""}</td>
                                         <td className="border p-2 text-slate-800">{idx === 0 ? "Tổng từng loại bình" : ""}</td>
                                         <td className="border p-2 text-slate-700 italic">{t.name}</td>
+                                        <td className="border p-2 text-center">-</td>
                                         <td className="border p-2 text-center text-blue-700">{t.total}</td>
+                                        <td className="border p-2"></td>
                                         <td className="border p-2"></td>
                                         <td className="border p-2"></td>
                                     </tr>
@@ -525,8 +554,9 @@ export default function PcccReportPage() {
                                 {/* DÒNG TỔNG CỘNG TRÊN UI - STT 11 */}
                                 <tr className="bg-blue-600 text-white font-black">
                                     <td className="border border-blue-700 p-2 text-center">11</td>
-                                    <td className="border border-blue-700 p-2 uppercase" colSpan={2}>Số lượng tổng các bình</td>
+                                    <td className="border border-blue-700 p-2 uppercase" colSpan={3}>Số lượng tổng các bình</td>
                                     <td className="border border-blue-700 p-2 text-center bg-blue-800">{grandTotal}</td>
+                                    <td className="border border-blue-700 p-2"></td>
                                     <td className="border border-blue-700 p-2"></td>
                                     <td className="border border-blue-700 p-2"></td>
                                 </tr>
