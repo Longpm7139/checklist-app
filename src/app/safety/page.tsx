@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { ShieldCheck, Plus, ArrowLeft, Loader2, Search, Trash2, Calendar, User as UserIcon, CheckCircle, Printer } from 'lucide-react';
+import { ShieldCheck, Plus, ArrowLeft, Loader2, Search, Trash2, Calendar, User as UserIcon, CheckCircle, Printer, AlertOctagon } from 'lucide-react';
 import { useUser } from '@/providers/UserProvider';
 import { IMESafeInput, IMESafeTextArea } from '@/components/IMESafeInput';
 import { subscribeToSafetyReports, saveSafetyReport, deleteSafetyReport, getUsers } from '@/lib/firebase';
@@ -10,6 +10,7 @@ import { SafetyReport, SafetyCriteria, User } from '@/lib/types';
 import * as XLSX from 'xlsx';
 import { Document, Packer, Paragraph, TextRun, Table, TableRow, TableCell, BorderStyle, AlignmentType, WidthType } from 'docx';
 import { saveAs } from 'file-saver';
+import clsx from 'clsx';
 
 const INITIAL_CRITERIA: SafetyCriteria[] = [
     {
@@ -384,14 +385,39 @@ export default function SafetyPage() {
                                                 <span className="text-slate-500">Người lập:</span>
                                                 <span className="font-semibold text-slate-700">{report.reporter}</span>
                                             </div>
+                                            {(() => {
+                                                const passedCount = report.criteria.filter(c => c.result === 'Đạt').length;
+                                                const totalCount = report.criteria.length;
+                                                if (passedCount < totalCount) {
+                                                    return (
+                                                        <div className="flex justify-end animate-pulse">
+                                                            <span className="text-[10px] font-black uppercase text-red-600 bg-red-50 px-2 py-0.5 rounded border border-red-100 flex items-center gap-1">
+                                                                Cảnh báo: {passedCount}/{totalCount} Đạt
+                                                            </span>
+                                                        </div>
+                                                    );
+                                                }
+                                                return null;
+                                            })()}
                                         </div>
 
                                         <div className="text-xs text-slate-500 flex gap-4">
                                             <span className="flex items-center gap-1">LĐ: <b className="text-slate-700">{report.totalWorkers || 0}</b></span>
                                             <span className="flex items-center gap-1">Nghỉ: <b className="text-slate-700">{report.absentWorkers || 0}</b></span>
-                                            <span className="flex items-center gap-1 text-emerald-600">
-                                                <CheckCircle size={12} /> {report.criteria.filter(c => c.result === 'Đạt').length}/6 Đạt
-                                            </span>
+                                            {(() => {
+                                                const passedCount = report.criteria.filter(c => c.result === 'Đạt').length;
+                                                const totalCount = report.criteria.length;
+                                                const isPerfect = passedCount === totalCount;
+                                                return (
+                                                    <span className={clsx(
+                                                        "flex items-center gap-1 font-bold",
+                                                        isPerfect ? "text-emerald-600" : "text-red-600"
+                                                    )}>
+                                                        {isPerfect ? <CheckCircle size={12} /> : <AlertOctagon size={12} />}
+                                                        {passedCount}/{totalCount} Đạt
+                                                    </span>
+                                                );
+                                            })()}
                                         </div>
                                     </div>
                                 ))}
