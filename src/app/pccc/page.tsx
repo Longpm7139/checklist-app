@@ -162,6 +162,25 @@ export default function PcccReportPage() {
         }).join('; ');
     }
 
+    // Calculate dynamic totals for Appendix 6
+    const extinguisherTypes = [
+        "Bình chữa cháy MT5",
+        "Bình chữa cháy MT3",
+        "Bình chữa cháy MFZ8",
+        "Bình chữa cháy MFZ4",
+        "Bình chữa cháy gốc nước (màu tím)",
+        "Bình chữa cháy bột ABC 8kg"
+    ];
+
+    const typeTotals = extinguisherTypes.map(name => {
+        const total = flatItems
+            .filter(i => i.name === name)
+            .reduce((sum, i) => sum + (i.actual || 0), 0);
+        return { name, total };
+    });
+
+    const grandTotal = typeTotals.reduce((sum, t) => sum + t.total, 0);
+
     const updateItem = (zoneIdx: number, itemIdx: number, field: string, value: any) => {
         const newZones = [...zones];
         (newZones[zoneIdx].items[itemIdx] as any)[field] = value;
@@ -182,6 +201,8 @@ export default function PcccReportPage() {
                 memberRole,
                 summary: summaryText,
                 zones,
+                typeTotals,
+                grandTotal,
                 createdAt: new Date().toISOString(),
                 createdBy: user?.name || 'Unknown'
             };
@@ -295,6 +316,35 @@ export default function PcccReportPage() {
                                             ]
                                         });
                                     });
+                                }),
+                                // THÊM DÒNG TỔNG TỪNG LOẠI BÌNH
+                                ...typeTotals.map((t, idx) => (
+                                    new TableRow({
+                                        children: [
+                                            new TableCell({ children: [new Paragraph({ text: idx === 0 ? "3" : "", alignment: AlignmentType.CENTER })] }),
+                                            new TableCell({ children: [new Paragraph({ children: [new TextRun({ text: idx === 0 ? "Tổng từng loại bình" : "", bold: true })] })] }),
+                                            new TableCell({ children: [new Paragraph({ text: t.name })] }),
+                                            new TableCell({ children: [new Paragraph({ text: "-", alignment: AlignmentType.CENTER })] }),
+                                            new TableCell({ children: [new Paragraph({ children: [new TextRun({ text: t.total.toString(), bold: true })], alignment: AlignmentType.CENTER })] }),
+                                            new TableCell({ children: [new Paragraph({ text: "" })] }),
+                                            new TableCell({ children: [new Paragraph({ text: "" })] }),
+                                        ]
+                                    })
+                                )),
+                                // THÊM DÒNG TỔNG CỘNG
+                                new TableRow({
+                                    children: [
+                                        new TableCell({ children: [new Paragraph({ text: "4", alignment: AlignmentType.CENTER })] }),
+                                        new TableCell({ 
+                                            children: [new Paragraph({ children: [new TextRun({ text: "Số lượng tổng các bình", bold: true })] })], 
+                                            columnSpan: 3 
+                                        }),
+                                        new TableCell({ 
+                                            children: [new Paragraph({ children: [new TextRun({ text: grandTotal.toString(), bold: true })], alignment: AlignmentType.CENTER })] 
+                                        }),
+                                        new TableCell({ children: [new Paragraph({ text: "" })] }),
+                                        new TableCell({ children: [new Paragraph({ text: "" })] }),
+                                    ]
                                 })
                             ]
                         })
@@ -312,6 +362,7 @@ export default function PcccReportPage() {
             setIsGenerating(false);
         }
     };
+
 
     return (
         <div className="min-h-screen bg-slate-50 p-4 md:p-8 font-sans text-slate-900 pb-20">
@@ -447,6 +498,26 @@ export default function PcccReportPage() {
                                         ))}
                                     </React.Fragment>
                                 ))}
+                                {/* DÒNG TỔNG TỪNG LOẠI BÌNH TRÊN UI */}
+                                {typeTotals.map((t, idx) => (
+                                    <tr key={`total-${idx}`} className="bg-amber-50 font-bold">
+                                        <td className="border p-2 text-center text-slate-400 bg-slate-100">{idx === 0 ? "3" : ""}</td>
+                                        <td className="border p-2 text-slate-800">{idx === 0 ? "Tổng từng loại bình" : ""}</td>
+                                        <td className="border p-2 text-slate-700 italic">{t.name}</td>
+                                        <td className="border p-2 text-center">-</td>
+                                        <td className="border p-2 text-center text-blue-700">{t.total}</td>
+                                        <td className="border p-2"></td>
+                                        <td className="border p-2"></td>
+                                    </tr>
+                                ))}
+                                {/* DÒNG TỔNG CỘNG TRÊN UI */}
+                                <tr className="bg-blue-600 text-white font-black">
+                                    <td className="border border-blue-700 p-2 text-center">4</td>
+                                    <td className="border border-blue-700 p-2 uppercase" colSpan={3}>Số lượng tổng các bình</td>
+                                    <td className="border border-blue-700 p-2 text-center bg-blue-800">{grandTotal}</td>
+                                    <td className="border border-blue-700 p-2"></td>
+                                    <td className="border border-blue-700 p-2"></td>
+                                </tr>
                             </tbody>
                         </table>
                     </div>
