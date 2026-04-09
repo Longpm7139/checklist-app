@@ -97,15 +97,31 @@ export default function PcccHistoryPage() {
                         new Paragraph({ text: `+ Kiểm tra các bình chữa cháy: ${report.summary}` }),
 
                         new Paragraph({ children: [new TextRun({ text: "2. Kiến nghị:", bold: true })], spacing: { before: 200 } }),
-                        new Paragraph({ text: ".................................................................................................................................................................." }),
-                        new Paragraph({ text: ".................................................................................................................................................................." }),
-                        new Paragraph({ text: "..................................................................................................................................................................", spacing: { after: 200 } }),
+                        new Paragraph({ text: report.recommendations || "Không có kiến nghị nào." }),
+                        new Paragraph({ text: "", spacing: { after: 200 } }),
 
-                        new Paragraph({ text: `Việc kiểm tra được kết thúc vào lúc ...... giờ ....... ngày .... tháng .... năm ........` }),
-                        new Paragraph({ children: [new TextRun({ text: "P. Tổ Trưởng", bold: true })], alignment: AlignmentType.RIGHT, spacing: { before: 200 } }),
+                        new Table({
+                            width: { size: 100, type: WidthType.PERCENTAGE },
+                            borders: { top: { style: BorderStyle.NONE }, bottom: { style: BorderStyle.NONE }, left: { style: BorderStyle.NONE }, right: { style: BorderStyle.NONE }, insideVertical: { style: BorderStyle.NONE }, insideHorizontal: { style: BorderStyle.NONE } },
+                            rows: [
+                                new TableRow({
+                                    children: [
+                                        new TableCell({
+                                            width: { size: 100, type: WidthType.PERCENTAGE },
+                                            children: [
+                                                new Paragraph({ 
+                                                    text: `Việc kiểm tra được kết thúc vào lúc ${report.endTime?.split(':')[0] || '...'} giờ ${report.endTime?.split(':')[1] || '...'} phút, ngày ${report.endDate?.split('-')[2] || '...'} tháng ${report.endDate?.split('-')[1] || '...'} năm ${report.endDate?.split('-')[0] || '...'}`,
+                                                    spacing: { before: 200, after: 200 }
+                                                }),
+                                            ]
+                                        })
+                                    ]
+                                })
+                            ]
+                        }),
+
+                        new Paragraph({ children: [new TextRun({ text: "P. Tổ Trưởng", bold: true })], alignment: AlignmentType.RIGHT }),
                         new Paragraph({ children: [new TextRun({ text: "(Ký ghi rõ họ, tên)", italics: true })], alignment: AlignmentType.RIGHT, spacing: { after: 400 } }),
-
-                        // --- PAGE BREAK FOR APPENDIX 6 ---
                         new Paragraph({ children: [new TextRun({ text: "Phụ lục số 6", bold: true })], alignment: AlignmentType.CENTER, pageBreakBefore: true }),
                         new Paragraph({ text: `Ngày/Tháng kiểm tra: ${day}/${month}` }),
                         new Paragraph({ text: `Người kiểm tra: ${leaderName}`, spacing: { after: 200 } }),

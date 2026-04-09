@@ -121,6 +121,9 @@ export default function PcccReportPage() {
     // Form states
     const [selectedDate, setSelectedDate] = useState(new Date().toLocaleDateString('en-CA'));
     const [selectedTime, setSelectedTime] = useState(new Date().toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' }));
+    const [endDate, setEndDate] = useState(new Date().toLocaleDateString('en-CA'));
+    const [endTime, setEndTime] = useState(new Date().toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' }));
+    const [recommendations, setRecommendations] = useState('');
     const [leaderId, setLeaderId] = useState('');
     const [leaderRole, setLeaderRole] = useState(ROLES[0]);
     const [memberId, setMemberId] = useState('');
@@ -213,6 +216,9 @@ export default function PcccReportPage() {
                 memberName: users.find(u => u.id === memberId)?.name || '',
                 memberRole,
                 summary: summaryText,
+                endDate,
+                endTime,
+                recommendations,
                 zones,
                 typeTotals,
                 grandTotal,
@@ -286,12 +292,30 @@ export default function PcccReportPage() {
                         new Paragraph({ text: `+ Kiểm tra các bình chữa cháy: ${summaryText}` }),
 
                         new Paragraph({ children: [new TextRun({ text: "2. Kiến nghị:", bold: true })], spacing: { before: 200 } }),
-                        new Paragraph({ text: ".................................................................................................................................................................." }),
-                        new Paragraph({ text: ".................................................................................................................................................................." }),
-                        new Paragraph({ text: "..................................................................................................................................................................", spacing: { after: 200 } }),
+                        new Paragraph({ text: recommendations || "Không có kiến nghị nào." }),
+                        new Paragraph({ text: "", spacing: { after: 200 } }),
 
-                        new Paragraph({ text: `Việc kiểm tra được kết thúc vào lúc ...... giờ ....... ngày .... tháng .... năm ........` }),
-                        new Paragraph({ children: [new TextRun({ text: "P. Tổ Trưởng", bold: true })], alignment: AlignmentType.RIGHT, spacing: { before: 200 } }),
+                        new Table({
+                            width: { size: 100, type: WidthType.PERCENTAGE },
+                            borders: { top: { style: BorderStyle.NONE }, bottom: { style: BorderStyle.NONE }, left: { style: BorderStyle.NONE }, right: { style: BorderStyle.NONE }, insideVertical: { style: BorderStyle.NONE }, insideHorizontal: { style: BorderStyle.NONE } },
+                            rows: [
+                                new TableRow({
+                                    children: [
+                                        new TableCell({
+                                            width: { size: 100, type: WidthType.PERCENTAGE },
+                                            children: [
+                                                new Paragraph({ 
+                                                    text: `Việc kiểm tra được kết thúc vào lúc ${endTime.split(':')[0]} giờ ${endTime.split(':')[1]} phút, ngày ${endDate.split('-')[2]} tháng ${endDate.split('-')[1]} năm ${endDate.split('-')[0]}`,
+                                                    spacing: { before: 200, after: 200 }
+                                                }),
+                                            ]
+                                        })
+                                    ]
+                                })
+                            ]
+                        }),
+
+                        new Paragraph({ children: [new TextRun({ text: "P. Tổ Trưởng", bold: true })], alignment: AlignmentType.RIGHT }),
                         new Paragraph({ children: [new TextRun({ text: "(Ký ghi rõ họ, tên)", italics: true })], alignment: AlignmentType.RIGHT, spacing: { after: 400 } }),
 
                         // --- PAGE BREAK FOR APPENDIX 6 ---
@@ -445,6 +469,32 @@ export default function PcccReportPage() {
                             <select value={memberRole} onChange={e => setMemberRole(e.target.value)} className="w-full border p-2 rounded-lg bg-white outline-none font-medium">
                                 {ROLES.map(r => <option key={r} value={r}>{r}</option>)}
                             </select>
+                        </div>
+                    </div>
+                </div>
+
+                <div className="bg-white rounded-2xl shadow-xl border border-slate-200/60 overflow-hidden mb-6">
+                    <div className="p-4 border-b border-slate-100 bg-slate-50 font-black text-slate-800 text-lg uppercase tracking-wide">
+                        Kết thúc & Kiến nghị
+                    </div>
+                    <div className="p-6 grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <div>
+                            <label className="block text-sm font-bold text-slate-700 mb-1.5 flex items-center gap-1"><Calendar size={14} />Ngày kết thúc</label>
+                            <input type="date" value={endDate} onChange={e => setEndDate(e.target.value)} className="w-full border p-3 rounded-xl bg-slate-50 outline-none focus:border-orange-500 font-bold text-slate-800" />
+                        </div>
+                        <div>
+                            <label className="block text-sm font-bold text-slate-700 mb-1.5 flex items-center gap-1"><Clock size={14} />Giờ kết thúc</label>
+                            <input type="time" value={endTime} onChange={e => setEndTime(e.target.value)} className="w-full border p-3 rounded-xl bg-slate-50 outline-none focus:border-orange-500 font-bold text-slate-800" />
+                        </div>
+                        <div className="md:col-span-2">
+                            <label className="block text-sm font-bold text-slate-700 mb-1.5 flex items-center gap-1"><FileText size={14} />Kiến nghị (Nếu có)</label>
+                            <textarea 
+                                rows={3} 
+                                value={recommendations} 
+                                onChange={e => setRecommendations(e.target.value)} 
+                                placeholder="Nhập kiến nghị cụ thể..."
+                                className="w-full border p-3 rounded-xl bg-slate-50 outline-none focus:border-orange-500 font-medium text-slate-800"
+                            />
                         </div>
                     </div>
                 </div>
