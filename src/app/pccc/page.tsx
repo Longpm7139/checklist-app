@@ -233,6 +233,7 @@ export default function PcccReportPage() {
             const d = new Date(selectedDate);
             const formattedDateString = `${String(d.getDate()).padStart(2, '0')}/${String(d.getMonth() + 1).padStart(2, '0')}/${d.getFullYear()}`;
             const [year, month, day] = selectedDate.split('-');
+            const [hourStr, minuteStr] = selectedTime.split(':');
 
             const doc = new Document({
                 sections: [{
@@ -271,7 +272,7 @@ export default function PcccReportPage() {
                         new Paragraph({ children: [new TextRun({ text: "Về phòng cháy, chữa cháy", bold: true, size: 24 })], alignment: AlignmentType.CENTER }),
                         new Paragraph({ children: [new TextRun({ text: "NHÓM 06", bold: true, size: 24 })], alignment: AlignmentType.CENTER, spacing: { after: 300 } }),
 
-                        new Paragraph({ text: `Vào lúc: ${selectedTime} giờ, ngày ${day} tháng ${month} năm ${year}` }),
+                        new Paragraph({ text: `Vào lúc: ${hourStr} giờ ${minuteStr} phút, ngày ${day} tháng ${month} năm ${year}` }),
                         new Paragraph({ text: `Nhóm trưởng: Ông ${leaderName}\t\t\tChức vụ: ${leaderRole}` }),
                         new Paragraph({ text: `Thành viên: Ông ${memberName}\t\t\tChức vụ: ${memberRole}` }),
                         
