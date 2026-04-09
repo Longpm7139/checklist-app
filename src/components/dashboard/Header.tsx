@@ -71,6 +71,13 @@ export default function Header({
         >
           <ShieldCheck size={16} /> An Toàn
         </button>
+        <button
+          onClick={() => router.push('/pccc')}
+          className="p-2 rounded text-sm font-bold flex items-center gap-1 bg-orange-600 hover:bg-orange-700 text-white transition shadow-sm"
+          title="Báo cáo PCCC"
+        >
+          <BookOpen size={16} /> PCCC
+        </button>
         {user?.role === 'ADMIN' && (
           <>
             <button

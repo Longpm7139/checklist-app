@@ -399,6 +399,32 @@ export const deleteSafetyReport = async (id: string) => {
     await deleteDoc(doc(db, "safety_reports", id));
 };
 
+// PCCC Reports
+export const subscribeToPcccReports = (callback: (data: any[]) => void) => {
+    const q = query(collection(db, "pccc_reports"));
+    return onSnapshot(q, (querySnapshot) => {
+        const items: any[] = [];
+        querySnapshot.forEach((doc) => {
+            items.push({ ...doc.data(), id: doc.id });
+        });
+        items.sort((a, b) => {
+            const timeA = new Date(a.createdAt).getTime() || 0;
+            const timeB = new Date(b.createdAt).getTime() || 0;
+            return timeB - timeA;
+        });
+        callback(items);
+    });
+};
+
+export const savePcccReport = async (report: any) => {
+    const docId = report.id || Date.now().toString();
+    await setDoc(doc(db, "pccc_reports", docId), removeUndefined(report), { merge: true });
+};
+
+export const deletePcccReport = async (id: string) => {
+    await deleteDoc(doc(db, "pccc_reports", id));
+};
+
 // Helper to get all details for Summary page
 export const getAllDetails = async () => {
     const q = query(collection(db, "details"));
