@@ -247,7 +247,7 @@ export default function PcccHistoryPage() {
                                     >
                                         <Download size={18} /> {isGenerating === report.id ? "Đang tạo..." : "XUẤT LẠI WORD"}
                                     </button>
-                                    {(user?.role === 'ADMIN' || user?.name === report.createdBy) && (
+                                    {user?.role === 'ADMIN' && (
                                         <button 
                                             onClick={() => handleDelete(report.id)}
                                             className="flex-1 md:flex-none py-3 px-6 rounded-xl font-black text-sm text-red-600 hover:bg-red-50 border border-transparent hover:border-red-100 transition-all flex items-center justify-center gap-2"
