@@ -28,6 +28,7 @@ export default function IncidentsPage() {
     const [imagePreview, setImagePreview] = useState<string | null>(null);
     const [isUploading, setIsUploading] = useState(false);
     const [viewingImage, setViewingImage] = useState<string | null>(null);
+    const [customCreatedAt, setCustomCreatedAt] = useState<string>('');
 
     // Severity & auto-suggest
     const [newSeverity, setNewSeverity] = useState<'CRITICAL' | 'MEDIUM' | 'LOW'>('MEDIUM');
@@ -41,6 +42,7 @@ export default function IncidentsPage() {
     const [resImagePreview, setResImagePreview] = useState<string | null>(null);
     const [isResUploading, setIsResUploading] = useState(false);
     const [zaloModalMessage, setZaloModalMessage] = useState<string | null>(null);
+    const [customResolvedAt, setCustomResolvedAt] = useState<string>('');
 
     // Helper: Send Zalo message (works on both mobile and desktop)
     const sendZaloMessage = (message: string) => {
@@ -121,6 +123,10 @@ export default function IncidentsPage() {
                 uploadedUrl = await uploadImage(imageFile, path);
             }
 
+            const incidentDate = customCreatedAt 
+                ? new Date(customCreatedAt).toLocaleString('vi-VN', { hour: '2-digit', minute: '2-digit', day: '2-digit', month: '2-digit', year: 'numeric', hour12: false })
+                : new Date().toLocaleString('vi-VN', { hour: '2-digit', minute: '2-digit', day: '2-digit', month: '2-digit', year: 'numeric', hour12: false });
+
             const newIncident: Incident = {
                 id: Date.now().toString(),
                 title: newTitle,
@@ -130,7 +136,7 @@ export default function IncidentsPage() {
                 severity: newSeverity,
                 assignedTo: assignee,
                 reportedBy: currentUser?.name || 'Admin',
-                createdAt: new Date().toLocaleString('vi-VN', { hour: '2-digit', minute: '2-digit', day: '2-digit', month: '2-digit', year: 'numeric', hour12: false }),
+                createdAt: incidentDate,
                 imageUrl: uploadedUrl
             };
 
@@ -139,7 +145,7 @@ export default function IncidentsPage() {
 
             // Notification Logic
             if (notifyZalo) {
-                const message = `[BÁO CÁO SỰ CỐ KHẨN CẤP] 🚨\n\n📌 Tên sự cố: ${newTitle}\n📍 Hệ thống/Khu vực: ${newSystem}\n📝 Mô tả: ${newDesc || 'Không có mô tả'}\n👤 Người báo: ${currentUser?.name || 'Admin'}${uploadedUrl ? `\n🖼 Ảnh đính kèm: [Xem trong App]` : ''}\n\n👉 Đề nghị kiểm tra xử lý ngay!`;
+                const message = `[BÁO CÁO SỰ CỐ KHẨN CẤP] 🚨\n\n📌 Tên sự cố: ${newTitle}\n📍 Hệ thống/Khu vực: ${newSystem}\n🕒 Thời gian xảy ra: ${incidentDate}\n📝 Mô tả: ${newDesc || 'Không có mô tả'}\n👤 Người báo: ${currentUser?.name || 'Admin'}${uploadedUrl ? `\n🖼 Ảnh đính kèm: [Xem trong App]` : ''}\n\n👉 Đề nghị kiểm tra xử lý ngay!`;
                 alert("Đã tạo sự cố thành công!");
                 sendZaloMessage(message);
             } else {
@@ -155,6 +161,7 @@ export default function IncidentsPage() {
             setSuggestedIncidents([]);
             setImageFile(null);
             setImagePreview(null);
+            setCustomCreatedAt('');
             setViewMode('LIST');
         } catch (error) {
             console.error("Failed to create incident", error);
@@ -169,6 +176,15 @@ export default function IncidentsPage() {
         setResolutionNote('');
         setResImageFile(null);
         setResImagePreview(null);
+        
+        const now = new Date();
+        const isoStr = now.getFullYear() + '-' + 
+                     String(now.getMonth() + 1).padStart(2, '0') + '-' + 
+                     String(now.getDate()).padStart(2, '0') + 'T' + 
+                     String(now.getHours()).padStart(2, '0') + ':' + 
+                     String(now.getMinutes()).padStart(2, '0');
+        setCustomResolvedAt(isoStr);
+
         if (currentUser?.name) {
             setSelectedParticipants([currentUser.name]);
         } else {
@@ -238,7 +254,9 @@ export default function IncidentsPage() {
                     ...incidentToUpdate,
                     status: 'RESOLVED',
                     resolvedBy: currentUser?.name || 'Unknown',
-                    resolvedAt: new Date().toLocaleString('vi-VN', { hour: '2-digit', minute: '2-digit', day: '2-digit', month: '2-digit', year: 'numeric', hour12: false }),
+                    resolvedAt: customResolvedAt 
+                        ? new Date(customResolvedAt).toLocaleString('vi-VN', { hour: '2-digit', minute: '2-digit', day: '2-digit', month: '2-digit', year: 'numeric', hour12: false })
+                        : new Date().toLocaleString('vi-VN', { hour: '2-digit', minute: '2-digit', day: '2-digit', month: '2-digit', year: 'numeric', hour12: false }),
                     resolutionNote: resolutionNote,
                     participants: selectedParticipants,
                     resolutionImageUrl: uploadedUrl
@@ -314,7 +332,16 @@ export default function IncidentsPage() {
                                 <Download size={18} /> Xuất Excel
                             </button>
                             <button
-                                onClick={() => setViewMode('CREATE')}
+                                onClick={() => {
+                                    setViewMode('CREATE');
+                                    const now = new Date();
+                                    const isoStr = now.getFullYear() + '-' + 
+                                                 String(now.getMonth() + 1).padStart(2, '0') + '-' + 
+                                                 String(now.getDate()).padStart(2, '0') + 'T' + 
+                                                 String(now.getHours()).padStart(2, '0') + ':' + 
+                                                 String(now.getMinutes()).padStart(2, '0');
+                                    setCustomCreatedAt(isoStr);
+                                }}
                                 className="px-3 py-2 bg-red-600 text-white rounded shadow hover:bg-red-700 flex items-center gap-2 font-bold text-sm"
                             >
                                 <Plus size={18} /> Báo Sự Cố Mới
@@ -368,6 +395,22 @@ export default function IncidentsPage() {
                                     ))}
                                 </div>
                             </div>
+                            {/* Date and Time Selection */}
+                            <div>
+                                <label className="block text-sm font-bold text-slate-700 mb-1 flex items-center gap-2">
+                                    <Clock size={16} className="text-red-500" /> Thời gian xảy ra sự cố *
+                                </label>
+                                <input
+                                    type="datetime-local"
+                                    className="w-full border border-slate-300 rounded p-2 focus:border-red-500 outline-none bg-white"
+                                    value={customCreatedAt}
+                                    onChange={(e) => setCustomCreatedAt(e.target.value)}
+                                />
+                                <p className="text-[10px] text-slate-500 mt-1 italic">
+                                    Mặc định là thời gian hiện tại. Bạn có thể thay đổi nếu đang báo cáo sự cố đã xảy ra trước đó.
+                                </p>
+                            </div>
+
                             <div>
                                 <label className="block text-sm font-medium text-slate-700 mb-1">Tên sự cố *</label>
                                 <IMESafeInput
@@ -657,8 +700,23 @@ export default function IncidentsPage() {
                             />
                         </div>
 
+                        <div className="mb-4">
+                            <label className="block text-sm font-bold text-slate-700 mb-2 flex items-center gap-2">
+                                <Clock size={16} className="text-green-600" /> 2. Thời gian khắc phục:
+                            </label>
+                            <input
+                                type="datetime-local"
+                                className="w-full border border-slate-300 rounded p-2 focus:border-green-500 outline-none bg-slate-50"
+                                value={customResolvedAt}
+                                onChange={(e) => setCustomResolvedAt(e.target.value)}
+                            />
+                            <p className="text-[10px] text-slate-500 mt-1 italic">
+                                Mặc định là hiện tại. Bạn có thể lùi thời gian nếu đã xử lý xong từ trước.
+                            </p>
+                        </div>
+
                         <div className="mb-6">
-                            <label className="block text-sm font-bold text-slate-700 mb-2">2. Người tham gia xử lý (được cộng điểm KPI):</label>
+                            <label className="block text-sm font-bold text-slate-700 mb-2">3. Người tham gia xử lý (được cộng điểm KPI):</label>
                             <div className="max-h-40 overflow-y-auto border border-slate-200 rounded p-2 bg-slate-50 grid grid-cols-2 gap-2">
                                 {users.map(u => (
                                     <label key={u.id} className="flex items-center gap-2 p-2 bg-white rounded border border-slate-100 cursor-pointer hover:bg-blue-50">
@@ -676,7 +734,7 @@ export default function IncidentsPage() {
                         </div>
 
                         <div className="mb-6">
-                            <label className="block text-sm font-bold text-slate-700 mb-2">3. Hình ảnh bằng chứng đã xong:</label>
+                            <label className="block text-sm font-bold text-slate-700 mb-2">4. Hình ảnh bằng chứng đã xong:</label>
                             <div className="flex items-center gap-4">
                                 {!resImagePreview ? (
                                     <label className="flex flex-col items-center justify-center w-24 h-24 rounded-lg border-2 border-dashed border-slate-300 bg-slate-50 cursor-pointer hover:bg-blue-50 transition group">

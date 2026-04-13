@@ -6,7 +6,7 @@ import { SystemCheck, Status, SystemCategory, MaintenanceTask } from '@/lib/type
 import {
   Save, AlertCircle, Edit2, Trash2, Plus, Check, X, RotateCcw, History as HistoryIcon,
   CheckCheck, Search, LogOut, Users, Lock, ClipboardList, BarChart2, Package,
-  Wrench, QrCode, Key, UserCheck, FileText, ArrowRight, CheckCircle, Filter, AlertTriangle, Send, Camera
+  Wrench, QrCode, Key, UserCheck, FileText, ArrowRight, CheckCircle, Filter, AlertTriangle, Send, Camera, Clock
 } from 'lucide-react';
 import clsx from 'clsx';
 import { useUser } from '@/providers/UserProvider';
@@ -117,6 +117,7 @@ export default function Home() {
   const [isHandoffModalOpen, setIsHandoffModalOpen] = useState(false);
   const [showReminder, setShowReminder] = useState(true);
   const [expandedCategories, setExpandedCategories] = useState<Set<string>>(new Set());
+  const [customTimestamp, setCustomTimestamp] = useState<string>('');
 
   const toggleCategory = (catId: string) => {
     setExpandedCategories(prev => {
@@ -202,6 +203,15 @@ export default function Home() {
       }
     });
 
+    // Initialize custom timestamp
+    const now = new Date();
+    const isoStr = now.getFullYear() + '-' + 
+                 String(now.getMonth() + 1).padStart(2, '0') + '-' + 
+                 String(now.getDate()).padStart(2, '0') + 'T' + 
+                 String(now.getHours()).padStart(2, '0') + ':' + 
+                 String(now.getMinutes()).padStart(2, '0');
+    setCustomTimestamp(isoStr);
+
     return () => {
       unsubSystems();
       unsubIncidents();
@@ -214,8 +224,12 @@ export default function Home() {
 
   const handleStatusChange = async (id: string, status: Status) => {
     if (!isUserOnDuty) return;
-
-    const now = new Date().toLocaleString('vi-VN', { hour: '2-digit', minute: '2-digit', day: '2-digit', month: '2-digit', year: 'numeric', hour12: false });
+    
+    // Use customTimestamp if provided, otherwise fallback to current time
+    const now = customTimestamp 
+      ? new Date(customTimestamp).toLocaleString('vi-VN', { hour: '2-digit', minute: '2-digit', day: '2-digit', month: '2-digit', year: 'numeric', hour12: false })
+      : new Date().toLocaleString('vi-VN', { hour: '2-digit', minute: '2-digit', day: '2-digit', month: '2-digit', year: 'numeric', hour12: false });
+    
     const target = systems.find(s => s.id === id);
     if (target) {
       // NOTE: User requested points to be assigned when shifting status.
@@ -273,7 +287,10 @@ export default function Home() {
 
   const handleNoteChange = async (id: string, note: string) => {
     if (!isUserOnDuty) return;
-    const now = new Date().toLocaleString('vi-VN', { hour: '2-digit', minute: '2-digit', day: '2-digit', month: '2-digit', year: 'numeric', hour12: false });
+    const now = customTimestamp 
+      ? new Date(customTimestamp).toLocaleString('vi-VN', { hour: '2-digit', minute: '2-digit', day: '2-digit', month: '2-digit', year: 'numeric', hour12: false })
+      : new Date().toLocaleString('vi-VN', { hour: '2-digit', minute: '2-digit', day: '2-digit', month: '2-digit', year: 'numeric', hour12: false });
+    
     const target = systems.find(s => s.id === id);
     if (target) {
       const updated = { ...target, note, timestamp: now, inspectorName: user?.name, inspectorCode: user?.code };
@@ -384,7 +401,9 @@ export default function Home() {
       alert("Chỉ nhân viên trong ca trực mới được phép thao tác!");
       return;
     }
-    const now = new Date().toLocaleString('vi-VN', { hour: '2-digit', minute: '2-digit', day: '2-digit', month: '2-digit', year: 'numeric', hour12: false });
+    const now = customTimestamp 
+      ? new Date(customTimestamp).toLocaleString('vi-VN', { hour: '2-digit', minute: '2-digit', day: '2-digit', month: '2-digit', year: 'numeric', hour12: false })
+      : new Date().toLocaleString('vi-VN', { hour: '2-digit', minute: '2-digit', day: '2-digit', month: '2-digit', year: 'numeric', hour12: false });
 
     systems.forEach(async (s) => {
       if (s.status === 'NA' || !s.status) {
@@ -651,6 +670,25 @@ export default function Home() {
             failedCategoryIds={failedCategoryIds}
             categories={categories}
           />
+        </div>
+
+        {/* Global Time Selector for Dashboard Reporting */}
+        <div className="mx-4 mb-4 p-4 bg-blue-50 border border-blue-200 rounded-xl flex flex-col md:flex-row md:items-center justify-between gap-4 shadow-sm">
+          <div className="flex items-center gap-2">
+            <Clock size={20} className="text-blue-600" />
+            <div>
+              <span className="font-bold text-slate-700 block text-sm">Thời gian ghi nhận kiểm tra:</span>
+              <span className="text-[10px] text-slate-500 italic">Áp dụng cho tất cả các thao tác đánh dấu nhanh trên trang này.</span>
+            </div>
+          </div>
+          <div className="flex items-center gap-2 min-w-[200px]">
+            <input
+              type="datetime-local"
+              className="w-full border border-slate-300 rounded-lg p-2 focus:border-blue-500 outline-none bg-white font-medium text-sm"
+              value={customTimestamp}
+              onChange={(e) => setCustomTimestamp(e.target.value)}
+            />
+          </div>
         </div>
 
         {isSearchOpen && (

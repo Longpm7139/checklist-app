@@ -39,6 +39,7 @@ export default function CheckPage() {
     const [isLoaded, setIsLoaded] = useState(false);
     const [isDirty, setIsDirty] = useState(false);
     const [zaloModalMessage, setZaloModalMessage] = useState<string | null>(null);
+    const [customTimestamp, setCustomTimestamp] = useState<string>('');
 
     // Helper: Send Zalo — works on both mobile and desktop
     const sendZaloMessage = (message: string) => {
@@ -92,6 +93,14 @@ export default function CheckPage() {
             setDuties(data);
         });
 
+        const now = new Date();
+        const isoStr = now.getFullYear() + '-' + 
+                     String(now.getMonth() + 1).padStart(2, '0') + '-' + 
+                     String(now.getDate()).padStart(2, '0') + 'T' + 
+                     String(now.getHours()).padStart(2, '0') + ':' + 
+                     String(now.getMinutes()).padStart(2, '0');
+        setCustomTimestamp(isoStr);
+
         return () => {
             unsubSys();
             unsubChecklist();
@@ -104,7 +113,9 @@ export default function CheckPage() {
             alert("Chỉ nhân viên trong ca trực mới được phép cập nhật tình trạng!");
             return;
         }
-        const now = new Date().toLocaleString('vi-VN', { hour: '2-digit', minute: '2-digit', day: '2-digit', month: '2-digit', year: 'numeric', hour12: false });
+        const now = customTimestamp 
+            ? new Date(customTimestamp).toLocaleString('vi-VN', { hour: '2-digit', minute: '2-digit', day: '2-digit', month: '2-digit', year: 'numeric', hour12: false })
+            : new Date().toLocaleString('vi-VN', { hour: '2-digit', minute: '2-digit', day: '2-digit', month: '2-digit', year: 'numeric', hour12: false });
 
         setItems(prev => prev.map(i => {
             if (i.id === id) {
@@ -197,7 +208,10 @@ export default function CheckPage() {
             // ALWAYS Save and Log when clicking Save, even if no changes are detected.
             // This is critical for KPI tracking of routine inspections.
             if (true) {
-                const now = new Date().toLocaleString('vi-VN', { hour: '2-digit', minute: '2-digit', day: '2-digit', month: '2-digit', year: 'numeric', hour12: false });
+                const now = customTimestamp 
+                    ? new Date(customTimestamp).toLocaleString('vi-VN', { hour: '2-digit', minute: '2-digit', day: '2-digit', month: '2-digit', year: 'numeric', hour12: false })
+                    : new Date().toLocaleString('vi-VN', { hour: '2-digit', minute: '2-digit', day: '2-digit', month: '2-digit', year: 'numeric', hour12: false });
+                
                 const durationSeconds = Math.round((Date.now() - startTime) / 1000);
 
                 const uncheckedCount = items.filter(i => i.status === 'NA').length;
@@ -364,6 +378,26 @@ export default function CheckPage() {
                         </div>
                     </div>
                 )}
+
+                <div className="p-4 bg-blue-50 border-b border-blue-200">
+                    <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+                        <div className="flex items-center gap-2">
+                            <Clock size={20} className="text-blue-600" />
+                            <span className="font-bold text-slate-700">Thời gian thực hiện kiểm tra:</span>
+                        </div>
+                        <div className="flex items-center gap-2 flex-1 max-w-xs">
+                            <input
+                                type="datetime-local"
+                                className="w-full border border-slate-300 rounded p-2 focus:border-blue-500 outline-none bg-white font-medium"
+                                value={customTimestamp}
+                                onChange={(e) => setCustomTimestamp(e.target.value)}
+                            />
+                        </div>
+                    </div>
+                    <p className="text-[10px] text-slate-500 mt-1 italic">
+                        Mặc định là thời gian hiện tại lúc bắt đầu. Bạn có thể thay đổi để phản ánh đúng thời gian kiểm tra thực tế.
+                    </p>
+                </div>
 
                 <div className="overflow-x-auto w-full">
                     <div className="w-full">
