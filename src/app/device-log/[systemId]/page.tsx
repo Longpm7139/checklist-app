@@ -142,13 +142,30 @@ export default function DeviceLogDetailPage() {
     }, [systemId]);
 
     const update = (field: keyof DeviceLog, value: any) => {
-        if (!isAdmin) return;
         setLog(prev => ({ ...prev, [field]: value }));
         setSaved(false);
     };
 
-    const handleSave = async () => {
+    const handleClearData = async () => {
         if (!isAdmin || !systemId) return;
+        if (confirm('Bạn có chắc chắn muốn xóa rỗng TOÀN BỘ dữ liệu từ Mục 1 đến Mục 22? (Sẽ không ảnh hưởng sự cố/hư hỏng)')) {
+            setSaving(true);
+            setLog({ ...EMPTY_LOG });
+            await saveDeviceLog(systemId, {
+                ...EMPTY_LOG,
+                systemId,
+                systemName: system?.name || systemId,
+                updatedAt: new Date().toLocaleString('vi-VN'),
+                updatedBy: user?.name || 'Admin',
+            });
+            setSaving(false);
+            setSaved(true);
+            setTimeout(() => setSaved(false), 2500);
+        }
+    };
+
+    const handleSave = async () => {
+        if (!systemId) return;
         setSaving(true);
         const now = new Date().toLocaleString('vi-VN', {
             hour: '2-digit', minute: '2-digit', day: '2-digit',
@@ -159,7 +176,7 @@ export default function DeviceLogDetailPage() {
             systemId,
             systemName: system?.name || systemId,
             updatedAt: now,
-            updatedBy: user?.name || 'Admin',
+            updatedBy: user?.name,
         });
         setSaving(false);
         setSaved(true);
@@ -254,24 +271,26 @@ export default function DeviceLogDetailPage() {
                         >
                             <Printer size={18} />
                         </button>
-                        {isAdmin ? (
+                        <button
+                            onClick={handleSave}
+                            disabled={saving}
+                            className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-bold transition-all shadow-sm ${
+                                saved
+                                    ? 'bg-green-500 text-white'
+                                    : 'bg-blue-600 hover:bg-blue-700 text-white'
+                            }`}
+                        >
+                            {saved ? <CheckCircle size={16} /> : <Save size={16} />}
+                            {saving ? 'Đang lưu...' : saved ? 'Đã lưu' : 'Lưu'}
+                        </button>
+                        {isAdmin && (
                             <button
-                                onClick={handleSave}
-                                disabled={saving}
-                                className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-bold transition-all shadow-sm ${
-                                    saved
-                                        ? 'bg-green-500 text-white'
-                                        : 'bg-blue-600 hover:bg-blue-700 text-white'
-                                }`}
+                                onClick={handleClearData}
+                                className="p-2 ml-1 rounded-lg border border-red-200 hover:bg-red-50 text-red-600 transition-colors"
+                                title="Xoá rỗng toàn bộ dữ liệu (Mục 1-22)"
                             >
-                                {saved ? <CheckCircle size={16} /> : <Save size={16} />}
-                                {saving ? 'Đang lưu...' : saved ? 'Đã lưu' : 'Lưu'}
+                                <Trash2 size={18} />
                             </button>
-                        ) : (
-                            <div className="flex items-center gap-1.5 text-xs text-slate-400 bg-slate-100 px-3 py-1.5 rounded-lg">
-                                <Lock size={13} />
-                                Chỉ xem
-                            </div>
                         )}
                     </div>
                 </div>
@@ -307,34 +326,34 @@ export default function DeviceLogDetailPage() {
                                     <InputField value={systemName} onChange={() => {}} readOnly />
                                 </Field>
                                 <Field label="2. Nhãn hiệu / Hãng sản xuất">
-                                    <InputField value={log.brand} onChange={(v: string) => update('brand', v)} placeholder="VD: Thyssenkrupp, SITA..." readOnly={!isAdmin} />
+                                    <InputField value={log.brand} onChange={(v: string) => update('brand', v)} placeholder="VD: Thyssenkrupp, SITA..." readOnly={false} />
                                 </Field>
                                 <Field label="3. Mục đích sử dụng">
-                                    <InputField value={log.purpose} onChange={(v: string) => update('purpose', v)} placeholder="VD: Vận chuyển hành khách..." readOnly={!isAdmin} />
+                                    <InputField value={log.purpose} onChange={(v: string) => update('purpose', v)} placeholder="VD: Vận chuyển hành khách..." readOnly={false} />
                                 </Field>
                                 <Field label="4. Phạm vi hoạt động">
-                                    <InputField value={log.operatingArea} onChange={(v: string) => update('operatingArea', v)} placeholder="VD: Nhà ga T1, khu vực..." readOnly={!isAdmin} />
+                                    <InputField value={log.operatingArea} onChange={(v: string) => update('operatingArea', v)} placeholder="VD: Nhà ga T1, khu vực..." readOnly={false} />
                                 </Field>
                                 <Field label="5. Nước sản xuất">
-                                    <InputField value={log.countryOfOrigin} onChange={(v: string) => update('countryOfOrigin', v)} placeholder="VD: Đức, Nhật Bản..." readOnly={!isAdmin} />
+                                    <InputField value={log.countryOfOrigin} onChange={(v: string) => update('countryOfOrigin', v)} placeholder="VD: Đức, Nhật Bản..." readOnly={false} />
                                 </Field>
                                 <Field label="6. Số máy (Serial Number)">
-                                    <InputField value={log.serialNumber} onChange={(v: string) => update('serialNumber', v)} placeholder="VD: SN-2023-001..." readOnly={!isAdmin} />
+                                    <InputField value={log.serialNumber} onChange={(v: string) => update('serialNumber', v)} placeholder="VD: SN-2023-001..." readOnly={false} />
                                 </Field>
                                 <Field label="7. Mã số / Địa chỉ kỹ thuật">
-                                    <InputField value={log.technicalAddress} onChange={(v: string) => update('technicalAddress', v)} placeholder="VD: 192.168.1.10 / ID-TB-001" readOnly={!isAdmin} />
+                                    <InputField value={log.technicalAddress} onChange={(v: string) => update('technicalAddress', v)} placeholder="VD: 192.168.1.10 / ID-TB-001" readOnly={false} />
                                 </Field>
                                 <Field label="8. Địa điểm / Tọa độ đặt thiết bị">
-                                    <InputField value={log.location} onChange={(v: string) => update('location', v)} placeholder="VD: Gate A5, Tầng 1, Nhà ga T1" readOnly={!isAdmin} />
+                                    <InputField value={log.location} onChange={(v: string) => update('location', v)} placeholder="VD: Gate A5, Tầng 1, Nhà ga T1" readOnly={false} />
                                 </Field>
                                 <Field label="9. Thời gian hoạt động hàng ngày">
-                                    <InputField value={log.dailyOperatingHours} onChange={(v: string) => update('dailyOperatingHours', v)} placeholder="VD: 05:00 – 23:00 (18 giờ/ngày)" readOnly={!isAdmin} />
+                                    <InputField value={log.dailyOperatingHours} onChange={(v: string) => update('dailyOperatingHours', v)} placeholder="VD: 05:00 – 23:00 (18 giờ/ngày)" readOnly={false} />
                                 </Field>
                                 <Field label="10–11. Mã số TSCD / Xuất xứ đi đôi">
-                                    <InputField value={log.assetCode} onChange={(v: string) => update('assetCode', v)} placeholder="VD: TSCD-2023-A001" readOnly={!isAdmin} />
+                                    <InputField value={log.assetCode} onChange={(v: string) => update('assetCode', v)} placeholder="VD: TSCD-2023-A001" readOnly={false} />
                                 </Field>
                                 <Field label="12. Đơn vị sử dụng (quản lý)">
-                                    <InputField value={log.managingUnit} onChange={(v: string) => update('managingUnit', v)} placeholder="VD: Phòng Kỹ thuật ACV" readOnly={!isAdmin} />
+                                    <InputField value={log.managingUnit} onChange={(v: string) => update('managingUnit', v)} placeholder="VD: Phòng Kỹ thuật ACV" readOnly={false} />
                                 </Field>
                             </div>
                         </SectionCard>
@@ -344,7 +363,7 @@ export default function DeviceLogDetailPage() {
                             <OperatorsTable
                                 operators={log.operators || []}
                                 onChange={ops => update('operators', ops)}
-                                readOnly={!isAdmin}
+                                readOnly={false}
                             />
                         </SectionCard>
                     </div>
@@ -356,15 +375,15 @@ export default function DeviceLogDetailPage() {
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                             <Field label="14. Kích thước (Dài × Rộng × Cao)">
                                 <div className="flex gap-2 items-center">
-                                    <InputField value={log.dimLength} onChange={(v: string) => update('dimLength', v)} placeholder="Dài" readOnly={!isAdmin} />
+                                    <InputField value={log.dimLength} onChange={(v: string) => update('dimLength', v)} placeholder="Dài" readOnly={false} />
                                     <span className="text-slate-400 font-bold">×</span>
-                                    <InputField value={log.dimWidth} onChange={(v: string) => update('dimWidth', v)} placeholder="Rộng" readOnly={!isAdmin} />
+                                    <InputField value={log.dimWidth} onChange={(v: string) => update('dimWidth', v)} placeholder="Rộng" readOnly={false} />
                                     <span className="text-slate-400 font-bold">×</span>
-                                    <InputField value={log.dimHeight} onChange={(v: string) => update('dimHeight', v)} placeholder="Cao" readOnly={!isAdmin} />
+                                    <InputField value={log.dimHeight} onChange={(v: string) => update('dimHeight', v)} placeholder="Cao" readOnly={false} />
                                     <select
                                         value={log.dimUnit || 'mm'}
                                         onChange={e => update('dimUnit', e.target.value)}
-                                        disabled={!isAdmin}
+                                        disabled={false}
                                         className="border border-slate-300 rounded-lg px-2 py-2 text-sm bg-white outline-none disabled:bg-slate-50"
                                     >
                                         {['mm', 'cm', 'm'].map(u => <option key={u}>{u}</option>)}
@@ -373,11 +392,11 @@ export default function DeviceLogDetailPage() {
                             </Field>
                             <Field label="15. Khối lượng">
                                 <div className="flex gap-2">
-                                    <InputField value={log.weight} onChange={(v: string) => update('weight', v)} placeholder="VD: 2500" readOnly={!isAdmin} />
+                                    <InputField value={log.weight} onChange={(v: string) => update('weight', v)} placeholder="VD: 2500" readOnly={false} />
                                     <select
                                         value={log.weightUnit || 'kg'}
                                         onChange={e => update('weightUnit', e.target.value)}
-                                        disabled={!isAdmin}
+                                        disabled={false}
                                         className="border border-slate-300 rounded-lg px-2 py-2 text-sm bg-white outline-none w-20 disabled:bg-slate-50"
                                     >
                                         {['kg', 'tấn'].map(u => <option key={u}>{u}</option>)}
@@ -385,19 +404,19 @@ export default function DeviceLogDetailPage() {
                                 </div>
                             </Field>
                             <Field label="16. Nguồn điện cung cấp / Nhiên liệu">
-                                <InputField value={log.powerSource} onChange={(v: string) => update('powerSource', v)} placeholder="VD: 380V AC 3 pha / Dầu diesel" readOnly={!isAdmin} />
+                                <InputField value={log.powerSource} onChange={(v: string) => update('powerSource', v)} placeholder="VD: 380V AC 3 pha / Dầu diesel" readOnly={false} />
                             </Field>
                             <Field label="17. Công suất tiêu thụ / Định mức nhiên liệu">
-                                <InputField value={log.powerConsumption} onChange={(v: string) => update('powerConsumption', v)} placeholder="VD: 15 kW / 5L/h" readOnly={!isAdmin} />
+                                <InputField value={log.powerConsumption} onChange={(v: string) => update('powerConsumption', v)} placeholder="VD: 15 kW / 5L/h" readOnly={false} />
                             </Field>
                             <div className="md:col-span-2">
                                 <Field label="18. Quy định nghiêm ngặt về an toàn lao động">
-                                    <TextareaField value={log.safetyRegulations} onChange={(v: string) => update('safetyRegulations', v)} placeholder="Các quy định ATLĐ bắt buộc khi vận hành..." readOnly={!isAdmin} rows={4} />
+                                    <TextareaField value={log.safetyRegulations} onChange={(v: string) => update('safetyRegulations', v)} placeholder="Các quy định ATLĐ bắt buộc khi vận hành..." readOnly={false} rows={4} />
                                 </Field>
                             </div>
                             <div className="md:col-span-2">
                                 <Field label="19. Các đặc điểm kỹ thuật khác">
-                                    <TextareaField value={log.otherSpecs} onChange={(v: string) => update('otherSpecs', v)} placeholder="Thông số kỹ thuật đặc biệt, chế độ hoạt động..." readOnly={!isAdmin} rows={4} />
+                                    <TextareaField value={log.otherSpecs} onChange={(v: string) => update('otherSpecs', v)} placeholder="Thông số kỹ thuật đặc biệt, chế độ hoạt động..." readOnly={false} rows={4} />
                                 </Field>
                             </div>
                         </div>
@@ -410,7 +429,7 @@ export default function DeviceLogDetailPage() {
                         <ComponentsTable
                             items={log.components || []}
                             onChange={(items: any[]) => update('components', items)}
-                            readOnly={!isAdmin}
+                            readOnly={false}
                         />
                     </SectionCard>
                 )}
@@ -421,7 +440,7 @@ export default function DeviceLogDetailPage() {
                         <CertsTable
                             items={log.certifications || []}
                             onChange={(items: any[]) => update('certifications', items)}
-                            readOnly={!isAdmin}
+                            readOnly={false}
                         />
                     </SectionCard>
                 )}
@@ -432,7 +451,7 @@ export default function DeviceLogDetailPage() {
                         <DocsTable
                             items={log.documents || []}
                             onChange={(items: any[]) => update('documents', items)}
-                            readOnly={!isAdmin}
+                            readOnly={false}
                         />
                     </SectionCard>
                 )}
