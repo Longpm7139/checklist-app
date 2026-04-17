@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { ArrowLeft, BookOpen, Search, ChevronRight, CheckCircle, AlertCircle, Clock } from 'lucide-react';
+import { ArrowLeft, BookOpen, Search, ChevronRight, CheckCircle, AlertCircle, Clock, ChevronDown } from 'lucide-react';
 import { useUser } from '@/providers/UserProvider';
 import { subscribeToSystems, subscribeToDeviceLogs } from '@/lib/firebase';
 
@@ -14,6 +14,19 @@ export default function DeviceLogListPage() {
     const [loading, setLoading] = useState(true);
     const [searchTerm, setSearchTerm] = useState('');
     const [categories, setCategories] = useState<any[]>([]);
+    const [expandedGroups, setExpandedGroups] = useState<Set<string>>(new Set());
+
+    const toggleGroup = (prefix: string) => {
+        setExpandedGroups(prev => {
+            const next = new Set(prev);
+            if (next.has(prefix)) {
+                next.delete(prefix);
+            } else {
+                next.add(prefix);
+            }
+            return next;
+        });
+    };
 
     useEffect(() => {
         const unsubSystems = subscribeToSystems((data) => {
@@ -115,41 +128,71 @@ export default function DeviceLogListPage() {
                         Đang tải danh sách thiết bị...
                     </div>
                 ) : (
-                    <div className="space-y-5">
-                        {Object.entries(grouped).sort(([a], [b]) => a.localeCompare(b)).map(([prefix, groupSystems]) => (
-                            <div key={prefix} className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
-                                <div className="px-4 py-2.5 bg-gradient-to-r from-slate-700 to-slate-800 flex items-center gap-2">
-                                    <span className="w-6 h-6 rounded-lg bg-white/20 flex items-center justify-center text-white font-black text-sm">{prefix}</span>
-                                    <span className="text-white font-semibold text-sm">{groupSystems[0]?.categoryId || 'Nhóm ' + prefix}</span>
-                                    <span className="ml-auto text-white/60 text-xs">{groupSystems.length} thiết bị</span>
+                    <div className="space-y-4">
+                        {Object.entries(grouped).sort(([a], [b]) => a.localeCompare(b)).map(([prefix, groupSystems]) => {
+                            const isExpanded = expandedGroups.has(prefix) || searchTerm !== '';
+                            return (
+                                <div key={prefix} className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
+                                    <button
+                                        onClick={() => toggleGroup(prefix)}
+                                        className={`w-full px-4 py-3 flex items-center justify-between text-left transition-colors ${
+                                            isExpanded 
+                                            ? 'bg-gradient-to-r from-blue-600 to-blue-700 text-white' 
+                                            : 'bg-white hover:bg-slate-50'
+                                        }`}
+                                    >
+                                        <div className="flex items-center gap-3 flex-1 min-w-0">
+                                            <span className={`flex-shrink-0 w-8 h-8 rounded-full flex items-center justify-center text-xs font-black ${
+                                                isExpanded ? 'bg-white/20 text-white' : 'bg-slate-100 text-slate-500'
+                                            }`}>
+                                                {prefix}
+                                            </span>
+                                            <div className="flex flex-col min-w-0">
+                                                <span className={`font-semibold text-sm truncate ${isExpanded ? 'text-white' : 'text-slate-800'}`}>
+                                                    {groupSystems[0]?.categoryId || 'Nhóm ' + prefix}
+                                                </span>
+                                                <span className={`text-[10px] font-medium ${isExpanded ? 'text-white/70' : 'text-slate-400'}`}>
+                                                    {groupSystems.length} thiết bị
+                                                </span>
+                                            </div>
+                                        </div>
+                                        <div className="flex items-center gap-2 flex-shrink-0">
+                                            <ChevronDown size={20} className={`transition-transform duration-200 ${
+                                                isExpanded ? 'rotate-180 text-white' : 'text-slate-400'
+                                            }`} />
+                                        </div>
+                                    </button>
+                                    
+                                    {isExpanded && (
+                                        <div className="divide-y divide-slate-100 border-t border-blue-100">
+                                            {groupSystems.map(system => {
+                                                const status = getLogStatus(system.id);
+                                                const cfg = statusConfig[status as keyof typeof statusConfig];
+                                                return (
+                                                    <button
+                                                        key={system.id}
+                                                        onClick={() => router.push(`/device-log/${system.id}`)}
+                                                        className="w-full flex items-center gap-3 px-4 py-3.5 hover:bg-blue-50/50 transition-colors text-left group"
+                                                    >
+                                                        <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-blue-500 to-indigo-600 flex items-center justify-center text-white font-black text-sm flex-shrink-0 shadow-sm group-hover:scale-105 transition-transform">
+                                                            {system.id}
+                                                        </div>
+                                                        <div className="flex-1 min-w-0">
+                                                            <div className="font-semibold text-slate-800 text-sm truncate">{system.name}</div>
+                                                            <div className={`inline-flex items-center gap-1 text-[10px] font-bold px-2 py-0.5 rounded-full border mt-0.5 ${cfg.color}`}>
+                                                                {cfg.icon}
+                                                                {cfg.label}
+                                                            </div>
+                                                        </div>
+                                                        <ChevronRight size={18} className="text-slate-300 group-hover:text-blue-500 transition-colors flex-shrink-0" />
+                                                    </button>
+                                                );
+                                            })}
+                                        </div>
+                                    )}
                                 </div>
-                                <div className="divide-y divide-slate-100">
-                                    {groupSystems.map(system => {
-                                        const status = getLogStatus(system.id);
-                                        const cfg = statusConfig[status as keyof typeof statusConfig];
-                                        return (
-                                            <button
-                                                key={system.id}
-                                                onClick={() => router.push(`/device-log/${system.id}`)}
-                                                className="w-full flex items-center gap-3 px-4 py-3.5 hover:bg-blue-50/50 transition-colors text-left group"
-                                            >
-                                                <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-blue-500 to-indigo-600 flex items-center justify-center text-white font-black text-sm flex-shrink-0 shadow-sm group-hover:scale-105 transition-transform">
-                                                    {system.id}
-                                                </div>
-                                                <div className="flex-1 min-w-0">
-                                                    <div className="font-semibold text-slate-800 text-sm truncate">{system.name}</div>
-                                                    <div className={`inline-flex items-center gap-1 text-[10px] font-bold px-2 py-0.5 rounded-full border mt-0.5 ${cfg.color}`}>
-                                                        {cfg.icon}
-                                                        {cfg.label}
-                                                    </div>
-                                                </div>
-                                                <ChevronRight size={18} className="text-slate-300 group-hover:text-blue-500 transition-colors flex-shrink-0" />
-                                            </button>
-                                        );
-                                    })}
-                                </div>
-                            </div>
-                        ))}
+                            );
+                        })}
                         {filteredSystems.length === 0 && (
                             <div className="text-center py-12 text-slate-400">
                                 <Search size={32} className="mx-auto mb-2 opacity-40" />
