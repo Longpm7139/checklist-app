@@ -111,3 +111,74 @@ export interface SafetyReport {
   createdAt: string;
   updatedAt?: string;
 }
+
+// ============================================================
+// SỔ LÝ LỊCH THIẾT BỊ — ACV-LLTB01
+// ============================================================
+
+export interface DeviceOperator {
+  name: string;
+  qualification: string;  // Trình độ chuyên môn
+  licenseNo: string;      // Số giấy phép hành nghề
+  position: string;       // Chức vụ
+  startDate: string;      // Ngày chuyển đến
+  endDate: string;        // Ngày chuyển đi
+}
+
+export interface DeviceComponent {
+  name: string;     // Tên thành phần
+  unit: string;     // Đơn vị tính
+  quantity: string; // Số lượng
+  note: string;     // Ghi chú
+}
+
+export interface DeviceCertification {
+  number: string;   // Số giấy phép / tem kiểm định
+  issuedBy: string; // Đơn vị cấp
+  expiry: string;   // Thời hạn
+  note: string;     // Ghi chú
+}
+
+export interface DeviceDocument {
+  name: string;     // Tên tài liệu
+  quantity: string; // Số lượng
+  note: string;     // Ghi chú
+}
+
+export interface DeviceLog {
+  systemId: string;         // Liên kết với SystemCheck.id (e.g. "A1")
+  systemName: string;       // Tên thiết bị (auto từ system)
+  // Mục 1–13 — Lý lịch
+  brand: string;            // 2. Nhãn hiệu
+  purpose: string;          // 3. Mục đích sử dụng
+  operatingArea: string;    // 4. Phạm vi hoạt động
+  countryOfOrigin: string;  // 5. Nước sản xuất
+  serialNumber: string;     // 6. Số máy (serial)
+  technicalAddress: string; // 7. Mã số, địa chỉ kỹ thuật
+  location: string;         // 8. Địa điểm đặt thiết bị
+  dailyOperatingHours: string; // 9. Thời gian HKT hàng ngày
+  assetCode: string;        // 10+11. Mã số TSCD / Xuất xứ
+  managingUnit: string;     // 12. Đơn vị sử dụng
+  operators: DeviceOperator[]; // 13. Người sử dụng
+  // Mục 14–19 — Đặc tính kỹ thuật
+  dimLength: string;        // 14. Chiều dài
+  dimWidth: string;         // 14. Chiều rộng
+  dimHeight: string;        // 14. Chiều cao
+  dimUnit: string;          // Đơn vị kích thước (mm/cm/m)
+  weight: string;           // 15. Khối lượng
+  weightUnit: string;       // Đơn vị khối lượng (kg/tấn)
+  powerSource: string;      // 16. Nguồn điện / nhiên liệu
+  powerConsumption: string; // 17. Công suất tiêu thụ
+  safetyRegulations: string; // 18. Quy định ATLD
+  otherSpecs: string;       // 19. Đặc điểm kỹ thuật khác
+  // Mục 20 — Thành phần
+  components: DeviceComponent[];
+  // Mục 21 — Giấy phép / Kiểm định
+  certifications: DeviceCertification[];
+  // Mục 22 — Tài liệu kỹ thuật
+  documents: DeviceDocument[];
+  // Metadata
+  updatedAt: string;
+  updatedBy: string;
+  createdAt?: string;
+}

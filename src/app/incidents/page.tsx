@@ -7,7 +7,7 @@ import { ArrowLeft, Siren, CheckCircle, Plus, User as UserIcon, Clock, AlertTria
 import { useUser } from '@/providers/UserProvider';
 import { IMESafeInput, IMESafeTextArea } from '@/components/IMESafeInput';
 import { Incident, User } from '@/lib/types';
-import { subscribeToIncidents, saveIncident, uploadImage, deleteIncident } from '@/lib/firebase';
+import { subscribeToIncidents, saveIncident, uploadImage, deleteIncident, subscribeToSystems } from '@/lib/firebase';
 
 import * as XLSX from 'xlsx';
 
@@ -18,6 +18,10 @@ export default function IncidentsPage() {
     const [viewMode, setViewMode] = useState<'LIST' | 'CREATE'>('LIST');
     const [loading, setLoading] = useState(true);
     const [searchTerm, setSearchTerm] = useState('');
+
+    // Systems list for dropdown
+    const [systems, setSystems] = useState<any[]>([]);
+    const [selectedSystemId, setSelectedSystemId] = useState<string>('');
 
     // Form State
     const [newTitle, setNewTitle] = useState('');
@@ -62,6 +66,8 @@ export default function IncidentsPage() {
     };
 
     useEffect(() => {
+        // Subscribe to Systems for dropdown
+        const unsubSystems = subscribeToSystems((data) => setSystems(data));
         // Subscribe to Incidents
         const unsub = subscribeToIncidents((data) => {
             // Sort by createdAt desc
@@ -88,7 +94,7 @@ export default function IncidentsPage() {
             })
             .catch(err => console.error("Failed to load users", err));
 
-        return () => unsub();
+        return () => { unsub(); unsubSystems(); };
     }, []);
 
     const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -127,10 +133,15 @@ export default function IncidentsPage() {
                 ? new Date(customCreatedAt).toLocaleString('vi-VN', { hour: '2-digit', minute: '2-digit', day: '2-digit', month: '2-digit', year: 'numeric', hour12: false })
                 : new Date().toLocaleString('vi-VN', { hour: '2-digit', minute: '2-digit', day: '2-digit', month: '2-digit', year: 'numeric', hour12: false });
 
+            // Tìm system được chọn để lấy tên
+            const selectedSystem = systems.find(s => s.id === selectedSystemId);
+            const systemNameForIncident = newSystem || selectedSystem?.name || '';
+
             const newIncident: Incident = {
                 id: Date.now().toString(),
                 title: newTitle,
-                systemName: newSystem,
+                systemName: systemNameForIncident,
+                systemId: selectedSystemId || undefined,
                 description: newDesc,
                 status: 'OPEN',
                 severity: newSeverity,
@@ -138,7 +149,7 @@ export default function IncidentsPage() {
                 reportedBy: currentUser?.name || 'Admin',
                 createdAt: incidentDate,
                 imageUrl: uploadedUrl
-            };
+            } as any;
 
             // Save to Firebase
             await saveIncident(newIncident);
@@ -155,6 +166,7 @@ export default function IncidentsPage() {
             // Reset
             setNewTitle('');
             setNewSystem('');
+            setSelectedSystemId('');
             setNewDesc('');
             setAssignee('');
             setNewSeverity('MEDIUM');
@@ -454,13 +466,32 @@ export default function IncidentsPage() {
                                 )}
                             </div>
                             <div>
-                                <label className="block text-sm font-medium text-slate-700 mb-1">Hệ thống / Vị trí *</label>
+                                <label className="block text-sm font-medium text-slate-700 mb-1">Hệ thống / Thiết bị *</label>
+                                {/* Dropdown chọn từ danh sách hệ thống → tự động link Lý Lịch TB */}
+                                <select
+                                    className="w-full border border-slate-300 rounded p-2 focus:border-red-500 outline-none bg-white text-sm mb-2"
+                                    value={selectedSystemId}
+                                    onChange={e => {
+                                        const id = e.target.value;
+                                        setSelectedSystemId(id);
+                                        // Tự động điền tên hệ thống vào ô bên dưới
+                                        const sys = systems.find(s => s.id === id);
+                                        if (sys) setNewSystem(sys.name);
+                                        else setNewSystem('');
+                                    }}
+                                >
+                                    <option value="">-- Chọn thiết bị từ danh sách --</option>
+                                    {[...systems].sort((a, b) => a.id.localeCompare(b.id)).map(s => (
+                                        <option key={s.id} value={s.id}>{s.id} · {s.name}</option>
+                                    ))}
+                                </select>
                                 <IMESafeInput
                                     className="w-full border border-slate-300 rounded p-2 focus:border-red-500 outline-none"
-                                    placeholder="VD: Khu vực sân đỗ số 5"
+                                    placeholder="Hoặc nhập tay: VD: Khu vực sân đỗ số 5"
                                     value={newSystem}
-                                    onChangeValue={(val: string) => setNewSystem(val)}
+                                    onChangeValue={(val: string) => { setNewSystem(val); setSelectedSystemId(''); }}
                                 />
+                                <p className="text-[10px] text-blue-600 mt-1 italic">💡 Chọn từ danh sách để tự động link dữ liệu vào Sổ Lý Lịch Thiết Bị (Mục 23)</p>
                             </div>
                             <div>
                                 <label className="block text-sm font-medium text-slate-700 mb-1">Mô tả chi tiết</label>

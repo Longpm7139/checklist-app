@@ -514,6 +514,34 @@ export const resetKPIData = async () => {
     await detailsBatch.commit();
 };
 
+// ============================================================
+// SỔ LÝ LỊCH THIẾT BỊ — device_logs collection
+// ============================================================
+
+export const getDeviceLog = async (systemId: string) => {
+    const docRef = doc(db, "device_logs", systemId);
+    const snap = await getDoc(docRef);
+    if (snap.exists()) {
+        return { ...snap.data(), systemId } as any;
+    }
+    return null;
+};
+
+export const saveDeviceLog = async (systemId: string, data: any) => {
+    await setDoc(doc(db, "device_logs", systemId), removeUndefined(data), { merge: true });
+};
+
+export const subscribeToDeviceLogs = (callback: (data: any[]) => void) => {
+    const q = query(collection(db, "device_logs"));
+    return onSnapshot(q, (querySnapshot) => {
+        const items: any[] = [];
+        querySnapshot.forEach((doc) => {
+            items.push({ ...doc.data(), systemId: doc.id });
+        });
+        callback(items);
+    });
+};
+
 // Backup All Data (Admin only)
 export const backupAllData = async () => {
     const collections = [
