@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { ArrowLeft, BookOpen, Search, ChevronRight, CheckCircle, AlertCircle, Clock, ChevronDown } from 'lucide-react';
 import { useUser } from '@/providers/UserProvider';
-import { subscribeToSystems, subscribeToDeviceLogs } from '@/lib/firebase';
+import { subscribeToSystems, subscribeToDeviceLogs, subscribeToCategories } from '@/lib/firebase';
 
 export default function DeviceLogListPage() {
     const router = useRouter();
@@ -34,7 +34,8 @@ export default function DeviceLogListPage() {
             setLoading(false);
         });
         const unsubLogs = subscribeToDeviceLogs(setDeviceLogs);
-        return () => { unsubSystems(); unsubLogs(); };
+        const unsubCategories = subscribeToCategories(setCategories);
+        return () => { unsubSystems(); unsubLogs(); unsubCategories(); };
     }, []);
 
     const filteredSystems = systems.filter(s =>
@@ -149,7 +150,7 @@ export default function DeviceLogListPage() {
                                             </span>
                                             <div className="flex flex-col min-w-0">
                                                 <span className={`font-semibold text-sm truncate ${isExpanded ? 'text-white' : 'text-slate-800'}`}>
-                                                    {groupSystems[0]?.categoryId || 'Nhóm ' + prefix}
+                                                    {categories.find(c => c.id === groupSystems[0]?.categoryId)?.name || groupSystems[0]?.categoryId || 'Nhóm ' + prefix}
                                                 </span>
                                                 <span className={`text-[10px] font-medium ${isExpanded ? 'text-white/70' : 'text-slate-400'}`}>
                                                     {groupSystems.length} thiết bị
