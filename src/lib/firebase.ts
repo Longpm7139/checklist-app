@@ -578,8 +578,12 @@ export const backupAllData = async () => {
         "material_history",
         "systems",
         "users",
-        "details", // This is special, document IDs are system IDs
-        "categories"
+        "details",
+        "categories",
+        "pbb_reports",
+        "safety_reports",
+        "pccc_reports",
+        "device_logs"
     ];
 
     const backupData: Record<string, any[]> = {};
