@@ -324,24 +324,6 @@ export default function PbbMaintenanceFormPage() {
                             <p className="text-slate-500 text-[10px] font-black uppercase tracking-[0.2em] opacity-60">Biểu mẫu: B06.53.QT01/KTCN-TB</p>
                         </div>
                     </div>
-                    <div className="flex gap-2">
-                        {!isNew && (
-                            <button
-                                onClick={generateDocx}
-                                disabled={exporting}
-                                className="py-3 px-5 bg-white text-slate-600 font-black rounded-xl shadow border border-slate-200 transition-all flex items-center gap-2 hover:bg-slate-50 active:scale-95 disabled:opacity-50"
-                            >
-                                <Download size={20} className="text-blue-500" /> {exporting ? '...' : 'XUẤT WORD'}
-                            </button>
-                        )}
-                        <button
-                            onClick={handleSave}
-                            disabled={saving}
-                            className="py-3 px-6 bg-sky-600 text-white font-black rounded-xl shadow-lg shadow-sky-500/20 transition-all flex items-center gap-2 hover:bg-sky-700 active:scale-95 disabled:opacity-50"
-                        >
-                            <Save size={20} /> {saving ? 'ĐANG LƯU...' : 'LƯU PHIẾU'}
-                        </button>
-                    </div>
                 </header>
 
                 <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
