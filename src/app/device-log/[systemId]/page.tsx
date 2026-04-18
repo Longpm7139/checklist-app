@@ -38,22 +38,58 @@ const TABS = [
     { id: 'stats',    label: 'Thống Kê (26)',   icon: BarChart2,   color: 'green' },
 ];
 
-// ─── Parse VI-VN date string ─────────────────────────────────
+// ─── Parse VI-VN & ISO date string ─────────────────────────────
 function parseVNDate(s: string): Date | null {
     if (!s) return null;
-    const p = s.split(/[\s/:]+/).filter(Boolean);
+    
+    // First, try native parsing natively if it's ISO or standard format
+    let d = new Date(s);
+    if (!isNaN(d.getTime()) && (s.includes('T') || /^\d{4}-\d{2}-\d{2}$/.test(s.trim()))) {
+        return d;
+    }
+
+    // Attempt to extract components
+    const p = s.split(/[\s/:\-,]+/).filter(Boolean);
+    const nums = p.map(Number);
     const yi = p.findIndex(x => x.length === 4);
-    if (yi === -1) return null;
-    try {
-        if (yi >= 2) {
-            const [d, m] = [parseInt(p[0]), parseInt(p[1]) - 1];
-            const y = parseInt(p[yi]);
-            const hr = yi < p.length - 1 ? parseInt(p[yi + 1]) : 0;
-            const mn = yi < p.length - 2 ? parseInt(p[yi + 2]) : 0;
-            return new Date(y, m, d, hr, mn);
-        }
-        return new Date(s);
-    } catch { return null; }
+    
+    if (yi !== -1 && !isNaN(nums[yi])) {
+        let year = nums[yi];
+        try {
+            if (yi === 0) {
+                // YYYY-MM-DD etc
+                const month = nums[1] || 1;
+                const day = nums[2] || 1;
+                const hr = nums[3] || 0;
+                const mn = nums[4] || 0;
+                return new Date(year, month - 1, day, hr, mn);
+            } else if (yi === 2 || yi >= 3) {
+                // DD/MM/YYYY or HH:mm DD/MM/YYYY
+                let c1 = yi === 2 ? nums[0] : nums[yi - 2];
+                let c2 = yi === 2 ? nums[1] : nums[yi - 1];
+                
+                let month = c2;
+                let day = c1;
+                if (month > 12) {
+                    // Must be MM/DD/YYYY logic
+                    month = c1;
+                    day = c2;
+                }
+                
+                let hr = 0, mn = 0;
+                if (yi === 2) {
+                    hr = nums[3] || 0;
+                    mn = nums[4] || 0;
+                } else {
+                    hr = nums[0] || 0;
+                    mn = nums[1] || 0;
+                }
+                return new Date(year, month - 1, day, hr, mn);
+            }
+        } catch { }
+    }
+
+    return isNaN(d.getTime()) ? null : d;
 }
 
 function getQuarter(d: Date): number { return Math.floor(d.getMonth() / 3) + 1; }
