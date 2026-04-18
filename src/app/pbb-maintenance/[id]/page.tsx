@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { useRouter, useParams } from 'next/navigation';
-import { ArrowLeft, Save, Plus, Trash2, CheckCircle, AlertCircle, Calendar, Clock, User, FileText, PenTool, ClipboardCheck, Info, Download } from 'lucide-react';
+import { ArrowLeft, Save, Plus, Trash2, CheckCircle, AlertCircle, Calendar, Clock, User, FileText, PenTool, ClipboardCheck, Info, Download, ChevronDown, ChevronRight } from 'lucide-react';
 import { subscribeToPbbReports, savePbbReport, deletePbbReport, getUsers } from '@/lib/firebase';
 import { PBB_CHECKLIST_SECTIONS, PbbSectionDef, PbbTaskDef } from '@/lib/pbb-data';
 import { useUser } from '@/providers/UserProvider';
@@ -38,6 +38,7 @@ export default function PbbMaintenanceFormPage() {
     const [operatingHours, setOperatingHours] = useState('');
     const [responses, setResponses] = useState<Record<string, { status?: 'OK' | 'NOK', value?: string }>>({});
     const [notes, setNotes] = useState('');
+    const [expandedSections, setExpandedSections] = useState<string[]>(['1']);
 
     // Results (Nghiệm thu)
     const [results, setResults] = useState({
@@ -103,10 +104,64 @@ export default function PbbMaintenanceFormPage() {
         }));
     };
 
+    const toggleSection = (sectionNo: string) => {
+        setExpandedSections(prev => 
+            prev.includes(sectionNo) 
+                ? prev.filter(s => s !== sectionNo) 
+                : [...prev, sectionNo]
+        );
+    };
+
+    const validateForm = () => {
+        const missing: { section: string, task: string }[] = [];
+        
+        PBB_CHECKLIST_SECTIONS.forEach(section => {
+            section.tasks.forEach(task => {
+                const levelIdx = MAINT_LEVELS.indexOf(maintLevel);
+                const req = task.reqs[levelIdx];
+                
+                if (req) {
+                    const taskId = `${section.no}_${task.no}_${maintLevel}`;
+                    const resp = responses[taskId];
+                    if (req === 'M' && !resp?.value) {
+                        missing.push({ section: section.name, task: task.name });
+                    } else if (req !== 'M' && !resp?.status) {
+                        missing.push({ section: section.name, task: task.name });
+                    }
+                }
+
+                task.subTasks?.forEach(sub => {
+                    const subReq = sub.reqs[levelIdx];
+                    if (subReq) {
+                        const subId = `${section.no}_${task.no}_${sub.no}_${maintLevel}`;
+                        const subResp = responses[subId];
+                        if (subReq === 'M' && !subResp?.value) {
+                            missing.push({ section: section.name, task: sub.name });
+                        } else if (subReq !== 'M' && !subResp?.status) {
+                            missing.push({ section: section.name, task: sub.name });
+                        }
+                    }
+                });
+            });
+        });
+
+        return missing;
+    };
+
     const handleSave = async () => {
         if (!systemId) {
             alert('Vui lòng nhập Số đăng ký/Cửa bến!');
             return;
+        }
+
+        const missing = validateForm();
+        if (missing.length > 0) {
+            const confirmSave = window.confirm(
+                `CẢNH BÁO: Còn ${missing.length} hạng mục chưa hoàn thành!\n\n` +
+                `Hạng mục tiêu biểu: ${missing[0].task}\n\n` +
+                `Bạn có chắc chắn muốn lưu phiếu khi chưa hoàn thành tất cả không?`
+            );
+            if (!confirmSave) return;
         }
 
         setSaving(true);
@@ -387,11 +442,28 @@ export default function PbbMaintenanceFormPage() {
                         <div className="space-y-4">
                             {PBB_CHECKLIST_SECTIONS.map((section) => (
                                 <div key={section.no} className="bg-white rounded-2xl shadow-sm border border-slate-200/60 overflow-hidden">
-                                    <div className="bg-slate-800 text-white px-5 py-3 font-black text-xs flex items-center justify-between tracking-widest">
-                                        <span className="uppercase">{section.no}. {section.name}</span>
-                                        <Info size={14} className="opacity-40" />
+                                    <div 
+                                        className="bg-slate-800 text-white px-5 py-3 font-black text-xs flex items-center justify-between tracking-widest cursor-pointer hover:bg-slate-700 transition-colors"
+                                        onClick={() => toggleSection(section.no)}
+                                    >
+                                        <div className="flex items-center gap-3">
+                                            {expandedSections.includes(section.no) ? <ChevronDown size={16} /> : <ChevronRight size={16} />}
+                                            <span className="uppercase">{section.no}. {section.name}</span>
+                                        </div>
+                                        <div className="flex items-center gap-2">
+                                            {/* Calculation of progress */}
+                                            <span className="bg-sky-500/20 text-sky-400 px-2 py-0.5 rounded text-[10px]">
+                                                {section.tasks.reduce((acc, t) => {
+                                                    const idx = MAINT_LEVELS.indexOf(maintLevel);
+                                                    if (t.reqs[idx]) acc++;
+                                                    t.subTasks?.forEach(s => { if (s.reqs[idx]) acc++; });
+                                                    return acc;
+                                                }, 0)} hạng mục
+                                            </span>
+                                        </div>
                                     </div>
-                                    <div className="overflow-x-auto">
+                                    {expandedSections.includes(section.no) && (
+                                        <div className="overflow-x-auto">
                                         <table className="w-full border-collapse text-[11px]">
                                             <thead>
                                                 <tr className="bg-slate-50 text-slate-400 font-black border-b border-slate-100 uppercase tracking-tighter">
@@ -512,6 +584,7 @@ export default function PbbMaintenanceFormPage() {
                                             </tbody>
                                         </table>
                                     </div>
+                                    )}
                                 </div>
                             ))}
                         </div>
