@@ -42,10 +42,13 @@ export default function PbbMaintenanceFormPage() {
 
     // Results (Nghiệm thu)
     const [results, setResults] = useState({
-        materials: 'ĐẠT',
-        lubricants: 'ĐẠT',
-        motors: 'ĐẠT',
-        structure: 'ĐẠT',
+        partsReplaced: { status: 'ĐẠT', note: '' },
+        oilGrease: { status: 'ĐẠT', note: '' },
+        electricMotor: { status: 'ĐẠT', note: '' },
+        electricSystem: { status: 'ĐẠT', note: '' },
+        hydraulicSystem: { status: 'ĐẠT', note: '' },
+        acSystem: { status: 'ĐẠT', note: '' },
+        pbbTunnel: { status: 'ĐẠT', note: '' },
         overall: 'ĐẠT'
     });
 
@@ -68,10 +71,13 @@ export default function PbbMaintenanceFormPage() {
                     setResponses(report.responses || {});
                     setNotes(report.notes || '');
                     setResults(report.results || {
-                        materials: 'ĐẠT',
-                        lubricants: 'ĐẠT',
-                        motors: 'ĐẠT',
-                        structure: 'ĐẠT',
+                        partsReplaced: { status: 'ĐẠT', note: '' },
+                        oilGrease: { status: 'ĐẠT', note: '' },
+                        electricMotor: { status: 'ĐẠT', note: '' },
+                        electricSystem: { status: 'ĐẠT', note: '' },
+                        hydraulicSystem: { status: 'ĐẠT', note: '' },
+                        acSystem: { status: 'ĐẠT', note: '' },
+                        pbbTunnel: { status: 'ĐẠT', note: '' },
                         overall: 'ĐẠT'
                     });
                 }
@@ -202,33 +208,37 @@ export default function PbbMaintenanceFormPage() {
                         page: { margin: { top: 720, bottom: 720, left: 720, right: 720 } }
                     },
                     children: [
-                        // Header Table
+                        // HEADER TABLE
                         new Table({
                             width: { size: 100, type: WidthType.PERCENTAGE },
                             rows: [
                                 new TableRow({
                                     children: [
                                         new TableCell({
-                                            width: { size: 35, type: WidthType.PERCENTAGE },
+                                            width: { size: 25, type: WidthType.PERCENTAGE },
                                             children: [
-                                                new Paragraph({ children: [new TextRun({ text: "TỔNG CÔNG TY CẢNG HÀNG KHÔNG VIỆT NAM - CTCP", bold: true, size: 16 })], alignment: AlignmentType.CENTER }),
-                                                new Paragraph({ children: [new TextRun({ text: "AIRPORTS CORPORATION OF VIETNAM", size: 14 })], alignment: AlignmentType.CENTER }),
+                                                new Paragraph({ children: [new TextRun({ text: "ACV", bold: true, size: 32 })], alignment: AlignmentType.CENTER }),
+                                                new Paragraph({ children: [new TextRun({ text: "TỔNG CÔNG TY CẢNG\nHÀNG KHÔNG VIỆT NAM - CTCP", bold: true, size: 14 })], alignment: AlignmentType.CENTER }),
+                                                new Paragraph({ children: [new TextRun({ text: "AIRPORTS CORPORATION OF VIETNAM", size: 10 })], alignment: AlignmentType.CENTER }),
                                             ],
                                             verticalAlign: VerticalAlign.CENTER
                                         }),
                                         new TableCell({
-                                            width: { size: 40, type: WidthType.PERCENTAGE },
+                                            width: { size: 50, type: WidthType.PERCENTAGE },
                                             children: [
-                                                new Paragraph({ children: [new TextRun({ text: "QUY TRÌNH\nBẢO DƯỠNG VÀ SỬA CHỮA TTBMB", bold: true, size: 20 })], alignment: AlignmentType.CENTER }),
-                                                new Paragraph({ children: [new TextRun({ text: "PROCEDURE OF GSE MAINTENANCE AND REPAIR", italics: true, size: 16 })], alignment: AlignmentType.CENTER }),
+                                                new Paragraph({ children: [new TextRun({ text: "QUY TRÌNH\nBẢO DƯỠNG VÀ SỬA CHỮA TTBMB", bold: true, size: 18 })], alignment: AlignmentType.CENTER }),
+                                                new Paragraph({ children: [new TextRun({ text: "PROCEDURE OF GSE MAINTENANCE AND REPAIR", italics: true, size: 14 })], alignment: AlignmentType.CENTER }),
                                             ],
                                             verticalAlign: VerticalAlign.CENTER
                                         }),
                                         new TableCell({
                                             width: { size: 25, type: WidthType.PERCENTAGE },
                                             children: [
-                                                new Paragraph({ children: [new TextRun({ text: "Ký hiệu: QT01/ACV-KTCN-TB", size: 14 })] }),
-                                                new Paragraph({ children: [new TextRun({ text: `Ngày hiệu lực: 01 Apr 2026`, size: 14 })] }),
+                                                new Paragraph({ children: [new TextRun({ text: "Ký hiệu: QT01/ACV-KTCN-TB", size: 12 })] }),
+                                                new Paragraph({ children: [new TextRun({ text: "Code: QT01/ACV-KTCN-TB", size: 12 })] }),
+                                                new Paragraph({ children: [new TextRun({ text: "Lần ban hành/sửa đổi: 02/00", size: 12 })] }),
+                                                new Paragraph({ children: [new TextRun({ text: "Ngày hiệu lực: 01/4/2026", size: 12 })] }),
+                                                new Paragraph({ children: [new TextRun({ text: "Trang/tổng số trang: 1/x", size: 12 })] }),
                                             ],
                                             verticalAlign: VerticalAlign.CENTER
                                         })
@@ -236,32 +246,174 @@ export default function PbbMaintenanceFormPage() {
                                 })
                             ]
                         }),
-                        new Paragraph({ text: "", spacing: { after: 200 } }),
-                        new Paragraph({ children: [new TextRun({ text: `PHIẾU BẢO DƯỠNG CẦU DẪN HÀNH KHÁCH JBT (Bảo dưỡng ${maintLevel})`, bold: true, size: 28 })], alignment: AlignmentType.CENTER }),
-                        new Paragraph({ text: "", spacing: { after: 200 } }),
 
-                        // Info
+                        new Paragraph({ text: "", spacing: { after: 200 } }),
+                        new Paragraph({
+                            children: [
+                                new TextRun({ text: "Biểu mẫu/Form: B06.53.QT01/KTCN-TB", bold: true, size: 20, underline: {} }),
+                            ],
+                            alignment: AlignmentType.CENTER
+                        }),
+                        new Paragraph({
+                            children: [
+                                new TextRun({ text: "PHIẾU CÔNG TÁC BẢO DƯỠNG", bold: true, size: 24 }),
+                            ],
+                            alignment: AlignmentType.CENTER
+                        }),
+                        new Paragraph({
+                            children: [
+                                new TextRun({ text: "MAINTENANCE CHECKLIST", bold: true, size: 20, italics: true }),
+                            ],
+                            alignment: AlignmentType.CENTER,
+                            spacing: { after: 300 }
+                        }),
+
+                        // 1. EQUIPMENT
+                        new Paragraph({ children: [new TextRun({ text: "1. TRANG THIẾT BỊ BẢO DƯỠNG/ EQUIPMENT:", bold: true })] }),
+                        new Paragraph({ children: [new TextRun({ text: "1.1. Chủng loại / Type: CẦU DẪN HÀNH KHÁCH JBT / JBT AEROTECH PASSENGER BOARDING BRIDGE", bold: true })], indent: { left: 360 } }),
                         new Table({
                             width: { size: 100, type: WidthType.PERCENTAGE },
                             borders: { top: { style: BorderStyle.NONE }, bottom: { style: BorderStyle.NONE }, left: { style: BorderStyle.NONE }, right: { style: BorderStyle.NONE }, insideVertical: { style: BorderStyle.NONE }, insideHorizontal: { style: BorderStyle.NONE } },
                             rows: [
                                 new TableRow({
                                     children: [
-                                        new TableCell({ children: [new Paragraph({ children: [new TextRun({ text: `Số đăng ký/Vị trí: ${systemId}`, bold: true })] })] }),
-                                        new TableCell({ children: [new Paragraph({ children: [new TextRun({ text: `Ngày thực hiện: ${date}` })] })] }),
+                                        new TableCell({ children: [new Paragraph({ children: [new TextRun({ text: `1.2. Số đăng ký / Registration No.: ${systemId}` })], indent: { left: 360 } })] }),
+                                        new TableCell({ children: [new Paragraph({ children: [new TextRun({ text: `Thời gian HĐ / Operating time: ${operatingHours}` })] })] }),
                                     ]
                                 }),
                                 new TableRow({
                                     children: [
-                                        new TableCell({ children: [new Paragraph({ text: `Phiếu công tác số: ${workOrderNo}` })] }),
-                                        new TableCell({ children: [new Paragraph({ text: `Người thực hiện: ${inspectorName}` })] }),
+                                        new TableCell({ children: [new Paragraph({ children: [new TextRun({ text: `1.3. Phiếu công tác bảo dưỡng số / Checklist no: ${workOrderNo}` })], indent: { left: 360 } })] }),
+                                        new TableCell({ children: [new Paragraph({ children: [new TextRun({ text: `Ngày/ date: ${date}` })] })] }),
+                                    ]
+                                }),
+                                new TableRow({
+                                    children: [
+                                        new TableCell({ children: [new Paragraph({ children: [new TextRun({ text: `1.4. Cấp bảo dưỡng TTB / Maintenance level: ${maintLevel}` })], indent: { left: 360 } })], columnSpan: 2 }),
+                                    ]
+                                })
+                            ]
+                        }),
+                        new Paragraph({ text: "", spacing: { after: 200 } }),
+
+                        // 2. CHECKED BY
+                        new Paragraph({ children: [new TextRun({ text: "2. NGƯỜI THỰC HIỆN / CHECKED BY:", bold: true })] }),
+                        new Paragraph({ children: [new TextRun({ text: `2.1. ${inspectorName} ..................................... Ngày nhận công việc / date: ${date}` })], indent: { left: 360 } }),
+                        new Paragraph({ children: [new TextRun({ text: "2.2. ............................................................. Ngày nhận công việc / date: ................." })], indent: { left: 360 } }),
+                        new Paragraph({ text: "", spacing: { after: 200 } }),
+
+                        // 3. ATTACHED
+                        new Paragraph({ children: [new TextRun({ text: "3. NỘI DUNG BẢO DƯỠNG (ĐÍNH KÈM) / MAINTENANCE TASKS (ATTACHED)", bold: true })] }),
+                        new Paragraph({ text: "", spacing: { after: 200 } }),
+
+                        // 4. ARISING PROBLEMS
+                        new Paragraph({ children: [new TextRun({ text: "4. PHÁT SINH KHÁC / ARISING PROBLEM:", bold: true })] }),
+                        new Table({
+                            width: { size: 100, type: WidthType.PERCENTAGE },
+                            rows: [
+                                new TableRow({
+                                    children: [
+                                        new TableCell({ width: { size: 10, type: WidthType.PERCENTAGE }, children: [new Paragraph({ children: [new TextRun({ text: "No", bold: true })], alignment: AlignmentType.CENTER })] }),
+                                        new TableCell({ width: { size: 50, type: WidthType.PERCENTAGE }, children: [new Paragraph({ children: [new TextRun({ text: "Nội dung phát sinh / Arising content", bold: true })], alignment: AlignmentType.CENTER })] }),
+                                        new TableCell({ width: { size: 40, type: WidthType.PERCENTAGE }, children: [new Paragraph({ children: [new TextRun({ text: "Ghi chú / Remark", bold: true })], alignment: AlignmentType.CENTER })] }),
+                                    ]
+                                }),
+                                new TableRow({
+                                    children: [
+                                        new TableCell({ children: [new Paragraph({ text: "1" })] }),
+                                        new TableCell({ children: [new Paragraph({ text: notes || "..." })] }),
+                                        new TableCell({ children: [new Paragraph({ text: "" })] }),
+                                    ]
+                                }),
+                                new TableRow({
+                                    children: [
+                                        new TableCell({ children: [new Paragraph({ text: "2" })] }),
+                                        new TableCell({ children: [new Paragraph({ text: "" })] }),
+                                        new TableCell({ children: [new Paragraph({ text: "" })] }),
                                     ]
                                 })
                             ]
                         }),
                         new Paragraph({ text: "", spacing: { after: 300 } }),
 
-                        // Tasks Table
+                        // 5. CHECK AND TAKE OVER
+                        new Paragraph({ children: [new TextRun({ text: "5. NGHIỆM THU / CHECK AND TAKE OVER", bold: true })] }),
+                        new Paragraph({ children: [new TextRun({ text: "5.1  Người thực hiện / checked by (ký/signature):" }), new TextRun({ text: " ............................................................................" })], indent: { left: 360 } }),
+                        new Paragraph({ text: "", spacing: { after: 200 } }),
+                        
+                        new Paragraph({ children: [new TextRun({ text: "5.2. Xác nhận của đơn vị sử dụng / Approved by used unit" })], indent: { left: 360 } }),
+                        new Table({
+                            width: { size: 90, type: WidthType.PERCENTAGE },
+                            alignment: AlignmentType.CENTER,
+                            rows: [
+                                new TableRow({
+                                    children: [
+                                        new TableCell({ children: [new Paragraph({ children: [new TextRun({ text: "STT", bold: true })], alignment: AlignmentType.CENTER })] }),
+                                        new TableCell({ children: [new Paragraph({ children: [new TextRun({ text: "Nội dung/ Content", bold: true })], alignment: AlignmentType.CENTER })] }),
+                                        new TableCell({ children: [new Paragraph({ children: [new TextRun({ text: "Đạt/ OK", bold: true })], alignment: AlignmentType.CENTER })] }),
+                                        new TableCell({ children: [new Paragraph({ children: [new TextRun({ text: "K.Đạt/ Not good", bold: true })], alignment: AlignmentType.CENTER })] }),
+                                        new TableCell({ children: [new Paragraph({ children: [new TextRun({ text: "Ghi chú/ Note", bold: true })], alignment: AlignmentType.CENTER })] }),
+                                    ]
+                                }),
+                                ...[
+                                    { stt: '1', name: 'Các hạng mục vật tư thay thế...', data: results.partsReplaced },
+                                    { stt: '2', name: 'Dầu mỡ / oil and grease', data: results.oilGrease },
+                                    { stt: '3', name: 'Tình trạng kỹ thuật các hệ thống của TTB', data: { status: '', note: '' } },
+                                    { stt: '', name: '  o Động cơ điện / electric motor', data: results.electricMotor },
+                                    { stt: '', name: '  o Hệ thống điện / electric system', data: results.electricSystem },
+                                    { stt: '', name: '  o Hệ thống thủy lực/ Hydraulic system', data: results.hydraulicSystem },
+                                    { stt: '', name: '  o Hệ thống lạnh/ air conditioner system', data: results.acSystem },
+                                    { stt: '', name: '  o Khung sườn /PBB tunnel', data: results.pbbTunnel },
+                                ].map(item => new TableRow({
+                                    children: [
+                                        new TableCell({ children: [new Paragraph({ text: item.stt, alignment: AlignmentType.CENTER })] }),
+                                        new TableCell({ children: [new Paragraph({ text: item.name })] }),
+                                        new TableCell({ children: [new Paragraph({ text: item.data.status === 'ĐẠT' ? "X" : "", alignment: AlignmentType.CENTER })] }),
+                                        new TableCell({ children: [new Paragraph({ text: item.data.status === 'K.ĐẠT' ? "X" : "", alignment: AlignmentType.CENTER })] }),
+                                        new TableCell({ children: [new Paragraph({ text: item.data.note })] }),
+                                    ]
+                                })),
+                                new TableRow({
+                                    children: [
+                                        new TableCell({ 
+                                            columnSpan: 5, 
+                                            children: [
+                                                new Paragraph({ 
+                                                    children: [
+                                                        new TextRun({ text: "Kết luận:   - Đạt YCKT, đưa TTB vào khai thác   ", bold: true }),
+                                                        new TextRun({ text: results.overall === 'ĐẠT' ? "[X]" : "[ ]" }),
+                                                        new TextRun({ text: "      - Không đạt       ", bold: true }),
+                                                        new TextRun({ text: results.overall === 'KHÔNG ĐẠT' ? "[X]" : "[ ]" }),
+                                                    ]
+                                                })
+                                            ] 
+                                        }),
+                                    ]
+                                })
+                            ]
+                        }),
+
+                        new Paragraph({ text: "", spacing: { after: 300 } }),
+                        new Table({
+                            width: { size: 100, type: WidthType.PERCENTAGE },
+                            borders: { top: { style: BorderStyle.NONE }, bottom: { style: BorderStyle.NONE }, left: { style: BorderStyle.NONE }, right: { style: BorderStyle.NONE }, insideVertical: { style: BorderStyle.NONE }, insideHorizontal: { style: BorderStyle.NONE } },
+                            rows: [
+                                new TableRow({
+                                    children: [
+                                        new TableCell({ children: [new Paragraph({ children: [new TextRun({ text: "PHÒNG/ĐỘI PVMB-KT/ GHS-TECH. DIVISION/TEAM", bold: true, size: 12 })], alignment: AlignmentType.CENTER }), new Paragraph({ children: [new TextRun({ text: "(ký tên/ signature)", italics: true, size: 10 })], alignment: AlignmentType.CENTER })] }),
+                                        new TableCell({ children: [new Paragraph({ children: [new TextRun({ text: `Ngày/ Date: ${date}`, size: 12 })], alignment: AlignmentType.CENTER }), new Paragraph({ children: [new TextRun({ text: "ĐỘI/TỔ VHTTBMĐ/GSE OP. TEAM", bold: true, size: 12 })], alignment: AlignmentType.CENTER }), new Paragraph({ children: [new TextRun({ text: "(ký tên/ signature)", italics: true, size: 10 })], alignment: AlignmentType.CENTER })] }),
+                                    ]
+                                })
+                            ]
+                        }),
+
+                        // PAGE BREAK
+                        new Paragraph({ children: [new TextRun({ text: "" })], pageBreakBefore: true }),
+
+                        // Checklist Table Header
+                        new Paragraph({ children: [new TextRun({ text: `CHI TIẾT KIỂM TRA BẢO DƯỠNG ${maintLevel}`, bold: true, size: 24 })], alignment: AlignmentType.CENTER, spacing: { after: 200 } }),
+
+                        // Existing Tasks Table logic (re-using the logic from the previous version)
                         new Table({
                             width: { size: 100, type: WidthType.PERCENTAGE },
                             rows: [
@@ -319,32 +471,6 @@ export default function PbbMaintenanceFormPage() {
                                         ))
                                     ])
                                 ])
-                            ]
-                        }),
-
-                        new Paragraph({ text: "", spacing: { before: 400 } }),
-                        new Paragraph({ children: [new TextRun({ text: "CÁC NỘI DUNG PHÁT SINH:", bold: true })] }),
-                        new Paragraph({ text: notes || "Không có nội dung phát sinh." }),
-
-                        new Paragraph({ text: "", spacing: { before: 400 } }),
-                        new Paragraph({ children: [new TextRun({ text: "KẾT QUẢ NGHIỆM THU:", bold: true })] }),
-                        new Paragraph({ text: `- Vật tư thay thế: ${results.materials}` }),
-                        new Paragraph({ text: `- Dầu mỡ bôi trơn: ${results.lubricants}` }),
-                        new Paragraph({ text: `- Động cơ/Bơm: ${results.motors}` }),
-                        new Paragraph({ text: `- Khung sườn/Thân vòm: ${results.structure}` }),
-                        new Paragraph({ children: [new TextRun({ text: `=> KẾT LUẬN CHUNG: ${results.overall}`, bold: true })] }),
-
-                        new Paragraph({ text: "", spacing: { before: 800 } }),
-                        new Table({
-                            width: { size: 100, type: WidthType.PERCENTAGE },
-                            borders: { top: { style: BorderStyle.NONE }, bottom: { style: BorderStyle.NONE }, left: { style: BorderStyle.NONE }, right: { style: BorderStyle.NONE }, insideVertical: { style: BorderStyle.NONE }, insideHorizontal: { style: BorderStyle.NONE } },
-                            rows: [
-                                new TableRow({
-                                    children: [
-                                        new TableCell({ children: [new Paragraph({ children: [new TextRun({ text: "NGƯỜI LẬP PHIẾU", bold: true })], alignment: AlignmentType.CENTER }), new Paragraph({ children: [new TextRun({ text: "(Ký, ghi rõ họ tên)", italics: true })], alignment: AlignmentType.CENTER })] }),
-                                        new TableCell({ children: [new Paragraph({ children: [new TextRun({ text: "ĐỘI TRƯỞNG/ PHÓ ĐỘI TRƯỞNG", bold: true })], alignment: AlignmentType.CENTER }), new Paragraph({ children: [new TextRun({ text: "(Ký, ghi rõ họ tên)", italics: true })], alignment: AlignmentType.CENTER })] }),
-                                    ]
-                                })
                             ]
                         })
                     ]
@@ -635,46 +761,76 @@ export default function PbbMaintenanceFormPage() {
                                 <textarea 
                                     rows={5} 
                                     value={notes} 
-                                    onChange={e => setNotes(e.target.value)} 
+                                    onChange={(e) => setNotes(e.target.value)} 
                                     className="w-full p-4 border border-slate-200 rounded-xl bg-slate-50 focus:bg-white outline-none focus:ring-4 focus:ring-red-500/10 font-bold text-slate-800 text-sm transition-all"
                                     placeholder="Vật tư thay thế, thông số bất thường..."
                                 />
                             </div>
                         </div>
 
-                        {/* Acceptance Section */}
+                        {/* 5.2 Xác nhận của đơn vị sử dụng */}
                         <div className="bg-white rounded-2xl shadow-xl border border-slate-200/60 overflow-hidden">
                             <div className="p-4 bg-green-50/50 border-b border-green-100 font-black text-green-700 text-[10px] tracking-widest flex items-center gap-2 uppercase">
-                                <ClipboardCheck size={16} /> Kết quả nghiệm thu
+                                <ClipboardCheck size={16} /> 5.2 Xác nhận của đơn vị sử dụng
                             </div>
-                            <div className="p-5 space-y-4">
-                                {Object.keys(results).map((key) => (
-                                    <div key={key}>
-                                        <label className="block text-[9px] font-black text-slate-400 uppercase mb-1 ml-1 tracking-tighter">
-                                            {key === 'materials' && 'Vật tư thay thế'}
-                                            {key === 'lubricants' && 'Dầu mỡ bôi trơn'}
-                                            {key === 'motors' && 'Động cơ/Bơm'}
-                                            {key === 'structure' && 'Khung sườn/Thân vòm'}
-                                            {key === 'overall' && 'KẾT LUẬN CHUNG'}
-                                        </label>
-                                        <div className="flex bg-slate-100 p-1 rounded-xl">
-                                            {['ĐẠT', 'KHÔNG ĐẠT'].map(status => (
-                                                <button
-                                                    key={status}
-                                                    onClick={() => setResults(prev => ({ ...prev, [key]: status }))}
-                                                    className={clsx(
-                                                        "flex-1 py-2 rounded-lg font-black text-[10px] transition-all",
-                                                        (results as any)[key] === status 
-                                                            ? (status === 'ĐẠT' ? "bg-green-500 text-white shadow-lg shadow-green-500/20" : "bg-red-500 text-white shadow-lg shadow-red-500/20")
-                                                            : "text-slate-400 hover:text-slate-600"
-                                                    )}
-                                                >
-                                                    {status}
-                                                </button>
-                                            ))}
+                            <div className="p-4 space-y-4">
+                                {[
+                                    { key: 'partsReplaced', label: '1. Vật tư thay thế' },
+                                    { key: 'oilGrease', label: '2. Dầu mỡ' },
+                                    { key: 'electricMotor', label: '3.1 Động cơ điện' },
+                                    { key: 'electricSystem', label: '3.2 Hệ thống điện' },
+                                    { key: 'hydraulicSystem', label: '3.3 Hệ thống thủy lực' },
+                                    { key: 'acSystem', label: '3.4 Hệ thống lạnh' },
+                                    { key: 'pbbTunnel', label: '3.5 Khung sườn' },
+                                ].map((item) => (
+                                    <div key={item.key} className="space-y-2 pb-3 border-b border-slate-50 last:border-0 border-dashed">
+                                        <div className="flex items-center justify-between">
+                                            <span className="text-[10px] font-black text-slate-500 uppercase">{item.label}</span>
+                                            <div className="flex gap-1 bg-slate-100 p-0.5 rounded-lg">
+                                                {['ĐẠT', 'K.ĐẠT'].map(status => (
+                                                    <button
+                                                        key={status}
+                                                        onClick={() => setResults(prev => ({ ...prev, [item.key]: { ...(prev as any)[item.key], status } }))}
+                                                        className={clsx(
+                                                            "px-2 py-1 rounded-md font-black text-[9px] transition-all",
+                                                            (results as any)[item.key].status === status 
+                                                                ? (status === 'ĐẠT' ? "bg-green-500 text-white" : "bg-red-500 text-white")
+                                                                : "text-slate-400"
+                                                        )}
+                                                    >
+                                                        {status}
+                                                    </button>
+                                                ))}
+                                            </div>
                                         </div>
+                                        <input 
+                                            placeholder="Ghi chú (Note)"
+                                            value={(results as any)[item.key].note}
+                                            onChange={(e) => setResults(prev => ({ ...prev, [item.key]: { ...(prev as any)[item.key], note: e.target.value } }))}
+                                            className="w-full p-2 text-[10px] border border-slate-100 rounded-lg bg-slate-50 outline-none focus:bg-white focus:ring-2 focus:ring-sky-500/10 font-bold"
+                                        />
                                     </div>
                                 ))}
+                                
+                                <div className="pt-2">
+                                    <label className="block text-[10px] font-black text-slate-400 uppercase mb-2 ml-1">KẾT LUẬN CHUNG</label>
+                                    <div className="flex bg-slate-100 p-1 rounded-xl">
+                                        {['ĐẠT', 'KHÔNG ĐẠT'].map(status => (
+                                            <button
+                                                key={status}
+                                                onClick={() => setResults(prev => ({ ...prev, overall: status }))}
+                                                className={clsx(
+                                                    "flex-1 py-3 rounded-lg font-black text-[10px] transition-all",
+                                                    results.overall === status 
+                                                        ? (status === 'ĐẠT' ? "bg-sky-600 text-white shadow-lg" : "bg-red-600 text-white shadow-lg")
+                                                        : "text-slate-400 hover:text-slate-600"
+                                                )}
+                                            >
+                                                {status}
+                                            </button>
+                                        ))}
+                                    </div>
+                                </div>
                             </div>
                         </div>
                     </div>
