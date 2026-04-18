@@ -4,7 +4,7 @@ import { useUser } from '@/providers/UserProvider';
 import {
   AlertCircle, Wrench, FileText, ClipboardList, BarChart2, Package,
   QrCode, Users, UserCheck, Save, Lock, LogOut, Search, History as HistoryIcon,
-  Check, Edit2, RotateCcw, BookOpen, ShieldCheck, GraduationCap
+  Check, Edit2, RotateCcw, BookOpen, ShieldCheck, GraduationCap, PenTool
 } from 'lucide-react';
 
 import clsx from 'clsx';
@@ -87,6 +87,13 @@ export default function Header({
             title="Sổ Lý Lịch Thiết Bị (ACV-LLTB01)"
           >
             <BookOpen size={16} /> Lý Lịch TB
+          </button>
+          <button
+            onClick={() => router.push('/pbb-maintenance')}
+            className="p-2 rounded text-sm font-bold flex items-center gap-1 bg-sky-600 hover:bg-sky-700 text-white transition shadow-sm"
+            title="Bảo dưỡng Cầu HK (JBT)"
+          >
+            <PenTool size={16} /> Cầu HK
           </button>
           <button
             onClick={() => window.open('https://hldt-web.vercel.app/', '_blank')}
