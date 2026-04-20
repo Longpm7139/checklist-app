@@ -151,6 +151,10 @@ export const saveMaintenance = async (task: any) => {
     await setDoc(doc(db, "maintenance", task.id), removeUndefined(task));
 };
 
+export const deleteMaintenance = async (id: string) => {
+    await deleteDoc(doc(db, "maintenance", id));
+};
+
 export const subscribeToMaintenance = (callback: (data: any[]) => void) => {
     const q = query(collection(db, "maintenance"));
     return onSnapshot(q, (querySnapshot) => {

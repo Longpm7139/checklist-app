@@ -106,7 +106,7 @@ export default function PbbMaintenanceListPage() {
                                         onClick={() => router.push(`/pbb-maintenance/${report.id}`)}
                                         className="flex-1 md:flex-none py-3 px-6 rounded-xl font-black text-sm bg-slate-100 text-slate-600 hover:bg-slate-200 transition-all flex items-center justify-center gap-2"
                                     >
-                                        <FileText size={18} /> CHI TIẾT
+                                        <FileText size={18} /> {user?.role === 'ADMIN' ? 'SỬA / CHI TIẾT' : 'CHI TIẾT'}
                                     </button>
                                     {user?.role === 'ADMIN' && (
                                         <button 

@@ -2,12 +2,12 @@
 
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { ArrowLeft, Wrench, Calendar, CheckSquare, Plus, User as UserIcon, Clock, AlertTriangle, Camera, X, Image as ImageIcon, Loader2 } from 'lucide-react';
+import { ArrowLeft, Wrench, Calendar, CheckSquare, Plus, User as UserIcon, Clock, AlertTriangle, Camera, X, Image as ImageIcon, Loader2, Trash2, Edit2, PenTool } from 'lucide-react';
 import { useUser } from '@/providers/UserProvider';
 import { IMESafeInput, IMESafeTextArea } from '@/components/IMESafeInput';
 import { MaintenanceTask, User } from '@/lib/types';
 import clsx from 'clsx';
-import { subscribeToMaintenance, saveMaintenance, uploadImage } from '@/lib/firebase';
+import { subscribeToMaintenance, saveMaintenance, uploadImage, deleteMaintenance } from '@/lib/firebase';
 
 export default function MaintenancePage() {
     const router = useRouter();
@@ -24,6 +24,8 @@ export default function MaintenancePage() {
     const [beforeImageFile, setBeforeImageFile] = useState<File | null>(null);
     const [beforeImagePreview, setBeforeImagePreview] = useState<string | null>(null);
     const [isUploading, setIsUploading] = useState(false);
+    const [isEditMode, setIsEditMode] = useState(false);
+    const [editingTaskId, setEditingTaskId] = useState<string | null>(null);
 
     // New: Multi-select state
     const [selectedUserCodes, setSelectedUserCodes] = useState<string[]>([]);
@@ -38,6 +40,12 @@ export default function MaintenancePage() {
     const [afterImagePreview, setAfterImagePreview] = useState<string | null>(null);
     const [isCompleting, setIsCompleting] = useState(false);
     const [viewingImage, setViewingImage] = useState<string | null>(null);
+
+    // Edit Completion Report State
+    const [editCompletedNote, setEditCompletedNote] = useState('');
+    const [editRemainingIssues, setEditRemainingIssues] = useState('');
+    const [editAfterImagePreview, setEditAfterImagePreview] = useState<string | null>(null);
+    const [editAfterImageFile, setEditAfterImageFile] = useState<File | null>(null);
 
     useEffect(() => {
         const unsub = subscribeToMaintenance((data) => {
@@ -135,12 +143,18 @@ export default function MaintenancePage() {
         );
 
         setIsUploading(true);
-        let uploadedBeforeUrl = '';
+        let uploadedBeforeUrl = beforeImagePreview;
+        let uploadedAfterUrl = editAfterImagePreview;
 
         try {
             if (beforeImageFile) {
                 const path = `maintenance/before/${Date.now()}_${beforeImageFile.name}`;
                 uploadedBeforeUrl = await uploadImage(beforeImageFile, path);
+            }
+
+            if (editAfterImageFile) {
+                const path = `maintenance/after/${Date.now()}_${editAfterImageFile.name}`;
+                uploadedAfterUrl = await uploadImage(editAfterImageFile, path);
             }
 
             const newTask: MaintenanceTask = {
@@ -154,13 +168,17 @@ export default function MaintenancePage() {
                 supervisors: selectedSupervisorCodes,
                 supervisorNames: selectedSupervisorNames,
                 assignedByName: currentUser?.name || 'Admin',
-                status: 'PENDING',
-                createdAt: new Date().toLocaleString('vi-VN', { hour: '2-digit', minute: '2-digit', day: '2-digit', month: '2-digit', year: 'numeric', hour12: false }),
-                beforeImageUrl: uploadedBeforeUrl
+                status: isEditMode && editingTaskId ? (tasks.find(t => t.id === editingTaskId)?.status || 'PENDING') : 'PENDING',
+                createdAt: isEditMode && editingTaskId ? (tasks.find(t => t.id === editingTaskId)?.createdAt || '') : new Date().toLocaleString('vi-VN', { hour: '2-digit', minute: '2-digit', day: '2-digit', month: '2-digit', year: 'numeric', hour12: false }),
+                beforeImageUrl: uploadedBeforeUrl || undefined,
+                completedAt: isEditMode && editingTaskId ? (tasks.find(t => t.id === editingTaskId)?.completedAt || '') : '',
+                completedNote: isEditMode && editingTaskId ? editCompletedNote : '',
+                remainingIssues: isEditMode && editingTaskId ? editRemainingIssues : '',
+                afterImageUrl: (isEditMode && editingTaskId ? uploadedAfterUrl : '') || undefined
             };
 
             // Save to Firebase
-            await saveMaintenance(newTask);
+            await saveMaintenance(isEditMode && editingTaskId ? { ...newTask, id: editingTaskId } : newTask);
 
             // Reset
             setTitle('');
@@ -171,8 +189,10 @@ export default function MaintenancePage() {
             setSelectedSupervisorCodes([]);
             setBeforeImageFile(null);
             setBeforeImagePreview(null);
+            setIsEditMode(false);
+            setEditingTaskId(null);
             setViewMode('LIST');
-            alert("Đã giao việc bảo trì thành công!");
+            alert(isEditMode ? "Đã cập nhật kế hoạch bảo trì thành công!" : "Đã giao việc bảo trì thành công!");
         } catch (error) {
             console.error("Failed to create maintenance task", error);
             alert("Lỗi khi lập kế hoạch. Vui lòng thử lại!");
@@ -228,6 +248,55 @@ export default function MaintenancePage() {
         }
     };
 
+    const handleDeleteTask = async (id: string) => {
+        if (!window.confirm("Bạn có chắc chắn muốn XÓA kế hoạch bảo trì này không? Thao tác này không thể hoàn tác.")) return;
+        try {
+            await deleteMaintenance(id);
+            alert("Đã xóa kế hoạch thành công!");
+        } catch (error) {
+            console.error("Failed to delete task", error);
+            alert("Lỗi khi xóa kế hoạch!");
+        }
+    };
+
+    const handleEditTask = (task: MaintenanceTask) => {
+        setEditingTaskId(task.id);
+        setIsEditMode(true);
+        setTitle(task.title);
+        setTaskType(task.type || 'MAINTENANCE');
+        setDesc(task.description || '');
+        setDeadline(task.deadline || '');
+        setSelectedUserCodes(task.assignees || []);
+        setSelectedSupervisorCodes(task.supervisors || []);
+        setBeforeImagePreview(task.beforeImageUrl || null);
+        
+        // Populate completion fields if they exist
+        setEditCompletedNote(task.completedNote || '');
+        setEditRemainingIssues(task.remainingIssues || '');
+        setEditAfterImagePreview(task.afterImageUrl || null);
+        setEditAfterImageFile(null);
+
+        setViewMode('CREATE');
+    };
+
+    const cancelEdit = () => {
+        setIsEditMode(false);
+        setEditingTaskId(null);
+        setTitle('');
+        setTaskType('MAINTENANCE');
+        setDesc('');
+        setDeadline('');
+        setSelectedUserCodes([]);
+        setSelectedSupervisorCodes([]);
+        setBeforeImageFile(null);
+        setBeforeImagePreview(null);
+        setEditCompletedNote('');
+        setEditRemainingIssues('');
+        setEditAfterImagePreview(null);
+        setEditAfterImageFile(null);
+        setViewMode('LIST');
+    };
+
     return (
         <div className="min-h-screen bg-slate-50 p-4 md:p-8 font-sans text-slate-900">
             <div className="max-w-4xl mx-auto">
@@ -256,7 +325,9 @@ export default function MaintenancePage() {
 
                 {viewMode === 'CREATE' && (
                     <div className="bg-white p-6 rounded-xl shadow-lg border border-blue-100 mb-6">
-                        <h2 className="font-bold text-lg mb-4 text-slate-800 border-b pb-2">Giao việc Bảo trì Mới</h2>
+                        <h2 className="font-bold text-lg mb-4 text-slate-800 border-b pb-2">
+                            {isEditMode ? 'Chỉnh sửa Kế hoạch Bảo trì' : 'Giao việc Bảo trì Mới'}
+                        </h2>
                         <div className="space-y-4">
                             <div>
                                 <label className="block text-sm font-medium text-slate-700 mb-1">Loại công việc *</label>
@@ -402,10 +473,72 @@ export default function MaintenancePage() {
                                         </p>
                                     </div>
                                 </div>
+
+                                {isEditMode && tasks.find(t => t.id === editingTaskId)?.status === 'COMPLETED' && (
+                                    <div className="col-span-1 md:col-span-2 pt-6 border-t border-slate-100 bg-green-50/30 -mx-6 px-6 mt-4">
+                                        <h3 className="text-sm font-black text-green-800 uppercase tracking-widest mb-4 flex items-center gap-2">
+                                            <CheckSquare size={18} /> Chỉnh sửa Báo cáo Hoàn thành
+                                        </h3>
+                                        <div className="space-y-4">
+                                            <div>
+                                                <label className="block text-sm font-medium text-slate-700 mb-1">Kết quả bảo dưỡng *</label>
+                                                <IMESafeTextArea
+                                                    className="w-full border border-slate-300 rounded p-2 focus:border-green-500 outline-none bg-white"
+                                                    rows={3}
+                                                    value={editCompletedNote}
+                                                    onChangeValue={(val: string) => setEditCompletedNote(val)}
+                                                />
+                                            </div>
+                                            <div>
+                                                <label className="block text-sm font-medium text-slate-700 mb-1">Cần tồn tại (Nếu có)</label>
+                                                <IMESafeTextArea
+                                                    className="w-full border border-slate-300 rounded p-2 focus:border-yellow-500 outline-none bg-white"
+                                                    rows={2}
+                                                    value={editRemainingIssues}
+                                                    onChangeValue={(val: string) => setEditRemainingIssues(val)}
+                                                />
+                                            </div>
+                                            <div>
+                                                <label className="block text-sm font-medium text-slate-700 mb-2">Ảnh kết quả (Sau bảo trì)</label>
+                                                <div className="flex items-center gap-4">
+                                                    {!editAfterImagePreview ? (
+                                                        <label className="flex flex-col items-center justify-center w-32 h-32 rounded-xl border-2 border-dashed border-slate-300 bg-white cursor-pointer hover:bg-green-50 transition group">
+                                                            <Camera size={28} className="text-slate-400 group-hover:text-green-600 mb-1" />
+                                                            <input 
+                                                                type="file" 
+                                                                className="hidden" 
+                                                                accept="image/*" 
+                                                                onChange={(e) => {
+                                                                    const file = e.target.files?.[0];
+                                                                    if (file) {
+                                                                        setEditAfterImageFile(file);
+                                                                        const reader = new FileReader();
+                                                                        reader.onloadend = () => setEditAfterImagePreview(reader.result as string);
+                                                                        reader.readAsDataURL(file);
+                                                                    }
+                                                                }}
+                                                            />
+                                                        </label>
+                                                    ) : (
+                                                        <div className="relative w-32 h-32 rounded-xl border border-slate-200 overflow-hidden shadow-sm">
+                                                            <img src={editAfterImagePreview} alt="After" className="w-full h-full object-cover" />
+                                                            <button 
+                                                                onClick={() => { setEditAfterImageFile(null); setEditAfterImagePreview(null); }} 
+                                                                className="absolute top-1 right-1 bg-red-600 text-white rounded-full p-1 shadow-md"
+                                                            >
+                                                                <X size={14} />
+                                                            </button>
+                                                        </div>
+                                                    )}
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                )}
                             </div>
                             <div className="flex justify-end gap-3 mt-4">
                                 <button
-                                    onClick={() => setViewMode('LIST')}
+                                    onClick={cancelEdit}
                                     className="px-4 py-2 text-slate-600 hover:bg-slate-100 rounded"
                                     disabled={isUploading}
                                 >
@@ -418,7 +551,8 @@ export default function MaintenancePage() {
                                 >
                                     {isUploading ? <Loader2 className="animate-spin" size={18} /> : (
                                         <>
-                                            <Plus size={20} /> Giao Việc
+                                            {isEditMode ? <CheckSquare size={20} /> : <Plus size={20} />} 
+                                            {isEditMode ? 'Cập Nhật' : 'Giao Việc'}
                                         </>
                                     )}
                                 </button>
@@ -448,6 +582,24 @@ export default function MaintenancePage() {
                                                 <span className="bg-green-50 text-green-700 text-[10px] font-black px-2.5 py-1 rounded-full border border-green-200 uppercase tracking-tight shadow-sm">ĐÃ XONG</span>
                                             ) : (
                                                 <span className="bg-blue-50 text-blue-700 text-[10px] font-black px-2.5 py-1 rounded-full border border-blue-200 uppercase tracking-tight">CẦN LÀM</span>
+                                            )}
+                                            {currentUser?.role === 'ADMIN' && (
+                                                <div className="flex gap-2 ml-auto">
+                                                    <button 
+                                                        onClick={(e) => { e.stopPropagation(); handleEditTask(task); }}
+                                                        className="p-2 text-slate-500 hover:text-blue-600 hover:bg-blue-600/10 rounded-lg transition-all shadow-sm border border-slate-200 bg-white"
+                                                        title="Sửa kế hoạch"
+                                                    >
+                                                        <PenTool size={18} />
+                                                    </button>
+                                                    <button 
+                                                        onClick={(e) => { e.stopPropagation(); handleDeleteTask(task.id); }}
+                                                        className="p-2 text-slate-500 hover:text-red-600 hover:bg-red-600/10 rounded-lg transition-all shadow-sm border border-slate-200 bg-white"
+                                                        title="Xóa kế hoạch"
+                                                    >
+                                                        <Trash2 size={18} />
+                                                    </button>
+                                                </div>
                                             )}
                                         </div>
 

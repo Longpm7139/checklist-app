@@ -155,6 +155,11 @@ export default function PbbMaintenanceFormPage() {
     };
 
     const handleSave = async () => {
+        if (!isNew && user?.role !== 'ADMIN') {
+            alert('Chỉ Admin mới có quyền chỉnh sửa phiếu đã lưu!');
+            return;
+        }
+
         if (!systemId) {
             alert('Vui lòng nhập Số đăng ký/Cửa bến!');
             return;
@@ -566,28 +571,60 @@ export default function PbbMaintenanceFormPage() {
 
                         {/* Checklist Sections */}
                         <div className="space-y-4">
-                            {PBB_CHECKLIST_SECTIONS.map((section) => (
-                                <div key={section.no} className="bg-white rounded-2xl shadow-sm border border-slate-200/60 overflow-hidden">
-                                    <div 
-                                        className="bg-slate-800 text-white px-5 py-3 font-black text-xs flex items-center justify-between tracking-widest cursor-pointer hover:bg-slate-700 transition-colors"
-                                        onClick={() => toggleSection(section.no)}
-                                    >
-                                        <div className="flex items-center gap-3">
-                                            {expandedSections.includes(section.no) ? <ChevronDown size={16} /> : <ChevronRight size={16} />}
-                                            <span className="uppercase">{section.no}. {section.name}</span>
+                            {PBB_CHECKLIST_SECTIONS.map((section) => {
+                                const idx = MAINT_LEVELS.indexOf(maintLevel);
+                                let totalReq = 0;
+                                let doneReq = 0;
+
+                                section.tasks.forEach(t => {
+                                    const req = t.reqs[idx];
+                                    if (req) {
+                                        totalReq++;
+                                        const taskId = `${section.no}_${t.no}_${maintLevel}`;
+                                        if (req === 'M') {
+                                            if (responses[taskId]?.value) doneReq++;
+                                        } else {
+                                            if (responses[taskId]?.status) doneReq++;
+                                        }
+                                    }
+                                    t.subTasks?.forEach(s => {
+                                        const subReq = s.reqs[idx];
+                                        if (subReq) {
+                                            totalReq++;
+                                            const subId = `${section.no}_${t.no}_${s.no}_${maintLevel}`;
+                                            if (subReq === 'M') {
+                                                if (responses[subId]?.value) doneReq++;
+                                            } else {
+                                                if (responses[subId]?.status) doneReq++;
+                                            }
+                                        }
+                                    });
+                                });
+
+                                const isSectionComplete = totalReq > 0 && doneReq === totalReq;
+
+                                return (
+                                    <div key={section.no} className="bg-white rounded-2xl shadow-sm border border-slate-200/60 overflow-hidden">
+                                        <div 
+                                            className={clsx(
+                                                "px-5 py-3 font-black text-xs flex items-center justify-between tracking-widest cursor-pointer transition-colors",
+                                                isSectionComplete ? "bg-green-600 text-white" : "bg-slate-800 text-white hover:bg-slate-700"
+                                            )}
+                                            onClick={() => toggleSection(section.no)}
+                                        >
+                                            <div className="flex items-center gap-3">
+                                                {expandedSections.includes(section.no) ? <ChevronDown size={16} /> : <ChevronRight size={16} />}
+                                                <span className="uppercase">{section.no}. {section.name}</span>
+                                            </div>
+                                            <div className="flex items-center gap-2">
+                                                <span className={clsx(
+                                                    "px-2 py-0.5 rounded text-[10px] transition-all",
+                                                    isSectionComplete ? "bg-white/20 text-white" : "bg-sky-500/20 text-sky-400"
+                                                )}>
+                                                    {doneReq}/{totalReq} hạng mục
+                                                </span>
+                                            </div>
                                         </div>
-                                        <div className="flex items-center gap-2">
-                                            {/* Calculation of progress */}
-                                            <span className="bg-sky-500/20 text-sky-400 px-2 py-0.5 rounded text-[10px]">
-                                                {section.tasks.reduce((acc, t) => {
-                                                    const idx = MAINT_LEVELS.indexOf(maintLevel);
-                                                    if (t.reqs[idx]) acc++;
-                                                    t.subTasks?.forEach(s => { if (s.reqs[idx]) acc++; });
-                                                    return acc;
-                                                }, 0)} hạng mục
-                                            </span>
-                                        </div>
-                                    </div>
                                     {expandedSections.includes(section.no) && (
                                         <div className="overflow-x-auto">
                                         <table className="w-full border-collapse text-[11px]">
@@ -711,8 +748,9 @@ export default function PbbMaintenanceFormPage() {
                                         </table>
                                     </div>
                                     )}
-                                </div>
-                            ))}
+                                    </div>
+                                );
+                            })}
                         </div>
                     </div>
 
@@ -848,20 +886,22 @@ export default function PbbMaintenanceFormPage() {
                             <Download size={28} />
                         </button>
                     )}
-                    <button
-                        onClick={handleSave}
-                        disabled={saving}
-                        className="py-4 px-10 bg-sky-600 text-white font-black rounded-full shadow-2xl shadow-sky-500/40 transition-all flex items-center gap-3 hover:bg-sky-700 hover:px-12 active:scale-95 disabled:opacity-50 border-4 border-white"
-                    >
-                        {saving ? (
-                            <span className="animate-pulse">ĐANG LƯU...</span>
-                        ) : (
-                            <>
-                                <Save size={24} /> 
-                                <span className="uppercase tracking-widest text-sm">Lưu phiếu</span>
-                            </>
-                        )}
-                    </button>
+                    {(isNew || user?.role === 'ADMIN') && (
+                        <button
+                            onClick={handleSave}
+                            disabled={saving}
+                            className="py-4 px-10 bg-sky-600 text-white font-black rounded-full shadow-2xl shadow-sky-500/40 transition-all flex items-center gap-3 hover:bg-sky-700 hover:px-12 active:scale-95 disabled:opacity-50 border-4 border-white"
+                        >
+                            {saving ? (
+                                <span className="animate-pulse">ĐANG LƯU...</span>
+                            ) : (
+                                <>
+                                    <Save size={24} /> 
+                                    <span className="uppercase tracking-widest text-sm">Lưu phiếu</span>
+                                </>
+                            )}
+                        </button>
+                    )}
                 </div>
             </div>
             
