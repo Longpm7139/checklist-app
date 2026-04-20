@@ -278,13 +278,14 @@ export default function CheckPage() {
                     nokItems.forEach(item => {
                         const historyId = `${systemId}_${item.id}_${sDateStr}`;
                         dbPromises.push(saveHistoryItem(historyId, {
+                            id: historyId,
                             systemId: systemId,
                             systemName: `${systemName} - ${item.content}`,
                             issueContent: item.note || item.content,
                             timestamp: now,
                             inspectorName: user?.name || 'Unknown',
                             imageUrl: item.imageUrl || '',
-                            fixStatus: 'NotFixed'
+                            fixStatus: 'No Fix'
                         }));
                     });
                 }

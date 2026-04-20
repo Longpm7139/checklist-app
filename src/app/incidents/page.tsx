@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { ArrowLeft, Siren, CheckCircle, Plus, User as UserIcon, Clock, AlertTriangle, Search, Download, Loader2, Camera, X, Image as ImageIcon, Trash2 } from 'lucide-react';
+import { ArrowLeft, Siren, CheckCircle, Plus, User as UserIcon, Clock, AlertTriangle, Search, Download, Loader2, Camera, X, Image as ImageIcon, Trash2, Pencil } from 'lucide-react';
 
 import { useUser } from '@/providers/UserProvider';
 import { IMESafeInput, IMESafeTextArea } from '@/components/IMESafeInput';
@@ -47,6 +47,10 @@ export default function IncidentsPage() {
     const [isResUploading, setIsResUploading] = useState(false);
     const [zaloModalMessage, setZaloModalMessage] = useState<string | null>(null);
     const [customResolvedAt, setCustomResolvedAt] = useState<string>('');
+    const [isEditing, setIsEditing] = useState(false);
+    const [editingId, setEditingId] = useState<string | null>(null);
+    const [existingImageUrl, setExistingImageUrl] = useState<string>('');
+    const [existingResImageUrl, setExistingResImageUrl] = useState<string>('');
 
     // Helper: Send Zalo message (works on both mobile and desktop)
     const sendZaloMessage = (message: string) => {
@@ -112,16 +116,60 @@ export default function IncidentsPage() {
     const removeImage = () => {
         setImageFile(null);
         setImagePreview(null);
+        setExistingImageUrl('');
     };
 
-    const handleCreate = async (notifyZalo: boolean = false) => {
+    const handleEditStart = (inc: Incident) => {
+        setIsEditing(true);
+        setEditingId(inc.id);
+        setNewTitle(inc.title);
+        setNewSystem(inc.systemName);
+        setSelectedSystemId(inc.systemId || '');
+        setNewDesc(inc.description);
+        setNewSeverity(inc.severity || 'MEDIUM');
+        setAssignee(inc.assignedTo || '');
+        
+        const parseToInput = (dateStr: string) => {
+            if (!dateStr) return '';
+            // Format is "HH:mm DD/MM/YYYY" -> "YYYY-MM-DDTHH:mm"
+            const parts = dateStr.split(' ');
+            if (parts.length < 2) return '';
+            const [time, date] = parts;
+            const [D, M, Y] = date.split('/');
+            return `${Y}-${M}-${D}T${time}`;
+        };
+        
+        setCustomCreatedAt(parseToInput(inc.createdAt));
+        setExistingImageUrl(inc.imageUrl || '');
+        setImagePreview(inc.imageUrl || null);
+
+        if (inc.status === 'RESOLVED') {
+            setResolutionNote(inc.resolutionNote || '');
+            setCustomResolvedAt(parseToInput(inc.resolvedAt || ''));
+            setSelectedParticipants(inc.participants || []);
+            setExistingResImageUrl(inc.resolutionImageUrl || '');
+            setResImagePreview(inc.resolutionImageUrl || null);
+        } else {
+            // Reset res states just in case
+            setResolutionNote('');
+            setCustomResolvedAt('');
+            setSelectedParticipants([]);
+            setExistingResImageUrl('');
+            setResImagePreview(null);
+        }
+
+        setViewMode('CREATE');
+    };
+
+    const handleSaveIncident = async (notifyZalo: boolean = false) => {
         if (!newTitle || !newSystem) {
             alert("Vui lòng nhập Tên sự cố và Hệ thống!");
             return;
         }
 
         setIsUploading(true);
-        let uploadedUrl = '';
+        let uploadedUrl = existingImageUrl;
+        let uploadedResUrl = existingResImageUrl;
 
         try {
             if (imageFile) {
@@ -129,38 +177,55 @@ export default function IncidentsPage() {
                 uploadedUrl = await uploadImage(imageFile, path);
             }
 
+            if (resImageFile) {
+                const path = `resolutions/${Date.now()}_${resImageFile.name}`;
+                uploadedResUrl = await uploadImage(resImageFile, path);
+            }
+
             const incidentDate = customCreatedAt 
                 ? new Date(customCreatedAt).toLocaleString('vi-VN', { hour: '2-digit', minute: '2-digit', day: '2-digit', month: '2-digit', year: 'numeric', hour12: false })
                 : new Date().toLocaleString('vi-VN', { hour: '2-digit', minute: '2-digit', day: '2-digit', month: '2-digit', year: 'numeric', hour12: false });
 
-            // Tìm system được chọn để lấy tên
+            const resolvedDate = customResolvedAt
+                ? new Date(customResolvedAt).toLocaleString('vi-VN', { hour: '2-digit', minute: '2-digit', day: '2-digit', month: '2-digit', year: 'numeric', hour12: false })
+                : '';
+
             const selectedSystem = systems.find(s => s.id === selectedSystemId);
             const systemNameForIncident = newSystem || selectedSystem?.name || '';
 
-            const newIncident: Incident = {
-                id: Date.now().toString(),
+            const incidentData: Incident = {
+                id: isEditing && editingId ? editingId : Date.now().toString(),
                 title: newTitle,
                 systemName: systemNameForIncident,
                 systemId: selectedSystemId || undefined,
                 description: newDesc,
-                status: 'OPEN',
+                status: isEditing && editingId ? (incidents.find(i => i.id === editingId)?.status || 'OPEN') : 'OPEN',
                 severity: newSeverity,
                 assignedTo: assignee,
-                reportedBy: currentUser?.name || 'Admin',
+                reportedBy: isEditing ? (incidents.find(i => i.id === editingId)?.reportedBy || currentUser?.name || 'Admin') : (currentUser?.name || 'Admin'),
                 createdAt: incidentDate,
                 imageUrl: uploadedUrl
             } as any;
 
-            // Save to Firebase
-            await saveIncident(newIncident);
+            // If editing a resolved incident, preserve/update resolution details
+            if (isEditing && incidentData.status === 'RESOLVED') {
+                incidentData.resolutionNote = resolutionNote;
+                incidentData.resolvedAt = resolvedDate;
+                incidentData.participants = selectedParticipants;
+                incidentData.resolutionImageUrl = uploadedResUrl;
+                incidentData.resolvedBy = incidents.find(i => i.id === editingId)?.resolvedBy || currentUser?.name || 'Admin';
+            }
 
-            // Notification Logic
-            if (notifyZalo) {
+            // Save to Firebase
+            await saveIncident(incidentData);
+
+            // Notification Logic (only for NEW incidents)
+            if (notifyZalo && !isEditing) {
                 const message = `[BÁO CÁO SỰ CỐ KHẨN CẤP] 🚨\n\n📌 Tên sự cố: ${newTitle}\n📍 Hệ thống/Khu vực: ${newSystem}\n🕒 Thời gian xảy ra: ${incidentDate}\n📝 Mô tả: ${newDesc || 'Không có mô tả'}\n👤 Người báo: ${currentUser?.name || 'Admin'}${uploadedUrl ? `\n🖼 Ảnh đính kèm: [Xem trong App]` : ''}\n\n👉 Đề nghị kiểm tra xử lý ngay!`;
-                alert("Đã tạo sự cố thành công!");
+                alert(isEditing ? "Đã cập nhật sự cố thành công!" : "Đã tạo sự cố thành công!");
                 sendZaloMessage(message);
             } else {
-                alert("Đã tạo sự cố mới!");
+                alert(isEditing ? "Đã cập nhật sự cố!" : "Đã tạo sự cố mới!");
             }
 
             // Reset
@@ -174,10 +239,19 @@ export default function IncidentsPage() {
             setImageFile(null);
             setImagePreview(null);
             setCustomCreatedAt('');
+            setResolutionNote('');
+            setCustomResolvedAt('');
+            setSelectedParticipants([]);
+            setResImageFile(null);
+            setResImagePreview(null);
+            setExistingImageUrl('');
+            setExistingResImageUrl('');
+            setIsEditing(false);
+            setEditingId(null);
             setViewMode('LIST');
         } catch (error) {
-            console.error("Failed to create incident", error);
-            alert("Lỗi khi tạo sự cố. Vui lòng thử lại!");
+            console.error("Failed to save incident", error);
+            alert("Lỗi khi lưu sự cố. Vui lòng thử lại!");
         } finally {
             setIsUploading(false);
         }
@@ -378,7 +452,26 @@ export default function IncidentsPage() {
 
                 {viewMode === 'CREATE' && (
                     <div className="bg-white p-6 rounded-xl shadow-lg border border-red-100 mb-6">
-                        <h2 className="font-bold text-lg mb-4 text-slate-800 border-b pb-2">Thông tin Sự cố mới</h2>
+                        <div className="flex items-center justify-between mb-4 border-b pb-2">
+                            <h2 className="font-bold text-lg text-slate-800">{isEditing ? 'Chỉnh sửa Sự cố' : 'Thông tin Sự cố mới'}</h2>
+                            {isEditing && (
+                                <button 
+                                    onClick={() => {
+                                        setIsEditing(false);
+                                        setEditingId(null);
+                                        setViewMode('LIST');
+                                        // Reset fields
+                                        setNewTitle('');
+                                        setNewSystem('');
+                                        setNewDesc('');
+                                        setAssignee('');
+                                    }}
+                                    className="text-xs font-bold text-red-600 hover:underline"
+                                >
+                                    Hủy Chỉnh sửa
+                                </button>
+                            )}
+                        </div>
                         <div className="space-y-4">
                             {/* Severity */}
                             <div>
@@ -512,7 +605,7 @@ export default function IncidentsPage() {
                                     onChangeValue={(val: string) => setAssignee(val)}
                                 />
                             </div>
-                            
+
                             {/* Photo Upload Section */}
                             <div className="pt-2">
                                 <label className="block text-sm font-bold text-slate-700 mb-2 flex items-center gap-2">
@@ -557,32 +650,105 @@ export default function IncidentsPage() {
                                 </div>
                             </div>
                         </div>
+
+                        {isEditing && incidents.find(i => i.id === editingId)?.status === 'RESOLVED' && (
+                            <div className="mt-6 pt-6 border-t border-slate-100 space-y-4">
+                                <h3 className="text-sm font-black text-green-700 uppercase tracking-widest flex items-center gap-2">
+                                    <CheckCircle size={16} /> Chỉnh sửa kết quả xử lý (Admin)
+                                </h3>
+                                <div>
+                                    <label className="block text-sm font-bold text-slate-700 mb-1">Nội dung xử lý *</label>
+                                    <IMESafeTextArea
+                                        className="w-full border border-slate-300 rounded p-2 focus:border-green-500 outline-none bg-green-50/30"
+                                        rows={3}
+                                        placeholder="Mô tả công việc đã thực hiện..."
+                                        value={resolutionNote}
+                                        onChangeValue={(val: string) => setResolutionNote(val)}
+                                    />
+                                </div>
+                                <div>
+                                    <label className="block text-sm font-bold text-slate-700 mb-1">Thời gian khắc phục *</label>
+                                    <input
+                                        type="datetime-local"
+                                        className="w-full border border-slate-300 rounded p-2 focus:border-green-500 outline-none bg-green-50/30"
+                                        value={customResolvedAt}
+                                        onChange={(e) => setCustomResolvedAt(e.target.value)}
+                                    />
+                                </div>
+                                <div>
+                                    <label className="block text-sm font-bold text-slate-700 mb-2">Người tham gia xử lý:</label>
+                                    <div className="max-h-32 overflow-y-auto border border-slate-200 rounded p-2 bg-slate-50 grid grid-cols-2 gap-2">
+                                        {users.map(u => (
+                                            <label key={u.id} className="flex items-center gap-2 p-1.5 bg-white rounded border border-slate-100 cursor-pointer hover:bg-blue-50">
+                                                <input
+                                                    type="checkbox"
+                                                    checked={selectedParticipants.includes(u.name)}
+                                                    onChange={() => toggleParticipant(u.name)}
+                                                    className="w-3 h-3 text-blue-600 rounded"
+                                                />
+                                                <span className="text-[11px] font-medium text-slate-700 truncate">{u.name}</span>
+                                            </label>
+                                        ))}
+                                    </div>
+                                </div>
+                                <div>
+                                    <label className="block text-sm font-bold text-slate-700 mb-2 flex items-center gap-2">
+                                        <Camera size={18} className="text-green-600" /> Hình ảnh bằng chứng đã xong
+                                    </label>
+                                    <div className="flex items-center gap-4">
+                                        {!resImagePreview ? (
+                                            <label className="flex flex-col items-center justify-center w-24 h-24 rounded-lg border-2 border-dashed border-slate-300 bg-slate-50 cursor-pointer hover:bg-blue-50 transition group">
+                                                <Camera size={24} className="text-slate-400 group-hover:text-blue-500 mb-1" />
+                                                <input 
+                                                    type="file" 
+                                                    className="hidden" 
+                                                    accept="image/*" 
+                                                    capture="environment"
+                                                    onChange={handleResImageChange}
+                                                />
+                                            </label>
+                                        ) : (
+                                            <div className="relative w-24 h-24 rounded-lg border border-slate-200 overflow-hidden shadow-sm">
+                                                <img src={resImagePreview} className="w-full h-full object-cover" alt="Res Preview" />
+                                                <button onClick={removeResImage} className="absolute top-1 right-1 bg-red-600 text-white rounded-full p-1"><X size={12} /></button>
+                                            </div>
+                                        )}
+                                    </div>
+                                </div>
+                            </div>
+                        )}
                         <div className="flex justify-end gap-3 mt-4">
                             <button
-                                onClick={() => setViewMode('LIST')}
+                                onClick={() => {
+                                    setIsEditing(false);
+                                    setEditingId(null);
+                                    setViewMode('LIST');
+                                }}
                                 className="px-4 py-2 text-slate-600 hover:bg-slate-100 rounded"
                                 disabled={isUploading}
                             >
-                                Hủy
+                                {isEditing ? 'Đóng' : 'Hủy'}
                             </button>
                             <button
-                                onClick={() => handleCreate(false)}
+                                onClick={() => handleSaveIncident(false)}
                                 className="px-4 py-2 bg-red-600 text-white font-bold rounded shadow hover:bg-red-700 flex items-center gap-2"
                                 disabled={isUploading}
                             >
-                                {isUploading ? <Loader2 className="animate-spin" size={18} /> : 'Tạo Sự Cố'}
+                                {isUploading ? <Loader2 className="animate-spin" size={18} /> : (isEditing ? 'Lưu thay đổi' : 'Tạo Sự Cố')}
                             </button>
-                            <button
-                                onClick={() => handleCreate(true)}
-                                className="px-4 py-2 bg-blue-600 text-white font-bold rounded shadow hover:bg-blue-700 flex items-center gap-2"
-                                disabled={isUploading}
-                            >
-                                {isUploading ? <Loader2 className="animate-spin" size={18} /> : (
-                                    <>
-                                        <span className="font-extrabold text-xl">Z</span> Tạo & Báo Zalo
-                                    </>
-                                )}
-                            </button>
+                            {!isEditing && (
+                                <button
+                                    onClick={() => handleSaveIncident(true)}
+                                    className="px-4 py-2 bg-blue-600 text-white font-bold rounded shadow hover:bg-blue-700 flex items-center gap-2"
+                                    disabled={isUploading}
+                                >
+                                    {isUploading ? <Loader2 className="animate-spin" size={18} /> : (
+                                        <>
+                                            <span className="font-extrabold text-xl">Z</span> Tạo & Báo Zalo
+                                        </>
+                                    )}
+                                </button>
+                            )}
                         </div>
                     </div>
                 )}
@@ -613,17 +779,24 @@ export default function IncidentsPage() {
                                                     <span className="bg-green-50 text-green-700 text-[10px] font-black px-2 py-0.5 rounded-full border border-green-200 uppercase tracking-tighter shadow-sm">ĐÃ XONG</span>
                                                 )}
                                                 {currentUser?.role === 'ADMIN' && (
-
-                                                    <button
-                                                        onClick={() => handleDeleteIncident(inc.id, inc.title)}
-                                                        className="ml-auto p-1.5 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors"
-                                                        title="Xóa sự cố (Chỉ Admin)"
-                                                    >
-                                                        <Trash2 size={16} />
-                                                    </button>
+                                                    <div className="ml-auto flex items-center gap-1">
+                                                        <button
+                                                            onClick={() => handleEditStart(inc)}
+                                                            className="p-1.5 text-slate-400 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
+                                                            title="Sửa sự cố (Chỉ Admin)"
+                                                        >
+                                                            <Pencil size={16} />
+                                                        </button>
+                                                        <button
+                                                            onClick={() => handleDeleteIncident(inc.id, inc.title)}
+                                                            className="p-1.5 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+                                                            title="Xóa sự cố (Chỉ Admin)"
+                                                        >
+                                                            <Trash2 size={16} />
+                                                        </button>
+                                                    </div>
                                                 )}
                                             </div>
-
                                             <div className="text-[11px] text-slate-400 font-medium flex flex-wrap items-center gap-x-3 gap-y-1">
                                                 <div className="flex items-center gap-1.5 bg-slate-100 px-2 py-0.5 rounded text-slate-600">
                                                     <AlertTriangle size={12} className="text-amber-500" /> {inc.systemName}
@@ -645,7 +818,6 @@ export default function IncidentsPage() {
                                             </button>
                                         )}
                                     </div>
-
                                     <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
                                         <div className="md:col-span-2 bg-slate-50/80 p-3 rounded-lg text-slate-700 text-sm border border-slate-100 italic leading-relaxed">
                                             {inc.description || 'Không có mô tả chi tiết.'}
@@ -664,7 +836,6 @@ export default function IncidentsPage() {
                                             </div>
                                         )}
                                     </div>
-
                                     {(inc.assignedTo || inc.status === 'RESOLVED') && (
                                         <div className="space-y-3 pt-3 border-t border-slate-100">
                                             {inc.assignedTo && (
@@ -673,7 +844,6 @@ export default function IncidentsPage() {
                                                     Giao cho: <span className="font-bold text-slate-700">{inc.assignedTo}</span>
                                                 </div>
                                             )}
-
                                             {inc.status === 'RESOLVED' && (
                                                 <div className="bg-green-50/50 p-3 rounded-lg border border-green-100/50">
                                                     <div className="flex items-center gap-2 text-green-700 font-black text-xs uppercase tracking-wider mb-2">
@@ -682,14 +852,12 @@ export default function IncidentsPage() {
                                                     <div className="text-sm text-slate-700 font-medium leading-relaxed">
                                                         "{inc.resolutionNote}"
                                                     </div>
-                                                    
                                                     {inc.resolutionImageUrl && (
                                                         <div className="mt-2 w-32 h-24 rounded border overflow-hidden cursor-pointer hover:opacity-90"
                                                              onClick={() => setViewingImage(inc.resolutionImageUrl || null)}>
                                                             <img src={inc.resolutionImageUrl} className="w-full h-full object-cover" alt="Bằng chứng xử lý" />
                                                         </div>
                                                     )}
-
                                                     <div className="flex flex-wrap items-center justify-between gap-2 mt-3 text-[10px]">
                                                         {inc.participants && inc.participants.length > 0 && (
                                                             <div className="text-slate-500 bg-white px-2 py-0.5 rounded border border-slate-100">
@@ -710,8 +878,6 @@ export default function IncidentsPage() {
                     )}
                 </div>
             </div>
-
-            {/* Resolve Modal */}
             {resolvingId && (
                 <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50">
                     <div className="bg-white rounded-xl shadow-xl max-w-lg w-full p-6 animate-fade-in">
@@ -719,7 +885,6 @@ export default function IncidentsPage() {
                             <CheckCircle className="text-green-600" />
                             Xác nhận xử lý xong
                         </h3>
-
                         <div className="mb-4">
                             <label className="block text-sm font-bold text-slate-700 mb-2">1. Nội dung xử lý:</label>
                             <IMESafeTextArea
@@ -730,7 +895,6 @@ export default function IncidentsPage() {
                                 onChangeValue={(val: string) => setResolutionNote(val)}
                             />
                         </div>
-
                         <div className="mb-4">
                             <label className="block text-sm font-bold text-slate-700 mb-2 flex items-center gap-2">
                                 <Clock size={16} className="text-green-600" /> 2. Thời gian khắc phục:
@@ -741,13 +905,9 @@ export default function IncidentsPage() {
                                 value={customResolvedAt}
                                 onChange={(e) => setCustomResolvedAt(e.target.value)}
                             />
-                            <p className="text-[10px] text-slate-500 mt-1 italic">
-                                Mặc định là hiện tại. Bạn có thể lùi thời gian nếu đã xử lý xong từ trước.
-                            </p>
                         </div>
-
                         <div className="mb-6">
-                            <label className="block text-sm font-bold text-slate-700 mb-2">3. Người tham gia xử lý (được cộng điểm KPI):</label>
+                            <label className="block text-sm font-bold text-slate-700 mb-2">3. Người tham gia xử lý:</label>
                             <div className="max-h-40 overflow-y-auto border border-slate-200 rounded p-2 bg-slate-50 grid grid-cols-2 gap-2">
                                 {users.map(u => (
                                     <label key={u.id} className="flex items-center gap-2 p-2 bg-white rounded border border-slate-100 cursor-pointer hover:bg-blue-50">
@@ -760,17 +920,14 @@ export default function IncidentsPage() {
                                         <span className="text-sm font-medium text-slate-700 truncate">{u.name}</span>
                                     </label>
                                 ))}
-                                {users.length === 0 && <div className="text-sm text-slate-400 p-2 col-span-2 text-center">Đang tải danh sách nhân viên...</div>}
                             </div>
                         </div>
-
                         <div className="mb-6">
                             <label className="block text-sm font-bold text-slate-700 mb-2">4. Hình ảnh bằng chứng đã xong:</label>
                             <div className="flex items-center gap-4">
                                 {!resImagePreview ? (
                                     <label className="flex flex-col items-center justify-center w-24 h-24 rounded-lg border-2 border-dashed border-slate-300 bg-slate-50 cursor-pointer hover:bg-blue-50 transition group">
                                         <Camera size={24} className="text-slate-400 group-hover:text-blue-500 mb-1" />
-                                        <span className="text-[10px] font-bold text-slate-500">Chụp ảnh</span>
                                         <input 
                                             type="file" 
                                             className="hidden" 
@@ -781,62 +938,27 @@ export default function IncidentsPage() {
                                     </label>
                                 ) : (
                                     <div className="relative w-24 h-24 rounded-lg border border-slate-200 overflow-hidden shadow-sm">
-                                        <img 
-                                            src={resImagePreview} 
-                                            alt="Resolution Preview" 
-                                            className="w-full h-full object-cover"
-                                        />
-                                        <button 
-                                            onClick={removeResImage}
-                                            className="absolute top-1 right-1 bg-red-600 text-white rounded-full p-1"
-                                        >
-                                            <X size={12} />
-                                        </button>
+                                        <img src={resImagePreview} className="w-full h-full object-cover" alt="Res Preview" />
+                                        <button onClick={removeResImage} className="absolute top-1 right-1 bg-red-600 text-white rounded-full p-1"><X size={12} /></button>
                                     </div>
                                 )}
-                                <p className="text-[10px] text-slate-400 italic flex-1">
-                                    Chụp ảnh sau khi đã khắc phục để làm bằng chứng xác nhận hoàn thành công việc.
-                                </p>
                             </div>
                         </div>
-
                         <div className="flex justify-end gap-3">
-                            <button
-                                onClick={() => setResolvingId(null)}
-                                className="px-5 py-2 text-slate-600 hover:bg-slate-100 rounded font-medium"
-                                disabled={isResUploading}
-                            >
-                                Hủy bỏ
-                            </button>
-                            <button
-                                onClick={submitResolve}
-                                className="px-6 py-2 bg-green-600 text-white font-bold rounded shadow hover:bg-green-700 flex items-center gap-2"
-                                disabled={isResUploading}
-                            >
+                            <button onClick={() => setResolvingId(null)} className="px-5 py-2 text-slate-600 hover:bg-slate-100 rounded font-medium" disabled={isResUploading}>Hủy bỏ</button>
+                            <button onClick={submitResolve} className="px-6 py-2 bg-green-600 text-white font-bold rounded shadow hover:bg-green-700 flex items-center gap-2" disabled={isResUploading}>
                                 {isResUploading ? <Loader2 className="animate-spin" size={18} /> : 'Xác nhận hoàn thành & ZCopy'}
                             </button>
                         </div>
                     </div>
                 </div>
             )}
-            {/* Image Viewer Overlay */}
             {viewingImage && (
-                <div 
-                    className="fixed inset-0 bg-black/90 backdrop-blur-sm z-[100] flex items-center justify-center p-4 cursor-pointer"
-                    onClick={() => setViewingImage(null)}
-                >
-                    <button className="absolute top-6 right-6 text-white bg-white/20 p-2 rounded-full hover:bg-white/40 transition">
-                        <X size={32} />
-                    </button>
-                    <img 
-                        src={viewingImage} 
-                        alt="Full view" 
-                        className="max-w-full max-h-full object-contain rounded shadow-2xl animate-scale-in"
-                    />
+                <div className="fixed inset-0 bg-black/90 backdrop-blur-sm z-[100] flex items-center justify-center p-4 cursor-pointer" onClick={() => setViewingImage(null)}>
+                    <button className="absolute top-6 right-6 text-white bg-white/20 p-2 rounded-full hover:bg-white/40 transition"><X size={32} /></button>
+                    <img src={viewingImage} alt="Full view" className="max-w-full max-h-full object-contain rounded shadow-2xl animate-scale-in" />
                 </div>
             )}
-
-            {/* Zalo Fallback Modal - used on mobile where clipboard is blocked */}
             {zaloModalMessage && (
                 <div className="fixed inset-0 bg-black/70 backdrop-blur-sm z-[200] flex items-end sm:items-center justify-center p-4">
                     <div className="bg-white rounded-2xl shadow-2xl w-full max-w-lg animate-in slide-in-from-bottom-4 duration-300">
@@ -848,37 +970,17 @@ export default function IncidentsPage() {
                                     <div className="text-blue-200 text-[11px]">Sao chép và dán vào nhóm chat Zalo</div>
                                 </div>
                             </div>
-                            <button
-                                onClick={() => setZaloModalMessage(null)}
-                                className="text-white/70 hover:text-white p-1 rounded-full hover:bg-white/20 transition"
-                            >
-                                <X size={20} />
-                            </button>
+                            <button onClick={() => setZaloModalMessage(null)} className="text-white/70 hover:text-white p-1 rounded-full hover:bg-white/20 transition"><X size={20} /></button>
                         </div>
-
                         <div className="p-4">
                             <div className="bg-slate-50 border border-slate-200 rounded-xl p-3 mb-4 max-h-48 overflow-y-auto">
                                 <pre className="text-sm text-slate-800 whitespace-pre-wrap font-sans leading-relaxed">{zaloModalMessage}</pre>
                             </div>
-
                             <div className="flex flex-col gap-3">
                                 <button
                                     onClick={() => {
                                         if (navigator.clipboard && navigator.clipboard.writeText) {
-                                            navigator.clipboard.writeText(zaloModalMessage).then(() => {
-                                                alert('Đã sao chép! Hãy mở Zalo và dán vào nhóm chat.');
-                                            }).catch(() => {
-                                                // Select text for manual copy
-                                                const el = document.querySelector('.zalo-message-text') as HTMLElement;
-                                                if (el) {
-                                                    const range = document.createRange();
-                                                    range.selectNodeContents(el);
-                                                    const sel = window.getSelection();
-                                                    sel?.removeAllRanges();
-                                                    sel?.addRange(range);
-                                                }
-                                                alert('Hãy bôi đen và sao chép đoạn văn bản trên, sau đó dán vào Zalo.');
-                                            });
+                                            navigator.clipboard.writeText(zaloModalMessage).then(() => alert('Đã sao chép! Hãy mở Zalo và dán vào nhóm chat.')).catch(() => alert('Hãy bôi đen và sao chép đoạn văn bản trên, sau đó dán vào Zalo.'));
                                         } else {
                                             alert('Hãy bôi đen và sao chép đoạn văn bản trên, sau đó dán vào Zalo.');
                                         }

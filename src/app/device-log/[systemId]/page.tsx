@@ -251,10 +251,13 @@ export default function DeviceLogDetailPage() {
     );
 
     const relatedMaint = maintenance.filter(t =>
-        t.title && (
+        // Prioritize exact systemId match
+        t.systemId === systemId ||
+        // Fallback to title matching for legacy tasks
+        (t.title && (
             t.title.toLowerCase().includes(systemName.toLowerCase()) ||
             t.title.toLowerCase().includes(systemId.toLowerCase())
-        )
+        ))
     );
 
     const relatedHistory = history.filter(h =>
@@ -590,7 +593,7 @@ export default function DeviceLogDetailPage() {
                                             <tr key={h.id || i} className="hover:bg-purple-50/40">
                                                 <td className="px-3 py-2.5 text-xs text-center text-slate-500 font-bold">{i + 1}</td>
                                                 <td className="px-3 py-2.5 text-xs text-slate-600 whitespace-nowrap">{h.timestamp || h.createdAt || '—'}</td>
-                                                <td className="px-3 py-2.5 text-xs text-slate-700">{h.note || h.description || '—'}</td>
+                                                <td className="px-3 py-2.5 text-xs text-slate-700">{h.issueContent || h.note || h.description || '—'}</td>
                                                 <td className="px-3 py-2.5 text-xs text-slate-700">{h.systemName || systemName}</td>
                                                 <td className="px-3 py-2.5 text-xs text-slate-600">{h.materials || '—'}</td>
                                                 <td className="px-3 py-2.5 text-xs">
@@ -602,7 +605,7 @@ export default function DeviceLogDetailPage() {
                                                         {h.fixStatus === 'Fixed' ? 'Đã sửa' : h.fixStatus === 'Fixing' ? 'Đang sửa' : 'Chưa sửa'}
                                                     </span>
                                                 </td>
-                                                <td className="px-3 py-2.5 text-xs text-slate-600">{h.resolvedBy || (h.executorNames || []).join(', ') || '—'}</td>
+                                                <td className="px-3 py-2.5 text-xs text-slate-600">{h.resolverName || h.resolvedBy || (h.executorNames || []).join(', ') || '—'}</td>
                                             </tr>
                                         ))}
                                     </tbody>

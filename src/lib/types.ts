@@ -56,6 +56,7 @@ export interface Incident {
   description: string;
   status: 'OPEN' | 'RESOLVED';
   severity?: 'CRITICAL' | 'MEDIUM' | 'LOW'; // Mức độ nghiêm trọng
+  systemId?: string; // ID thiết bị liên kết
   assignedTo?: string;
   reportedBy: string;
   createdAt: string;
@@ -85,6 +86,8 @@ export interface MaintenanceTask {
   beforeImageUrl?: string;
   afterImageUrl?: string;
   createdAt?: string;
+  systemId?: string;
+  systemName?: string;
 }
 
 export interface SafetyCriteria {

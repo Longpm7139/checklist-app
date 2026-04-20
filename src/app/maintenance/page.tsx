@@ -5,9 +5,9 @@ import { useRouter } from 'next/navigation';
 import { ArrowLeft, Wrench, Calendar, CheckSquare, Plus, User as UserIcon, Clock, AlertTriangle, Camera, X, Image as ImageIcon, Loader2, Trash2, Edit2, PenTool } from 'lucide-react';
 import { useUser } from '@/providers/UserProvider';
 import { IMESafeInput, IMESafeTextArea } from '@/components/IMESafeInput';
-import { MaintenanceTask, User } from '@/lib/types';
+import { MaintenanceTask, User, SystemCheck } from '@/lib/types';
 import clsx from 'clsx';
-import { subscribeToMaintenance, saveMaintenance, uploadImage, deleteMaintenance } from '@/lib/firebase';
+import { subscribeToMaintenance, saveMaintenance, uploadImage, deleteMaintenance, subscribeToSystems } from '@/lib/firebase';
 
 export default function MaintenancePage() {
     const router = useRouter();
@@ -15,9 +15,11 @@ export default function MaintenancePage() {
     const [tasks, setTasks] = useState<MaintenanceTask[]>([]);
     const [viewMode, setViewMode] = useState<'LIST' | 'CREATE'>('LIST');
     const [availableUsers, setAvailableUsers] = useState<User[]>([]);
+    const [availableSystems, setAvailableSystems] = useState<SystemCheck[]>([]);
 
     // Form State
     const [title, setTitle] = useState('');
+    const [selectedSystemId, setSelectedSystemId] = useState('');
     const [taskType, setTaskType] = useState<'MAINTENANCE' | 'PROJECT'>('MAINTENANCE');
     const [desc, setDesc] = useState('');
     const [deadline, setDeadline] = useState('');
@@ -82,7 +84,14 @@ export default function MaintenancePage() {
         };
         fetchUsers();
 
-        return () => unsub();
+        const unsubSystems = subscribeToSystems((data) => {
+            setAvailableSystems(data as SystemCheck[]);
+        });
+
+        return () => {
+            unsub();
+            unsubSystems();
+        };
     }, []);
 
     const handleBeforeImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -128,10 +137,12 @@ export default function MaintenancePage() {
     };
 
     const handleCreate = async () => {
-        if (!title || (selectedUserCodes.length === 0 && selectedSupervisorCodes.length === 0) || !deadline) {
-            alert("Vui lòng nhập Tên, chọn ít nhất 1 Người (Thực hiện hoặc Giám sát) và Hạn chót!");
+        if (!title || !selectedSystemId || (selectedUserCodes.length === 0 && selectedSupervisorCodes.length === 0) || !deadline) {
+            alert("Vui lòng nhập Tên, chọn Hệ thống, ít nhất 1 Người (Thực hiện hoặc Giám sát) và Hạn chót!");
             return;
         }
+
+        const system = availableSystems.find(s => s.id === selectedSystemId);
 
         // Get names for selected codes
         const selectedNames = selectedUserCodes.map(code =>
@@ -174,7 +185,9 @@ export default function MaintenancePage() {
                 completedAt: isEditMode && editingTaskId ? (tasks.find(t => t.id === editingTaskId)?.completedAt || '') : '',
                 completedNote: isEditMode && editingTaskId ? editCompletedNote : '',
                 remainingIssues: isEditMode && editingTaskId ? editRemainingIssues : '',
-                afterImageUrl: (isEditMode && editingTaskId ? uploadedAfterUrl : '') || undefined
+                afterImageUrl: (isEditMode && editingTaskId ? uploadedAfterUrl : '') || undefined,
+                systemId: selectedSystemId,
+                systemName: system?.name || ''
             };
 
             // Save to Firebase
@@ -187,6 +200,7 @@ export default function MaintenancePage() {
             setDeadline('');
             setSelectedUserCodes([]);
             setSelectedSupervisorCodes([]);
+            setSelectedSystemId('');
             setBeforeImageFile(null);
             setBeforeImagePreview(null);
             setIsEditMode(false);
@@ -268,6 +282,7 @@ export default function MaintenancePage() {
         setDeadline(task.deadline || '');
         setSelectedUserCodes(task.assignees || []);
         setSelectedSupervisorCodes(task.supervisors || []);
+        setSelectedSystemId(task.systemId || '');
         setBeforeImagePreview(task.beforeImageUrl || null);
         
         // Populate completion fields if they exist
@@ -288,6 +303,7 @@ export default function MaintenancePage() {
         setDeadline('');
         setSelectedUserCodes([]);
         setSelectedSupervisorCodes([]);
+        setSelectedSystemId('');
         setBeforeImageFile(null);
         setBeforeImagePreview(null);
         setEditCompletedNote('');
@@ -364,6 +380,21 @@ export default function MaintenancePage() {
                                     value={title}
                                     onChangeValue={(val: string) => setTitle(val)}
                                 />
+                            </div>
+                            <div>
+                                <label className="block text-sm font-medium text-slate-700 mb-1">Hệ thống / Thiết bị *</label>
+                                <select
+                                    className="w-full border border-slate-300 rounded p-2 focus:border-blue-500 outline-none bg-white"
+                                    value={selectedSystemId}
+                                    onChange={(e) => setSelectedSystemId(e.target.value)}
+                                >
+                                    <option value="">-- Chọn hệ thống --</option>
+                                    {availableSystems.map(sys => (
+                                        <option key={sys.id} value={sys.id}>
+                                            [{sys.id}] {sys.name}
+                                        </option>
+                                    ))}
+                                </select>
                             </div>
                             <div>
                                 <label className="block text-sm font-medium text-slate-700 mb-1">Mô tả chi tiết</label>

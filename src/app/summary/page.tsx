@@ -196,8 +196,18 @@ export default function SummaryPage() {
 
             const historyPromises = fixedRows.map(async (r) => {
                 try {
-                    await saveHistoryItem(r.id, {
-                        id: r.id,
+                    // Calculate sDateStr to match CheckPage's ID logic
+                    const todayD = new Date();
+                    const currentH = todayD.getHours();
+                    const sD = new Date(todayD);
+                    if (currentH < 7) {
+                        sD.setDate(sD.getDate() - 1);
+                    }
+                    const sDateStr = `${sD.getFullYear()}-${String(sD.getMonth() + 1).padStart(2, '0')}-${String(sD.getDate()).padStart(2, '0')}`;
+                    const historyId = `${r.systemId}_${r.detailId}_${sDateStr}`;
+
+                    await saveHistoryItem(historyId, {
+                        id: historyId,
                         systemId: r.systemId,
                         systemName: r.systemName,
                         issueContent: r.issueContent,
@@ -206,7 +216,8 @@ export default function SummaryPage() {
                         resolvedAt: new Date().toLocaleString('vi-VN', { hour: '2-digit', minute: '2-digit', day: '2-digit', month: '2-digit', year: 'numeric', hour12: false }),
                         actionNote: r.actionDescription || '',
                         resolverName: r.executorNames.join(', ') || 'Unknown',
-                        imageUrl: r.imageUrl || ''
+                        imageUrl: r.imageUrl || '',
+                        fixStatus: 'Fixed'
                     });
                 } catch (err: any) {
                     console.error(`Lỗi khi lưu mục ${r.id}:`, err);
