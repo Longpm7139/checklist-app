@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { ArrowLeft, Wrench, Calendar, CheckSquare, Plus, User as UserIcon, Clock, AlertTriangle, Camera, X, Image as ImageIcon, Loader2, Trash2, Edit2, PenTool } from 'lucide-react';
+import { ArrowLeft, Wrench, Calendar, CheckSquare, Plus, User as UserIcon, Clock, AlertTriangle, Camera, X, Image as ImageIcon, Loader2, Trash2, Edit2, PenTool, ChevronDown, ChevronUp, Search, Filter } from 'lucide-react';
 import { useUser } from '@/providers/UserProvider';
 import { IMESafeInput, IMESafeTextArea } from '@/components/IMESafeInput';
 import { MaintenanceTask, User, SystemCheck, SystemCategory } from '@/lib/types';
@@ -17,6 +17,9 @@ export default function MaintenancePage() {
     const [availableUsers, setAvailableUsers] = useState<User[]>([]);
     const [availableSystems, setAvailableSystems] = useState<SystemCheck[]>([]);
     const [categories, setCategories] = useState<SystemCategory[]>([]);
+    const [statusFilter, setStatusFilter] = useState<'ALL' | 'PENDING' | 'COMPLETED'>('ALL');
+    const [expandedGroups, setExpandedGroups] = useState<string[]>([]);
+    const [listSearch, setListSearch] = useState('');
 
     // Form State
     const [title, setTitle] = useState('');
@@ -69,6 +72,18 @@ export default function MaintenancePage() {
                 }
             });
             setTasks(sorted);
+            
+            // Auto-expand the most recent month if no groups are expanded
+            setExpandedGroups(prev => {
+                if (prev.length > 0) return prev;
+                if (sorted.length === 0) return [];
+                const firstTask = sorted[0];
+                const dateParts = (firstTask.createdAt || '').split(' ')[1]?.split('/') || [];
+                if (dateParts.length === 3) {
+                    return [`Tháng ${dateParts[1]}/${dateParts[2]}`];
+                }
+                return [];
+            });
         });
 
         // Load users for selection from API
@@ -355,6 +370,44 @@ export default function MaintenancePage() {
         setViewMode('LIST');
     };
 
+    // Helper: Group tasks by month
+    const groupTasksByMonth = (taskList: MaintenanceTask[]) => {
+        const groups: Record<string, MaintenanceTask[]> = {};
+        taskList.forEach(task => {
+            const dateParts = (task.createdAt || '').split(' ')[1]?.split('/') || [];
+            const monthYear = dateParts.length === 3 ? `Tháng ${dateParts[1]}/${dateParts[2]}` : 'Khác';
+            if (!groups[monthYear]) groups[monthYear] = [];
+            groups[monthYear].push(task);
+        });
+        return groups;
+    };
+
+    const toggleGroup = (group: string) => {
+        setExpandedGroups(prev =>
+            prev.includes(group) ? prev.filter(g => g !== group) : [...prev, group]
+        );
+    };
+
+    const filteredTasks = tasks.filter(task => {
+        const matchesStatus = statusFilter === 'ALL' || task.status === statusFilter;
+        const matchesSearch = listSearch === '' || 
+            task.title.toLowerCase().includes(listSearch.toLowerCase()) ||
+            (task.systemName || '').toLowerCase().includes(listSearch.toLowerCase()) ||
+            (task.description || '').toLowerCase().includes(listSearch.toLowerCase());
+        return matchesStatus && matchesSearch;
+    });
+
+    const groupedTasks = groupTasksByMonth(filteredTasks);
+    // Sort group keys by Year/Month descending
+    const sortedGroupKeys = Object.keys(groupedTasks).sort((a, b) => {
+        if (a === 'Khác') return 1;
+        if (b === 'Khác') return -1;
+        const [mA, yA] = a.replace('Tháng ', '').split('/').map(Number);
+        const [mB, yB] = b.replace('Tháng ', '').split('/').map(Number);
+        if (yA !== yB) return yB - yA;
+        return mB - mA;
+    });
+
     return (
         <div className="min-h-screen bg-slate-50 p-4 md:p-8 font-sans text-slate-900">
             <div className="max-w-4xl mx-auto">
@@ -373,13 +426,64 @@ export default function MaintenancePage() {
                     </div>
                     {currentUser?.role === 'ADMIN' && viewMode === 'LIST' && (
                         <button
-                            onClick={() => setViewMode('CREATE')}
-                            className="px-4 py-2 bg-blue-600 text-white rounded shadow hover:bg-blue-700 flex items-center gap-2 font-bold"
+                            onClick={() => {
+                                cancelEdit();
+                                setViewMode('CREATE');
+                            }}
+                            className="px-4 py-2 bg-blue-600 text-white rounded-lg shadow-md hover:bg-blue-700 flex items-center gap-2 font-bold transition-all active:scale-95"
                         >
                             <Plus size={20} /> Lập Kế Hoạch
                         </button>
                     )}
                 </header>
+
+                {viewMode === 'LIST' && (
+                    <div className="mb-6 space-y-4">
+                        {/* Search & Filter Toolbar */}
+                        <div className="flex flex-col md:flex-row gap-4 items-center justify-between bg-white p-3 rounded-xl shadow-sm border border-slate-200">
+                            <div className="relative w-full md:w-72">
+                                <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={18} />
+                                <input
+                                    type="text"
+                                    placeholder="Tìm tên, hệ thống, mô tả..."
+                                    className="w-full pl-10 pr-4 py-2 bg-slate-50 border border-slate-200 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none"
+                                    value={listSearch}
+                                    onChange={(e) => setListSearch(e.target.value)}
+                                />
+                            </div>
+                            
+                            <div className="flex bg-slate-100 p-1 rounded-lg w-full md:w-auto">
+                                <button
+                                    onClick={() => setStatusFilter('ALL')}
+                                    className={clsx(
+                                        "flex-1 md:flex-none px-4 py-1.5 text-xs font-bold rounded-md transition-all",
+                                        statusFilter === 'ALL' ? "bg-white text-blue-600 shadow-sm" : "text-slate-500 hover:text-slate-700"
+                                    )}
+                                >
+                                    Tất cả ({tasks.length})
+                                </button>
+                                <button
+                                    onClick={() => setStatusFilter('PENDING')}
+                                    className={clsx(
+                                        "flex-1 md:flex-none px-4 py-1.5 text-xs font-bold rounded-md transition-all",
+                                        statusFilter === 'PENDING' ? "bg-white text-orange-600 shadow-sm" : "text-slate-500 hover:text-slate-700"
+                                    )}
+                                >
+                                    Cần làm ({tasks.filter(t => t.status === 'PENDING').length})
+                                </button>
+                                <button
+                                    onClick={() => setStatusFilter('COMPLETED')}
+                                    className={clsx(
+                                        "flex-1 md:flex-none px-4 py-1.5 text-xs font-bold rounded-md transition-all",
+                                        statusFilter === 'COMPLETED' ? "bg-white text-green-600 shadow-sm" : "text-slate-500 hover:text-slate-700"
+                                    )}
+                                >
+                                    Đã xong ({tasks.filter(t => t.status === 'COMPLETED').length})
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                )}
 
                 {viewMode === 'CREATE' && (
                     <div className="bg-white p-6 rounded-xl shadow-lg border border-blue-100 mb-6">
@@ -727,128 +831,150 @@ export default function MaintenancePage() {
                     </div>
                 )}
 
-                <div className="space-y-4">
+                <div className="space-y-6">
                     {tasks.length === 0 && (
                         <div className="text-center p-12 bg-white rounded-xl border border-dashed border-slate-300 text-slate-400">
                             Chưa có kế hoạch bảo trì nào.
                         </div>
                     )}
 
-                    {tasks.map(task => (
-                        <div key={task.id} className={clsx(
-                            "bg-white rounded-xl shadow-sm border transition relative overflow-hidden group",
-                            task.status === 'COMPLETED' ? "border-green-100" : "border-slate-200 hover:border-blue-300"
-                        )}>
-                            <div className="p-4 md:p-5">
-                                <div className="flex flex-col sm:flex-row justify-between items-start gap-4 mb-4">
-                                    <div className="flex-1 min-w-0">
-                                        <div className="flex flex-wrap items-center gap-2 mb-2">
-                                            <h3 className="font-bold text-lg text-slate-800 leading-tight">{task.title}</h3>
-                                            {task.status === 'COMPLETED' ? (
-                                                <span className="bg-green-50 text-green-700 text-[10px] font-black px-2.5 py-1 rounded-full border border-green-200 uppercase tracking-tight shadow-sm">ĐÃ XONG</span>
-                                            ) : (
-                                                <span className="bg-blue-50 text-blue-700 text-[10px] font-black px-2.5 py-1 rounded-full border border-blue-200 uppercase tracking-tight">CẦN LÀM</span>
-                                            )}
-                                            {currentUser?.role === 'ADMIN' && (
-                                                <div className="flex gap-2 ml-auto">
-                                                    <button 
-                                                        onClick={(e) => { e.stopPropagation(); handleEditTask(task); }}
-                                                        className="p-2 text-slate-500 hover:text-blue-600 hover:bg-blue-600/10 rounded-lg transition-all shadow-sm border border-slate-200 bg-white"
-                                                        title="Sửa kế hoạch"
-                                                    >
-                                                        <PenTool size={18} />
-                                                    </button>
-                                                    <button 
-                                                        onClick={(e) => { e.stopPropagation(); handleDeleteTask(task.id); }}
-                                                        className="p-2 text-slate-500 hover:text-red-600 hover:bg-red-600/10 rounded-lg transition-all shadow-sm border border-slate-200 bg-white"
-                                                        title="Xóa kế hoạch"
-                                                    >
-                                                        <Trash2 size={18} />
-                                                    </button>
-                                                </div>
-                                            )}
-                                        </div>
-
-                                        <div className="space-y-1.5">
-                                            <div className="text-[11px] text-slate-500 font-medium flex items-start gap-2">
-                                                <UserIcon size={14} className="mt-0.5 text-blue-500 shrink-0" />
-                                                <div className="leading-snug">
-                                                    Giao cho: <span className="text-slate-700 font-bold">{
-                                                        [...(task.assigneeNames || []), ...(task.supervisorNames || [])]
-                                                            .filter((v, i, a) => a.indexOf(v) === i)
-                                                            .join(', ') || 'Chưa giao'
-                                                    }</span>
-                                                </div>
-                                            </div>
-                                            <div className="text-[11px] text-slate-500 font-medium flex items-center gap-2">
-                                                <Calendar size={14} className="text-red-500 shrink-0" />
-                                                Hạn chót: <span className="text-red-600 font-bold">{task.deadline}</span>
-                                            </div>
-                                        </div>
-                                    </div>
-
-                                    {task.status === 'PENDING' && (
-                                        (task.assignees?.includes(currentUser?.code || '') || task.supervisors?.includes(currentUser?.code || '') || currentUser?.role === 'ADMIN')
-                                    ) && (
-                                            <button
-                                                onClick={() => openCompleteModal(task.id)}
-                                                className="w-full sm:w-auto px-5 py-2.5 bg-blue-600 text-white text-sm font-black rounded-lg shadow-md hover:bg-blue-700 active:scale-95 transition-all flex items-center justify-center gap-2"
-                                            >
-                                                <CheckSquare size={16} /> Báo cáo Xong
-                                            </button>
-                                        )}
+                    {viewMode === 'LIST' && sortedGroupKeys.map(groupKey => (
+                        <div key={groupKey} className="space-y-3">
+                            <button
+                                onClick={() => toggleGroup(groupKey)}
+                                className="w-full flex items-center justify-between p-3 bg-slate-200/50 hover:bg-slate-200 rounded-lg transition-colors group"
+                            >
+                                <div className="flex items-center gap-2">
+                                    <h2 className="font-black text-slate-700 text-sm uppercase tracking-widest">{groupKey}</h2>
+                                    <span className="bg-white text-slate-500 text-[10px] px-2 py-0.5 rounded-full font-bold border border-slate-300">
+                                        {groupedTasks[groupKey].length} công việc
+                                    </span>
                                 </div>
+                                {expandedGroups.includes(groupKey) ? <ChevronUp size={18} className="text-slate-500" /> : <ChevronDown size={18} className="text-slate-500" />}
+                            </button>
 
-                                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                    <div className="bg-slate-50/80 p-3 rounded-lg text-slate-700 text-sm border border-slate-100 italic leading-relaxed">
-                                        <span className="font-black block text-[10px] text-slate-400 uppercase mb-1 tracking-widest">Nội dung kế hoạch:</span>
-                                        {task.description || 'Không có mô tả chi tiết.'}
-                                    </div>
-                                    {task.beforeImageUrl && (
-                                        <div className="relative aspect-[16/6] rounded-lg overflow-hidden border border-slate-300 shadow-sm cursor-pointer hover:opacity-90 group"
-                                             onClick={() => setViewingImage(task.beforeImageUrl || null)}>
-                                            <img src={task.beforeImageUrl} alt="Trước bảo trì" className="w-full h-full object-cover" />
-                                            <div className="absolute inset-0 bg-black/20 flex items-center justify-center opacity-0 group-hover:opacity-100 transition">
-                                                <Camera size={20} className="text-white" />
+                            {expandedGroups.includes(groupKey) && (
+                                <div className="grid grid-cols-1 gap-4">
+                                    {groupedTasks[groupKey].map(task => (
+                                        <div key={task.id} className={clsx(
+                                            "bg-white rounded-xl shadow-sm border transition relative overflow-hidden group/item",
+                                            task.status === 'COMPLETED' ? "border-green-100" : "border-slate-200 hover:border-blue-300"
+                                        )}>
+                                            <div className="p-4 md:p-5">
+                                                <div className="flex flex-col sm:flex-row justify-between items-start gap-4 mb-4">
+                                                    <div className="flex-1 min-w-0">
+                                                        <div className="flex flex-wrap items-center gap-2 mb-2">
+                                                            <div className="bg-blue-100 text-blue-700 text-[9px] font-black px-1.5 py-0.5 rounded uppercase">{task.systemId}</div>
+                                                            <h3 className="font-bold text-base text-slate-800 leading-tight">{task.title}</h3>
+                                                            {task.status === 'COMPLETED' ? (
+                                                                <span className="bg-green-50 text-green-700 text-[9px] font-black px-2 py-0.5 rounded-full border border-green-200 uppercase tracking-tight shadow-sm">ĐÃ XONG</span>
+                                                            ) : (
+                                                                <span className="bg-blue-50 text-blue-700 text-[9px] font-black px-2 py-0.5 rounded-full border border-blue-200 uppercase tracking-tight">CẦN LÀM</span>
+                                                            )}
+                                                            {currentUser?.role === 'ADMIN' && (
+                                                                <div className="flex gap-2 ml-auto opacity-0 group-hover/item:opacity-100 transition-opacity">
+                                                                    <button 
+                                                                        onClick={(e) => { e.stopPropagation(); handleEditTask(task); }}
+                                                                        className="p-1.5 text-slate-500 hover:text-blue-600 hover:bg-blue-600/10 rounded-lg transition-all shadow-sm border border-slate-200 bg-white"
+                                                                        title="Sửa kế hoạch"
+                                                                    >
+                                                                        <PenTool size={14} />
+                                                                    </button>
+                                                                    <button 
+                                                                        onClick={(e) => { e.stopPropagation(); handleDeleteTask(task.id); }}
+                                                                        className="p-1.5 text-slate-500 hover:text-red-600 hover:bg-red-600/10 rounded-lg transition-all shadow-sm border border-slate-200 bg-white"
+                                                                        title="Xóa kế hoạch"
+                                                                    >
+                                                                        <Trash2 size={14} />
+                                                                    </button>
+                                                                </div>
+                                                            )}
+                                                        </div>
+
+                                                        <div className="space-y-1">
+                                                            <div className="text-[11px] text-slate-600 font-medium flex items-start gap-2">
+                                                                <UserIcon size={12} className="mt-0.5 text-blue-400 shrink-0" />
+                                                                <div className="leading-snug">
+                                                                    <span className="text-slate-400">Nhân viên:</span> <span className="text-slate-700 font-bold">{
+                                                                        [...(task.assigneeNames || []), ...(task.supervisorNames || [])]
+                                                                            .filter((v, i, a) => a.indexOf(v) === i)
+                                                                            .join(', ') || 'Chưa giao'
+                                                                    }</span>
+                                                                </div>
+                                                            </div>
+                                                            <div className="text-[11px] text-slate-600 font-medium flex items-center gap-2">
+                                                                <Calendar size={12} className="text-red-400 shrink-0" />
+                                                                <span className="text-slate-400">Hạn chót:</span> <span className="text-red-600 font-bold">{task.deadline}</span>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+
+                                                    {task.status === 'PENDING' && (
+                                                        (task.assignees?.includes(currentUser?.code || '') || task.supervisors?.includes(currentUser?.code || '') || currentUser?.role === 'ADMIN')
+                                                    ) && (
+                                                            <button
+                                                                onClick={() => openCompleteModal(task.id)}
+                                                                className="w-full sm:w-auto px-4 py-2 bg-blue-600 text-white text-xs font-black rounded-lg shadow-md hover:bg-blue-700 active:scale-95 transition-all flex items-center justify-center gap-2"
+                                                            >
+                                                                <CheckSquare size={14} /> Báo cáo Xong
+                                                            </button>
+                                                        )}
+                                                </div>
+
+                                                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                                    <div className="bg-slate-50/80 p-3 rounded-lg text-slate-600 text-[13px] border border-slate-100 italic leading-relaxed">
+                                                        <span className="font-black block text-[9px] text-slate-400 uppercase mb-1 tracking-widest">Nội dung:</span>
+                                                        {task.description || 'Không có mô tả chi tiết.'}
+                                                    </div>
+                                                    {task.beforeImageUrl && (
+                                                        <div className="relative aspect-[16/5] rounded-lg overflow-hidden border border-slate-200 shadow-sm cursor-pointer hover:opacity-90 group"
+                                                             onClick={() => setViewingImage(task.beforeImageUrl || null)}>
+                                                            <img src={task.beforeImageUrl} alt="Trước bảo trì" className="w-full h-full object-cover" />
+                                                            <div className="absolute inset-0 bg-black/10 flex items-center justify-center opacity-0 group-hover:opacity-100 transition">
+                                                                <Camera size={18} className="text-white" />
+                                                            </div>
+                                                            <div className="absolute top-1 left-2 text-[9px] text-white font-bold bg-blue-600/80 px-1.5 py-0.5 rounded shadow-sm">ẢNH TRƯỚC</div>
+                                                        </div>
+                                                    )}
+                                                </div>
+
+                                                {task.status === 'COMPLETED' && (
+                                                    <div className="mt-4 pt-4 border-t border-slate-100">
+                                                        <div className="bg-green-50/30 p-3 rounded-lg border border-green-100/50">
+                                                            <div className="flex items-center gap-2 text-green-800 font-black text-[9px] uppercase tracking-wider mb-2">
+                                                                <Clock size={12} /> Hoàn thành lúc {task.completedAt}
+                                                            </div>
+                                                            <div className="text-sm text-slate-700 font-medium italic mb-2 leading-relaxed">
+                                                                "Kết quả: {task.completedNote}"
+                                                            </div>
+                                                            {task.remainingIssues && (
+                                                                <div className="p-2 bg-white border border-yellow-200 rounded-lg shadow-sm mb-2">
+                                                                    <div className="flex items-center gap-1.5 text-yellow-700 font-black text-[9px] uppercase mb-1">
+                                                                        <AlertTriangle size={10} /> Tồn tại sau bảo dưỡng
+                                                                    </div>
+                                                                    <div className="text-[11px] text-slate-600 font-medium">
+                                                                        {task.remainingIssues}
+                                                                    </div>
+                                                                </div>
+                                                            )}
+
+                                                            {task.afterImageUrl && (
+                                                                <div className="relative aspect-video max-h-48 rounded-lg overflow-hidden border border-green-100 shadow-sm cursor-pointer hover:opacity-90 group"
+                                                                     onClick={() => setViewingImage(task.afterImageUrl || null)}>
+                                                                    <img src={task.afterImageUrl} alt="Sau bảo trì" className="w-full h-full object-cover" />
+                                                                    <div className="absolute inset-x-0 bottom-0 bg-black/40 text-white p-2 text-center text-[10px] font-bold flex items-center justify-center gap-2">
+                                                                        <Camera size={12} /> XEM ẢNH KẾT QUẢ
+                                                                    </div>
+                                                                </div>
+                                                            )}
+                                                        </div>
+                                                    </div>
+                                                )}
                                             </div>
-                                            <div className="absolute top-1 left-2 text-[10px] text-white font-bold bg-blue-600 px-2 py-0.5 rounded shadow">ẢNH TRƯỚC</div>
                                         </div>
-                                    )}
+                                    ))}
                                 </div>
-
-                                {task.status === 'COMPLETED' && (
-                                    <div className="mt-4 pt-4 border-t border-slate-100">
-                                        <div className="bg-green-50/50 p-3 rounded-lg border border-green-100/50">
-                                            <div className="flex items-center gap-2 text-green-800 font-black text-[10px] uppercase tracking-wider mb-2">
-                                                <Clock size={14} /> Hoàn thành lúc {task.completedAt}
-                                            </div>
-                                            <div className="text-sm text-slate-700 font-medium italic mb-3 leading-relaxed">
-                                                "Kết quả: {task.completedNote}"
-                                            </div>
-                                            {task.remainingIssues && (
-                                                <div className="p-3 bg-white border border-yellow-200 rounded-lg shadow-sm mb-3">
-                                                    <div className="flex items-center gap-1.5 text-yellow-700 font-black text-[10px] uppercase mb-1.5">
-                                                        <AlertTriangle size={12} /> Tồn tại sau bảo dưỡng
-                                                    </div>
-                                                    <div className="text-xs text-slate-600 font-medium">
-                                                        {task.remainingIssues}
-                                                    </div>
-                                                </div>
-                                            )}
-
-                                            {task.afterImageUrl && (
-                                                <div className="relative aspect-video rounded-xl overflow-hidden border-2 border-green-200 shadow-md cursor-pointer hover:opacity-90 group"
-                                                     onClick={() => setViewingImage(task.afterImageUrl || null)}>
-                                                    <img src={task.afterImageUrl} alt="Sau bảo trì" className="w-full h-full object-cover" />
-                                                    <div className="absolute inset-x-0 bottom-0 bg-black/40 text-white p-2 text-center text-xs font-bold flex items-center justify-center gap-2">
-                                                        <Camera size={14} /> XEM ẢNH KẾT QUẢ (SAU BẢO TRÌ)
-                                                    </div>
-                                                </div>
-                                            )}
-                                        </div>
-                                    </div>
-                                )}
-                            </div>
+                            )}
                         </div>
                     ))}
                 </div>
