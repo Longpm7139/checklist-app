@@ -984,7 +984,24 @@ export default function MaintenancePage() {
             {isCompleteModalOpen && (
                 <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
                     <div className="bg-white rounded-lg shadow-xl w-full max-w-md p-6">
-                        <h3 className="text-lg font-bold text-slate-800 mb-4 border-b pb-2">Báo cáo Hoàn thành</h3>
+                        <div className="mb-4 border-b pb-2">
+                            <h3 className="text-lg font-black text-slate-800 uppercase tracking-tight">Báo cáo Hoàn thành</h3>
+                            {(() => {
+                                const task = tasks.find(t => t.id === selectedTaskId);
+                                if (!task) return null;
+                                return (
+                                    <div className="mt-1 flex flex-col gap-0.5">
+                                        <div className="flex items-center gap-2">
+                                            <span className="bg-blue-600 text-white text-[9px] font-black px-1.5 py-0.5 rounded leading-none">{task.systemId}</span>
+                                            <span className="text-blue-700 font-bold text-xs uppercase">{task.systemName}</span>
+                                        </div>
+                                        <div className="text-[11px] text-slate-500 font-medium italic truncate">
+                                            {task.title}
+                                        </div>
+                                    </div>
+                                );
+                            })()}
+                        </div>
 
                         <div className="space-y-4">
                             <div>
