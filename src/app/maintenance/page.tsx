@@ -5,9 +5,9 @@ import { useRouter } from 'next/navigation';
 import { ArrowLeft, Wrench, Calendar, CheckSquare, Plus, User as UserIcon, Clock, AlertTriangle, Camera, X, Image as ImageIcon, Loader2, Trash2, Edit2, PenTool } from 'lucide-react';
 import { useUser } from '@/providers/UserProvider';
 import { IMESafeInput, IMESafeTextArea } from '@/components/IMESafeInput';
-import { MaintenanceTask, User, SystemCheck } from '@/lib/types';
+import { MaintenanceTask, User, SystemCheck, SystemCategory } from '@/lib/types';
 import clsx from 'clsx';
-import { subscribeToMaintenance, saveMaintenance, uploadImage, deleteMaintenance, subscribeToSystems } from '@/lib/firebase';
+import { subscribeToMaintenance, saveMaintenance, uploadImage, deleteMaintenance, subscribeToSystems, subscribeToCategories } from '@/lib/firebase';
 
 export default function MaintenancePage() {
     const router = useRouter();
@@ -16,10 +16,12 @@ export default function MaintenancePage() {
     const [viewMode, setViewMode] = useState<'LIST' | 'CREATE'>('LIST');
     const [availableUsers, setAvailableUsers] = useState<User[]>([]);
     const [availableSystems, setAvailableSystems] = useState<SystemCheck[]>([]);
+    const [categories, setCategories] = useState<SystemCategory[]>([]);
 
     // Form State
     const [title, setTitle] = useState('');
-    const [selectedSystemId, setSelectedSystemId] = useState('');
+    const [selectedSystemIds, setSelectedSystemIds] = useState<string[]>([]);
+    const [systemSearch, setSystemSearch] = useState('');
     const [taskType, setTaskType] = useState<'MAINTENANCE' | 'PROJECT'>('MAINTENANCE');
     const [desc, setDesc] = useState('');
     const [deadline, setDeadline] = useState('');
@@ -88,9 +90,14 @@ export default function MaintenancePage() {
             setAvailableSystems(data as SystemCheck[]);
         });
 
+        const unsubCategories = subscribeToCategories((data) => {
+            setCategories(data as SystemCategory[]);
+        });
+
         return () => {
             unsub();
             unsubSystems();
+            unsubCategories();
         };
     }, []);
 
@@ -136,22 +143,40 @@ export default function MaintenancePage() {
         );
     };
 
-    const handleCreate = async () => {
-        if (!title || !selectedSystemId || (selectedUserCodes.length === 0 && selectedSupervisorCodes.length === 0) || !deadline) {
-            alert("Vui lòng nhập Tên, chọn Hệ thống, ít nhất 1 Người (Thực hiện hoặc Giám sát) và Hạn chót!");
+    const toggleSystemSelection = (id: string) => {
+        if (isEditMode) {
+            setSelectedSystemIds([id]);
             return;
         }
-
-        const system = availableSystems.find(s => s.id === selectedSystemId);
-
-        // Get names for selected codes
-        const selectedNames = selectedUserCodes.map(code =>
-            availableUsers.find(u => u.code === code)?.name || code
+        setSelectedSystemIds(prev =>
+            prev.includes(id) ? prev.filter(i => i !== id) : [...prev, id]
         );
+    };
 
-        const selectedSupervisorNames = selectedSupervisorCodes.map(code =>
-            availableUsers.find(u => u.code === code)?.name || code
-        );
+    const selectAllSystems = () => {
+        const filteredIds = availableSystems
+            .filter(sys => sys.name.toLowerCase().includes(systemSearch.toLowerCase()) || sys.id.toLowerCase().includes(systemSearch.toLowerCase()))
+            .map(sys => sys.id);
+        
+        setSelectedSystemIds(prev => {
+            const newIds = [...new Set([...prev, ...filteredIds])];
+            return newIds;
+        });
+    };
+
+    const deselectAllSystems = () => {
+        const filteredIds = availableSystems
+            .filter(sys => sys.name.toLowerCase().includes(systemSearch.toLowerCase()) || sys.id.toLowerCase().includes(systemSearch.toLowerCase()))
+            .map(sys => sys.id);
+        
+        setSelectedSystemIds(prev => prev.filter(id => !filteredIds.includes(id)));
+    };
+
+    const handleCreate = async () => {
+        if (!title || selectedSystemIds.length === 0 || (selectedUserCodes.length === 0 && selectedSupervisorCodes.length === 0) || !deadline) {
+            alert("Vui lòng nhập Tên, chọn ít nhất 1 Hệ thống, ít nhất 1 Người (Thực hiện hoặc Giám sát) và Hạn chót!");
+            return;
+        }
 
         setIsUploading(true);
         let uploadedBeforeUrl = beforeImagePreview;
@@ -168,30 +193,45 @@ export default function MaintenancePage() {
                 uploadedAfterUrl = await uploadImage(editAfterImageFile, path);
             }
 
-            const newTask: MaintenanceTask = {
-                id: Date.now().toString(),
-                title,
-                type: taskType,
-                description: desc,
-                deadline,
-                assignees: selectedUserCodes, 
-                assigneeNames: selectedNames, 
-                supervisors: selectedSupervisorCodes,
-                supervisorNames: selectedSupervisorNames,
-                assignedByName: currentUser?.name || 'Admin',
-                status: isEditMode && editingTaskId ? (tasks.find(t => t.id === editingTaskId)?.status || 'PENDING') : 'PENDING',
-                createdAt: isEditMode && editingTaskId ? (tasks.find(t => t.id === editingTaskId)?.createdAt || '') : new Date().toLocaleString('vi-VN', { hour: '2-digit', minute: '2-digit', day: '2-digit', month: '2-digit', year: 'numeric', hour12: false }),
-                beforeImageUrl: uploadedBeforeUrl || undefined,
-                completedAt: isEditMode && editingTaskId ? (tasks.find(t => t.id === editingTaskId)?.completedAt || '') : '',
-                completedNote: isEditMode && editingTaskId ? editCompletedNote : '',
-                remainingIssues: isEditMode && editingTaskId ? editRemainingIssues : '',
-                afterImageUrl: (isEditMode && editingTaskId ? uploadedAfterUrl : '') || undefined,
-                systemId: selectedSystemId,
-                systemName: system?.name || ''
-            };
+            // Create a task for each selected system
+            const promises = selectedSystemIds.map(async (sysId, index) => {
+                const system = availableSystems.find(s => s.id === sysId);
+                
+                // Get names for selected codes
+                const selectedNames = selectedUserCodes.map(code =>
+                    availableUsers.find(u => u.code === code)?.name || code
+                );
 
-            // Save to Firebase
-            await saveMaintenance(isEditMode && editingTaskId ? { ...newTask, id: editingTaskId } : newTask);
+                const selectedSupervisorNames = selectedSupervisorCodes.map(code =>
+                    availableUsers.find(u => u.code === code)?.name || code
+                );
+
+                const newTask: MaintenanceTask = {
+                    id: isEditMode && editingTaskId ? editingTaskId : `${Date.now()}_${index}`,
+                    title,
+                    type: taskType,
+                    description: desc,
+                    deadline,
+                    assignees: selectedUserCodes, 
+                    assigneeNames: selectedNames, 
+                    supervisors: selectedSupervisorCodes,
+                    supervisorNames: selectedSupervisorNames,
+                    assignedByName: currentUser?.name || 'Admin',
+                    status: isEditMode && editingTaskId ? (tasks.find(t => t.id === editingTaskId)?.status || 'PENDING') : 'PENDING',
+                    createdAt: isEditMode && editingTaskId ? (tasks.find(t => t.id === editingTaskId)?.createdAt || '') : new Date().toLocaleString('vi-VN', { hour: '2-digit', minute: '2-digit', day: '2-digit', month: '2-digit', year: 'numeric', hour12: false }),
+                    beforeImageUrl: uploadedBeforeUrl || undefined,
+                    completedAt: isEditMode && editingTaskId ? (tasks.find(t => t.id === editingTaskId)?.completedAt || '') : '',
+                    completedNote: isEditMode && editingTaskId ? editCompletedNote : '',
+                    remainingIssues: isEditMode && editingTaskId ? editRemainingIssues : '',
+                    afterImageUrl: (isEditMode && editingTaskId ? uploadedAfterUrl : '') || undefined,
+                    systemId: sysId,
+                    systemName: system?.name || ''
+                };
+
+                return saveMaintenance(newTask);
+            });
+
+            await Promise.all(promises);
 
             // Reset
             setTitle('');
@@ -200,13 +240,14 @@ export default function MaintenancePage() {
             setDeadline('');
             setSelectedUserCodes([]);
             setSelectedSupervisorCodes([]);
-            setSelectedSystemId('');
+            setSelectedSystemIds([]);
+            setSystemSearch('');
             setBeforeImageFile(null);
             setBeforeImagePreview(null);
             setIsEditMode(false);
             setEditingTaskId(null);
             setViewMode('LIST');
-            alert(isEditMode ? "Đã cập nhật kế hoạch bảo trì thành công!" : "Đã giao việc bảo trì thành công!");
+            alert(isEditMode ? "Đã cập nhật kế hoạch bảo trì thành công!" : `Đã giao việc bảo trì thành công cho ${selectedSystemIds.length} hệ thống!`);
         } catch (error) {
             console.error("Failed to create maintenance task", error);
             alert("Lỗi khi lập kế hoạch. Vui lòng thử lại!");
@@ -282,7 +323,7 @@ export default function MaintenancePage() {
         setDeadline(task.deadline || '');
         setSelectedUserCodes(task.assignees || []);
         setSelectedSupervisorCodes(task.supervisors || []);
-        setSelectedSystemId(task.systemId || '');
+        setSelectedSystemIds(task.systemId ? [task.systemId] : []);
         setBeforeImagePreview(task.beforeImageUrl || null);
         
         // Populate completion fields if they exist
@@ -303,7 +344,8 @@ export default function MaintenancePage() {
         setDeadline('');
         setSelectedUserCodes([]);
         setSelectedSupervisorCodes([]);
-        setSelectedSystemId('');
+        setSelectedSystemIds([]);
+        setSystemSearch('');
         setBeforeImageFile(null);
         setBeforeImagePreview(null);
         setEditCompletedNote('');
@@ -382,19 +424,112 @@ export default function MaintenancePage() {
                                 />
                             </div>
                             <div>
-                                <label className="block text-sm font-medium text-slate-700 mb-1">Hệ thống / Thiết bị *</label>
-                                <select
-                                    className="w-full border border-slate-300 rounded p-2 focus:border-blue-500 outline-none bg-white"
-                                    value={selectedSystemId}
-                                    onChange={(e) => setSelectedSystemId(e.target.value)}
-                                >
-                                    <option value="">-- Chọn hệ thống --</option>
-                                    {availableSystems.map(sys => (
-                                        <option key={sys.id} value={sys.id}>
-                                            [{sys.id}] {sys.name}
-                                        </option>
-                                    ))}
-                                </select>
+                                <label className="block text-sm font-medium text-slate-700 mb-1">
+                                    Hệ thống / Thiết bị {isEditMode ? '*' : '(Có thể chọn nhiều) *'}
+                                </label>
+                                
+                                {!isEditMode && (
+                                    <div className="flex gap-2 mb-2">
+                                        <input
+                                            type="text"
+                                            placeholder="Tìm nhanh hệ thống..."
+                                            className="flex-1 text-sm border border-slate-300 rounded px-3 py-1.5 focus:border-blue-500 outline-none"
+                                            value={systemSearch}
+                                            onChange={(e) => setSystemSearch(e.target.value)}
+                                        />
+                                        <button 
+                                            type="button"
+                                            onClick={selectAllSystems}
+                                            className="text-[10px] font-bold bg-blue-50 text-blue-600 px-2 py-1 rounded border border-blue-100 hover:bg-blue-100"
+                                        >
+                                            CHỌN HẾT
+                                        </button>
+                                        <button 
+                                            type="button"
+                                            onClick={deselectAllSystems}
+                                            className="text-[10px] font-bold bg-slate-50 text-slate-600 px-2 py-1 rounded border border-slate-100 hover:bg-slate-100"
+                                        >
+                                            BỎ HẾT
+                                        </button>
+                                    </div>
+                                )}
+
+                                <div className="border border-slate-300 rounded max-h-60 overflow-y-auto p-2 bg-slate-50">
+                                    {categories.length === 0 ? (
+                                        <div className="space-y-1">
+                                            {availableSystems
+                                                .filter(sys => sys.name.toLowerCase().includes(systemSearch.toLowerCase()) || sys.id.toLowerCase().includes(systemSearch.toLowerCase()))
+                                                .map(sys => (
+                                                    <label key={sys.id} className="flex items-center gap-2 p-1.5 hover:bg-white rounded cursor-pointer transition-colors">
+                                                        <input
+                                                            type={isEditMode ? "radio" : "checkbox"}
+                                                            name={isEditMode ? "systemRadio" : undefined}
+                                                            checked={selectedSystemIds.includes(sys.id)}
+                                                            onChange={() => toggleSystemSelection(sys.id)}
+                                                            className={clsx("w-4 h-4 text-blue-600", isEditMode ? "" : "rounded")}
+                                                        />
+                                                        <span className="text-sm font-bold text-slate-700">[{sys.id}]</span>
+                                                        <span className="text-sm text-slate-600">{sys.name}</span>
+                                                    </label>
+                                                ))}
+                                        </div>
+                                    ) : (
+                                        categories.map(cat => {
+                                            const catSystems = availableSystems.filter(s => s.categoryId === cat.id && (s.name.toLowerCase().includes(systemSearch.toLowerCase()) || s.id.toLowerCase().includes(systemSearch.toLowerCase())));
+                                            if (catSystems.length === 0) return null;
+                                            return (
+                                                <div key={cat.id} className="mb-4 last:mb-0">
+                                                    <div className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1 px-1 flex justify-between items-center">
+                                                        <span>{cat.name}</span>
+                                                        <span className="bg-slate-200 text-slate-500 px-1.5 py-0.5 rounded-full">{catSystems.length}</span>
+                                                    </div>
+                                                    <div className="space-y-0.5">
+                                                        {catSystems.map(sys => (
+                                                            <label key={sys.id} className="flex items-center gap-2 p-1.5 hover:bg-white rounded cursor-pointer transition-colors">
+                                                                <input
+                                                                    type={isEditMode ? "radio" : "checkbox"}
+                                                                    name={isEditMode ? "systemRadio" : undefined}
+                                                                    checked={selectedSystemIds.includes(sys.id)}
+                                                                    onChange={() => toggleSystemSelection(sys.id)}
+                                                                    className={clsx("w-4 h-4 text-blue-600", isEditMode ? "" : "rounded")}
+                                                                />
+                                                                <span className="text-sm font-bold text-slate-700">[{sys.id}]</span>
+                                                                <span className="text-sm text-slate-600">{sys.name}</span>
+                                                            </label>
+                                                        ))}
+                                                    </div>
+                                                </div>
+                                            );
+                                        })
+                                    )}
+                                    {availableSystems.filter(sys => !sys.categoryId && (sys.name.toLowerCase().includes(systemSearch.toLowerCase()) || sys.id.toLowerCase().includes(systemSearch.toLowerCase()))).length > 0 && (
+                                        <div className="mt-4">
+                                            <div className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1 px-1">Khác</div>
+                                            <div className="space-y-0.5">
+                                                {availableSystems
+                                                    .filter(sys => !sys.categoryId && (sys.name.toLowerCase().includes(systemSearch.toLowerCase()) || sys.id.toLowerCase().includes(systemSearch.toLowerCase())))
+                                                    .map(sys => (
+                                                        <label key={sys.id} className="flex items-center gap-2 p-1.5 hover:bg-white rounded cursor-pointer transition-colors">
+                                                            <input
+                                                                type={isEditMode ? "radio" : "checkbox"}
+                                                                name={isEditMode ? "systemRadio" : undefined}
+                                                                checked={selectedSystemIds.includes(sys.id)}
+                                                                onChange={() => toggleSystemSelection(sys.id)}
+                                                                className={clsx("w-4 h-4 text-blue-600", isEditMode ? "" : "rounded")}
+                                                            />
+                                                            <span className="text-sm font-bold text-slate-700">[{sys.id}]</span>
+                                                            <span className="text-sm text-slate-600">{sys.name}</span>
+                                                        </label>
+                                                    ))}
+                                            </div>
+                                        </div>
+                                    )}
+                                </div>
+                                {!isEditMode && (
+                                    <p className="text-[10px] text-blue-600 mt-1 font-medium">
+                                        Đã chọn: {selectedSystemIds.length} hệ thống
+                                    </p>
+                                )}
                             </div>
                             <div>
                                 <label className="block text-sm font-medium text-slate-700 mb-1">Mô tả chi tiết</label>
