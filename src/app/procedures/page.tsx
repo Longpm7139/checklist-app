@@ -315,7 +315,6 @@ export default function ProceduresPage() {
                                 <X size={20} />
                             </button>
                             <div className="text-center">
-                                <span className="text-[10px] font-black uppercase tracking-[0.3em] text-violet-300 mb-2 block">Cộng Hòa Xã Hội Chủ Nghĩa Việt Nam</span>
                                 <h2 className="text-xl md:text-2xl font-black uppercase tracking-tight leading-none mb-1">
                                     Phiếu Đề Nghị Ban Hành / Sửa Đổi
                                 </h2>
