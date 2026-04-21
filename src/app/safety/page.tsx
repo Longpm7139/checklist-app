@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { ShieldCheck, Plus, ArrowLeft, Loader2, Search, Trash2, Calendar, User as UserIcon, CheckCircle, Printer, AlertOctagon } from 'lucide-react';
+import { ShieldCheck, Plus, ArrowLeft, Loader2, Search, Trash2, Calendar, User as UserIcon, CheckCircle, Printer, AlertOctagon, ChevronDown, ChevronUp } from 'lucide-react';
 import { useUser } from '@/providers/UserProvider';
 import { IMESafeInput, IMESafeTextArea } from '@/components/IMESafeInput';
 import { subscribeToSafetyReports, saveSafetyReport, deleteSafetyReport, getUsers } from '@/lib/firebase';
@@ -77,6 +77,7 @@ export default function SafetyPage() {
     const [reports, setReports] = useState<SafetyReport[]>([]);
     const [users, setUsers] = useState<User[]>([]);
     const [searchTerm, setSearchTerm] = useState('');
+    const [expandedGroups, setExpandedGroups] = useState<string[]>([]);
     const [isSaving, setIsSaving] = useState(false);
 
     // Form State
@@ -96,6 +97,19 @@ export default function SafetyPage() {
         const unsub = subscribeToSafetyReports((data) => {
             setReports(data as SafetyReport[]);
             setLoading(false);
+            
+            // Auto-expand the most recent month if no groups are expanded
+            setExpandedGroups(prev => {
+                if (prev.length > 0) return prev;
+                const sorted = data as SafetyReport[];
+                if (sorted.length === 0) return [];
+                const firstReport = sorted[0];
+                const dateParts = (firstReport.createdAt || '').split(' ')[1]?.split('/') || [];
+                if (dateParts.length === 3) {
+                    return [`Tháng ${dateParts[1]}/${dateParts[2]}`];
+                }
+                return [];
+            });
         });
 
         getUsers().then(u => {
@@ -304,6 +318,33 @@ export default function SafetyPage() {
         r.reporter.toLowerCase().includes(searchTerm.toLowerCase())
     );
 
+    const groupReportsByMonth = (reportList: SafetyReport[]) => {
+        const groups: Record<string, SafetyReport[]> = {};
+        reportList.forEach(report => {
+            const dateParts = (report.createdAt || '').split(' ')[1]?.split('/') || [];
+            const monthYear = dateParts.length === 3 ? `Tháng ${dateParts[1]}/${dateParts[2]}` : 'Khác';
+            if (!groups[monthYear]) groups[monthYear] = [];
+            groups[monthYear].push(report);
+        });
+        return groups;
+    };
+
+    const toggleGroup = (group: string) => {
+        setExpandedGroups(prev =>
+            prev.includes(group) ? prev.filter(g => g !== group) : [...prev, group]
+        );
+    };
+
+    const groupedReports = groupReportsByMonth(filteredReports);
+    const sortedGroupKeys = Object.keys(groupedReports).sort((a, b) => {
+        if (a === 'Khác') return 1;
+        if (b === 'Khác') return -1;
+        const [mA, yA] = a.replace('Tháng ', '').split('/').map(Number);
+        const [mB, yB] = b.replace('Tháng ', '').split('/').map(Number);
+        if (yA !== yB) return yB - yA;
+        return mB - mA;
+    });
+
     return (
         <div className="min-h-screen bg-slate-50 p-4 md:p-8 font-sans text-slate-900 pb-24 print:bg-white print:p-0 print:m-0">
             <div className="max-w-6xl mx-auto">
@@ -358,67 +399,90 @@ export default function SafetyPage() {
                                 {searchTerm ? 'Không tìm thấy phiếu nào phù hợp.' : 'Chưa có phiếu an toàn nào được ghi nhận.'}
                             </div>
                         ) : (
-                            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                                {filteredReports.map(report => (
-                                    <div key={report.id} onClick={() => viewReport(report)} className="bg-white rounded-xl shadow-sm border border-slate-200 p-5 hover:shadow-md transition cursor-pointer">
-                                        <div className="flex justify-between items-start mb-3">
-                                            <div className="flex items-center gap-2 text-emerald-800 font-bold bg-emerald-50 px-3 py-1 rounded-full border border-emerald-100 text-sm">
-                                                <Calendar size={14} /> {report.createdAt}
+                            <div className="space-y-6">
+                                {sortedGroupKeys.map(groupKey => (
+                                    <div key={groupKey} className="space-y-3">
+                                        <button
+                                            onClick={() => toggleGroup(groupKey)}
+                                            className="w-full flex items-center justify-between p-3 bg-emerald-100/50 hover:bg-emerald-100 rounded-xl transition-colors group"
+                                        >
+                                            <div className="flex items-center gap-2">
+                                                <h2 className="font-black text-emerald-800 text-sm uppercase tracking-widest">{groupKey}</h2>
+                                                <span className="bg-white text-emerald-600 text-[10px] px-2 py-0.5 rounded-full font-bold border border-emerald-200">
+                                                    {groupedReports[groupKey].length} phiếu
+                                                </span>
                                             </div>
-                                            {currentUser?.role === 'ADMIN' && (
-                                                <button onClick={(e) => { e.stopPropagation(); handleDeleteReport(report.id); }} className="text-slate-400 hover:text-red-600 transition p-1 hover:bg-red-50 rounded">
-                                                    <Trash2 size={16} />
-                                                </button>
-                                            )}
-                                        </div>
-                                        
-                                        <div className="space-y-2 mb-4 text-sm">
-                                            <div className="flex justify-between border-b border-slate-50 pb-1">
-                                                <span className="text-slate-500">Ca trực:</span>
-                                                <span className="font-semibold text-slate-700">{report.shiftTime}</span>
-                                            </div>
-                                            <div className="flex justify-between border-b border-slate-50 pb-1">
-                                                <span className="text-slate-500">Cán bộ trực:</span>
-                                                <span className="font-semibold text-slate-700">{report.dutyOfficer}</span>
-                                            </div>
-                                            <div className="flex justify-between border-b border-slate-50 pb-1">
-                                                <span className="text-slate-500">Người lập:</span>
-                                                <span className="font-semibold text-slate-700">{report.reporter}</span>
-                                            </div>
-                                            {(() => {
-                                                const passedCount = report.criteria.filter(c => c.result === 'Đạt').length;
-                                                const totalCount = report.criteria.length;
-                                                if (passedCount < totalCount) {
-                                                    return (
-                                                        <div className="flex justify-end animate-pulse">
-                                                            <span className="text-[10px] font-black uppercase text-red-600 bg-red-50 px-2 py-0.5 rounded border border-red-100 flex items-center gap-1">
-                                                                Cảnh báo: {passedCount}/{totalCount} Đạt
-                                                            </span>
-                                                        </div>
-                                                    );
-                                                }
-                                                return null;
-                                            })()}
-                                        </div>
+                                            {expandedGroups.includes(groupKey) ? <ChevronUp size={18} className="text-emerald-500" /> : <ChevronDown size={18} className="text-emerald-500" />}
+                                        </button>
 
-                                        <div className="text-xs text-slate-500 flex gap-4">
-                                            <span className="flex items-center gap-1">LĐ: <b className="text-slate-700">{report.totalWorkers || 0}</b></span>
-                                            <span className="flex items-center gap-1">Nghỉ: <b className="text-slate-700">{report.absentWorkers || 0}</b></span>
-                                            {(() => {
-                                                const passedCount = report.criteria.filter(c => c.result === 'Đạt').length;
-                                                const totalCount = report.criteria.length;
-                                                const isPerfect = passedCount === totalCount;
-                                                return (
-                                                    <span className={clsx(
-                                                        "flex items-center gap-1 font-bold",
-                                                        isPerfect ? "text-emerald-600" : "text-red-600"
-                                                    )}>
-                                                        {isPerfect ? <CheckCircle size={12} /> : <AlertOctagon size={12} />}
-                                                        {passedCount}/{totalCount} Đạt
-                                                    </span>
-                                                );
-                                            })()}
-                                        </div>
+                                        {expandedGroups.includes(groupKey) && (
+                                            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                                                {groupedReports[groupKey].map(report => (
+                                                    <div key={report.id} onClick={() => viewReport(report)} className="bg-white rounded-xl shadow-sm border border-slate-200 p-5 hover:shadow-md hover:border-emerald-200 transition cursor-pointer relative group/item">
+                                                        <div className="flex justify-between items-start mb-3">
+                                                            <div className="flex items-center gap-2 text-emerald-800 font-bold bg-emerald-50 px-3 py-1 rounded-full border border-emerald-100 text-[11px]">
+                                                                <Calendar size={14} /> {report.createdAt}
+                                                            </div>
+                                                            {currentUser?.role === 'ADMIN' && (
+                                                                <button onClick={(e) => { e.stopPropagation(); handleDeleteReport(report.id); }} className="text-slate-400 hover:text-red-600 transition p-1 hover:bg-red-50 rounded opacity-0 group-hover/item:opacity-100">
+                                                                    <Trash2 size={16} />
+                                                                </button>
+                                                            )}
+                                                        </div>
+                                                        
+                                                        <div className="space-y-2 mb-4 text-[13px]">
+                                                            <div className="flex justify-between border-b border-slate-50 pb-1">
+                                                                <span className="text-slate-500">Ca trực:</span>
+                                                                <span className="font-semibold text-slate-700">{report.shiftTime}</span>
+                                                            </div>
+                                                            <div className="flex justify-between border-b border-slate-50 pb-1">
+                                                                <span className="text-slate-500">Cán bộ:</span>
+                                                                <span className="font-semibold text-slate-700">{report.dutyOfficer}</span>
+                                                            </div>
+                                                            <div className="flex justify-between border-b border-slate-50 pb-1">
+                                                                <span className="text-slate-500">Người lập:</span>
+                                                                <span className="font-semibold text-slate-700">{report.reporter}</span>
+                                                            </div>
+                                                            {(() => {
+                                                                const passedCount = report.criteria.filter(c => c.result === 'Đạt').length;
+                                                                const totalCount = report.criteria.length;
+                                                                if (passedCount < totalCount) {
+                                                                    return (
+                                                                        <div className="flex justify-end pt-1">
+                                                                            <span className="text-[9px] font-black uppercase text-red-600 bg-red-50 px-2 py-0.5 rounded border border-red-100 flex items-center gap-1 animate-pulse">
+                                                                                Cảnh báo: {passedCount}/{totalCount} Đạt
+                                                                            </span>
+                                                                        </div>
+                                                                    );
+                                                                }
+                                                                return null;
+                                                            })()}
+                                                        </div>
+
+                                                        <div className="text-[11px] text-slate-500 flex items-center justify-between mt-auto pt-2 border-t border-slate-50">
+                                                            <div className="flex gap-3">
+                                                                <span className="flex items-center gap-1">LĐ: <b className="text-slate-700">{report.totalWorkers || 0}</b></span>
+                                                                <span className="flex items-center gap-1">Nghỉ: <b className="text-slate-700">{report.absentWorkers || 0}</b></span>
+                                                            </div>
+                                                            {(() => {
+                                                                const passedCount = report.criteria.filter(c => c.result === 'Đạt').length;
+                                                                const totalCount = report.criteria.length;
+                                                                const isPerfect = passedCount === totalCount;
+                                                                return (
+                                                                    <span className={clsx(
+                                                                        "flex items-center gap-1 font-bold",
+                                                                        isPerfect ? "text-emerald-600" : "text-red-600"
+                                                                    )}>
+                                                                        {isPerfect ? <CheckCircle size={12} /> : <AlertOctagon size={12} />}
+                                                                        {passedCount}/{totalCount}
+                                                                    </span>
+                                                                );
+                                                            })()}
+                                                        </div>
+                                                    </div>
+                                                ))}
+                                            </div>
+                                        )}
                                     </div>
                                 ))}
                             </div>
