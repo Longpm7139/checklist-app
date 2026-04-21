@@ -73,14 +73,14 @@ export default function MaintenancePage() {
             });
             setTasks(sorted);
             
-            // Auto-expand the most recent month if no groups are expanded
+            // Auto-expand the group of the most recent task if no groups are expanded
             setExpandedGroups(prev => {
                 if (prev.length > 0) return prev;
                 if (sorted.length === 0) return [];
                 const firstTask = sorted[0];
-                const dateParts = (firstTask.createdAt || '').split(' ')[1]?.split('/') || [];
+                const dateParts = (firstTask.deadline || '').split('-'); // YYYY-MM-DD
                 if (dateParts.length === 3) {
-                    return [`Tháng ${dateParts[1]}/${dateParts[2]}`];
+                    return [`Tháng ${dateParts[1]}/${dateParts[0]}`];
                 }
                 return [];
             });
@@ -374,8 +374,8 @@ export default function MaintenancePage() {
     const groupTasksByMonth = (taskList: MaintenanceTask[]) => {
         const groups: Record<string, MaintenanceTask[]> = {};
         taskList.forEach(task => {
-            const dateParts = (task.createdAt || '').split(' ')[1]?.split('/') || [];
-            const monthYear = dateParts.length === 3 ? `Tháng ${dateParts[1]}/${dateParts[2]}` : 'Khác';
+            const dateParts = (task.deadline || '').split('-'); // YYYY-MM-DD
+            const monthYear = dateParts.length === 3 ? `Tháng ${dateParts[1]}/${dateParts[0]}` : 'Khác';
             if (!groups[monthYear]) groups[monthYear] = [];
             groups[monthYear].push(task);
         });
