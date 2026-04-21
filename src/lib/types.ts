@@ -185,3 +185,21 @@ export interface DeviceLog {
   updatedBy: string;
   createdAt?: string;
 }
+
+export interface Procedure {
+  id: string;
+  type: 'OPERATING' | 'MAINTENANCE';
+  ticketNumber: string;
+  formCode: string; // B01.QT01/DAD
+  department: string;
+  documentName: string;
+  documentSymbol: string;
+  revision: string;
+  reason: string;
+  date: string; // "dd/MM/yyyy"
+  fileUrl?: string;
+  fileName?: string;
+  creatorName: string;
+  creatorCode: string;
+  createdAt: string; // "HH:mm dd/MM/yyyy"
+}

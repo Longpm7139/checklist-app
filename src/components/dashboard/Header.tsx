@@ -96,6 +96,13 @@ export default function Header({
             <PenTool size={16} /> Cầu HK
           </button>
           <button
+            onClick={() => router.push('/procedures')}
+            className="p-2 rounded text-sm font-bold flex items-center gap-1 bg-violet-600 hover:bg-violet-700 text-white transition shadow-sm"
+            title="Quy trình Vận hành & Bảo dưỡng"
+          >
+            <BookOpen size={16} /> Quy trình
+          </button>
+          <button
             onClick={() => window.open('https://hldt-web.vercel.app/', '_blank')}
             className="p-2 rounded text-sm font-bold flex items-center gap-1 bg-cyan-600 hover:bg-cyan-700 text-white transition shadow-sm"
             title="Phần mềm Huấn Luyện Đào Tạo"

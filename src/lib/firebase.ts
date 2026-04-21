@@ -403,6 +403,33 @@ export const deleteSafetyReport = async (id: string) => {
     await deleteDoc(doc(db, "safety_reports", id));
 };
 
+// --- PROCEDURES (OPERATING & MAINTENANCE) ---
+export const subscribeToProcedures = (callback: (data: any[]) => void) => {
+    const q = query(collection(db, "procedures"));
+    return onSnapshot(q, (querySnapshot) => {
+        const items: any[] = [];
+        querySnapshot.forEach((doc) => {
+            items.push({ ...doc.data(), id: doc.id });
+        });
+        // Sort by ticketNumber or createdAt? Let's sort by createdAt desc for now
+        items.sort((a, b) => {
+            const timeA = new Date(a.createdAt?.split(' ').reverse().join(' ') || '').getTime() || 0;
+            const timeB = new Date(b.createdAt?.split(' ').reverse().join(' ') || '').getTime() || 0;
+            return timeB - timeA;
+        });
+        callback(items);
+    });
+};
+
+export const saveProcedure = async (procedure: any) => {
+    const docId = procedure.id || Date.now().toString();
+    await setDoc(doc(db, "procedures", docId), removeUndefined(procedure), { merge: true });
+};
+
+export const deleteProcedure = async (id: string) => {
+    await deleteDoc(doc(db, "procedures", id));
+};
+
 // PCCC Reports
 export const subscribeToPcccReports = (callback: (data: any[]) => void) => {
     const q = query(collection(db, "pccc_reports"));
