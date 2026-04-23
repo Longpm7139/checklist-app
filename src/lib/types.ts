@@ -10,6 +10,7 @@ export interface User {
 export interface SystemCategory {
   id: string;
   name: string;
+  isActive?: boolean;
 }
 
 export interface SystemCheck {
@@ -18,6 +19,7 @@ export interface SystemCheck {
   name: string; // e.g., 'Cầu số 1'
   status: Status | null;
   note: string;
+  isActive?: boolean;
   fixStatus?: 'Fixed' | 'Fixing' | 'No Fix';
   actionNote?: string;
   timestamp?: string;

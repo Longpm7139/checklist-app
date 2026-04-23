@@ -6,7 +6,7 @@ import { SystemCheck, Status, SystemCategory, MaintenanceTask } from '@/lib/type
 import {
   Save, AlertCircle, Edit2, Trash2, Plus, Check, X, RotateCcw, History as HistoryIcon,
   CheckCheck, Search, LogOut, Users, Lock, ClipboardList, BarChart2, Package,
-  Wrench, QrCode, Key, UserCheck, FileText, ArrowRight, CheckCircle, Filter, AlertTriangle, Send, Camera, Clock
+  Wrench, QrCode, Key, UserCheck, FileText, ArrowRight, CheckCircle, Filter, AlertTriangle, Send, Camera, Clock, Eye, EyeOff
 } from 'lucide-react';
 import clsx from 'clsx';
 import { useUser } from '@/providers/UserProvider';
@@ -119,6 +119,11 @@ export default function Home() {
   const [expandedCategories, setExpandedCategories] = useState<Set<string>>(new Set());
   const [customTimestamp, setCustomTimestamp] = useState<string>('');
 
+  const displayCategories = useMemo(() => isEditMode ? categories : categories.filter(c => c.isActive !== false), [categories, isEditMode]);
+  const displaySystems = useMemo(() => isEditMode ? systems : systems.filter(s => s.isActive !== false && displayCategories.some(c => c.id === s.categoryId)), [systems, displayCategories, isEditMode]);
+  const activeCategoriesForLogic = useMemo(() => categories.filter(c => c.isActive !== false), [categories]);
+  const activeSystemsForLogic = useMemo(() => systems.filter(s => s.isActive !== false && activeCategoriesForLogic.some(c => c.id === s.categoryId)), [systems, activeCategoriesForLogic]);
+
   const toggleCategory = (catId: string) => {
     setExpandedCategories(prev => {
       const next = new Set(prev);
@@ -142,10 +147,10 @@ export default function Home() {
     const isNightShiftEnd = hour === 6;
 
     // Check if on-duty staff has any NA systems
-    const hasUncheckedSystems = systems.some(s => s.status === 'NA');
+    const hasUncheckedSystems = activeSystemsForLogic.some(s => s.status === 'NA');
 
     return (isDayShiftEnd || isNightShiftEnd) && hasUncheckedSystems;
-  }, [systems]);
+  }, [activeSystemsForLogic]);
 
   const { user, logout } = useUser();
 
@@ -176,7 +181,7 @@ export default function Home() {
     )
   );
 
-  const uncheckedCount = systems.filter(s => s.status === 'NA').length;
+  const uncheckedCount = activeSystemsForLogic.filter(s => s.status === 'NA').length;
   const buttonText = uncheckedCount > 0 ? `Đánh dấu ${uncheckedCount}` : "Tất cả";
 
   useEffect(() => {
@@ -371,6 +376,25 @@ export default function Home() {
     }
   };
 
+  const handleToggleSystemActive = async (id: string, currentStatus?: boolean) => {
+    if (user?.role !== 'ADMIN') {
+      alert("Chỉ Admin mới có quyền thao tác này!");
+      return;
+    }
+    const target = systems.find(s => s.id === id);
+    if (target) {
+      await saveSystem(id, { ...target, isActive: currentStatus === false ? true : false });
+    }
+  };
+
+  const handleToggleCategoryActive = async (id: string, currentStatus?: boolean) => {
+    if (user?.role !== 'ADMIN') {
+      alert("Chỉ Admin mới có quyền thao tác này!");
+      return;
+    }
+    await saveCategory(id, { isActive: currentStatus === false ? true : false });
+  };
+
   const handleUpdateSystemId = (oldId: string) => {
     alert("Tính năng Đổi ID đang được bảo trì trong quá trình chuyển đổi sang Cloud (Firebase). Vui lòng thử lại sau!");
   };
@@ -405,7 +429,7 @@ export default function Home() {
       ? new Date(customTimestamp).toLocaleString('vi-VN', { hour: '2-digit', minute: '2-digit', day: '2-digit', month: '2-digit', year: 'numeric', hour12: false })
       : new Date().toLocaleString('vi-VN', { hour: '2-digit', minute: '2-digit', day: '2-digit', month: '2-digit', year: 'numeric', hour12: false });
 
-    systems.forEach(async (s) => {
+    activeSystemsForLogic.forEach(async (s) => {
       if (s.status === 'NA' || !s.status) {
         await saveSystem(s.id, {
           ...s,
@@ -431,7 +455,7 @@ export default function Home() {
 
     setErrors(prev => {
       const next = new Set(prev);
-      systems.forEach(s => {
+      activeSystemsForLogic.forEach(s => {
         if (s.status === 'NA') next.delete(s.id);
       });
       return next;
@@ -462,7 +486,7 @@ export default function Home() {
     }
 
     // Check progress against shiftStart
-    const hasProgressToday = systems.some(s => {
+    const hasProgressToday = activeSystemsForLogic.some(s => {
       if (!s.inspectorCode || !s.timestamp) return false;
 
       try {
@@ -518,7 +542,7 @@ export default function Home() {
 
   const handleSaveChecklist = async () => {
     const newErrors = new Set<string>();
-    const itemsRequiringNote = systems.filter(s => s.status === 'NOK');
+    const itemsRequiringNote = activeSystemsForLogic.filter(s => s.status === 'NOK');
 
     itemsRequiringNote.forEach(s => {
       if (!s.note.trim()) {
@@ -533,20 +557,20 @@ export default function Home() {
     }
 
     const uncheckedCategories: string[] = [];
-    const checkedCountTotal = systems.filter(s => s.status && s.status !== 'NA' && !!s.inspectorCode).length;
+    const checkedCountTotal = activeSystemsForLogic.filter(s => s.status && s.status !== 'NA' && !!s.inspectorCode).length;
 
     if (checkedCountTotal === 0) {
       alert('Vui lòng thực hiện kiểm tra ít nhất một hệ thống trước khi Lưu!');
       return;
     }
 
-    const myNokItems = systems.filter(s => s.status === 'NOK' && s.inspectorCode === user?.code);
+    const myNokItems = activeSystemsForLogic.filter(s => s.status === 'NOK' && s.inspectorCode === user?.code);
     const newlyInteractedNokItems = myNokItems.filter(s => sessionInteractedNokIds.has(s.id));
 
     // FIX: Chỉ ghi log cho các hệ thống mà NGƯỜI HIỆN TẠI đã tự kiểm tra
     // Không ghi log cho NOK cũ từ ca trước (inspectorCode khác user hiện tại)
     // Điều này ngăn việc "thổi phồng" số lỗi trong KPI và Phân tích xu hướng
-    const touchedSystems = systems.filter(s =>
+    const touchedSystems = activeSystemsForLogic.filter(s =>
       s.status && s.status !== 'NA' && s.inspectorCode === (user?.code || '')
     );
     if (touchedSystems.length > 0) {
@@ -582,10 +606,10 @@ export default function Home() {
     }
   };
 
-  const hasErrors = systems.some(s => s.status === 'NOK');
+  const hasErrors = activeSystemsForLogic.some(s => s.status === 'NOK');
 
   const failedCategoryIds = Array.from(new Set(
-    systems
+    activeSystemsForLogic
       .filter(s => s.status === 'NOK')
       .map(s => s.categoryId)
   ));
@@ -658,17 +682,17 @@ export default function Home() {
             currentShiftType={currentShiftType}
             shiftDateStr={shiftDateStr}
             currentShiftAssignments={currentShiftAssignments}
-            systems={systems}
+            systems={activeSystemsForLogic}
             setIsHandoffModalOpen={setIsHandoffModalOpen}
             handleStartNewShift={handleStartNewShift}
             isEditMode={isEditMode}
           />
           <DashboardStats
-            systems={systems}
+            systems={activeSystemsForLogic}
             incidents={incidents}
             tasks={tasks}
             failedCategoryIds={failedCategoryIds}
-            categories={categories}
+            categories={activeCategoriesForLogic}
           />
         </div>
 
@@ -718,8 +742,8 @@ export default function Home() {
         <div className="p-4 md:hidden">
           {/* Accordion selector: show category list first, then expand selected */}
           <div className="mb-4 rounded-xl border border-slate-200 overflow-hidden shadow-sm bg-white">
-            {categories.map((cat, idx) => {
-              const catSystems = systems.filter(s => s.categoryId === cat.id);
+            {displayCategories.map((cat, idx) => {
+              const catSystems = displaySystems.filter(s => s.categoryId === cat.id);
               if (catSystems.length === 0 && !isEditMode) return null;
               const okCount = catSystems.filter(s => s.status === 'OK').length;
               const nokCount = catSystems.filter(s => s.status === 'NOK').length;
@@ -779,13 +803,22 @@ export default function Home() {
                         </span>
                       )}
                       {isEditMode && (
-                        <button
-                          onClick={(e) => { e.stopPropagation(); handleDeleteCategory(cat.id); }}
-                          className={clsx("p-1 rounded transition-colors", isExpanded ? "hover:bg-red-500 text-white/70 hover:text-white" : "hover:bg-red-100 text-slate-400 hover:text-red-600")}
-                          title="Xóa nhóm"
-                        >
-                          <Trash2 size={14} />
-                        </button>
+                        <>
+                          <button
+                            onClick={(e) => { e.stopPropagation(); handleToggleCategoryActive(cat.id, cat.isActive); }}
+                            className={clsx("p-1 rounded transition-colors", isExpanded ? "hover:bg-slate-500 text-white/70 hover:text-white" : "hover:bg-slate-200 text-slate-400 hover:text-slate-600")}
+                            title={cat.isActive !== false ? "Ẩn nhóm (Không hiển thị ở trang chủ)" : "Hiện nhóm"}
+                          >
+                            {cat.isActive !== false ? <Eye size={14} /> : <EyeOff size={14} className="text-red-500" />}
+                          </button>
+                          <button
+                            onClick={(e) => { e.stopPropagation(); handleDeleteCategory(cat.id); }}
+                            className={clsx("p-1 rounded transition-colors", isExpanded ? "hover:bg-red-500 text-white/70 hover:text-white" : "hover:bg-red-100 text-slate-400 hover:text-red-600")}
+                            title="Xóa nhóm"
+                          >
+                            <Trash2 size={14} />
+                          </button>
+                        </>
                       )}
                       <svg
                         className={clsx("w-5 h-5 transition-transform duration-200", isExpanded ? "rotate-180 text-white" : "text-slate-400")}
@@ -837,7 +870,10 @@ export default function Home() {
                             </div>
                             {isEditMode && (
                               <div className="flex gap-1 ml-2">
-                                <button onClick={() => handleDeleteSystem(sys.id)} className="p-2 text-red-500 bg-red-50 rounded">
+                                <button onClick={() => handleToggleSystemActive(sys.id, sys.isActive)} className="p-2 text-slate-500 bg-slate-50 hover:bg-slate-200 rounded transition-colors" title={sys.isActive !== false ? "Ẩn hệ thống" : "Hiện hệ thống"}>
+                                  {sys.isActive !== false ? <Eye size={16} /> : <EyeOff size={16} className="text-red-500" />}
+                                </button>
+                                <button onClick={() => handleDeleteSystem(sys.id)} className="p-2 text-red-500 bg-red-50 hover:bg-red-100 rounded transition-colors" title="Xóa hệ thống">
                                   <Trash2 size={16} />
                                 </button>
                               </div>
@@ -964,8 +1000,8 @@ export default function Home() {
               </tr>
             </thead>
             <tbody>
-              {categories.map(cat => {
-                const catSystems = systems.filter(s => {
+              {displayCategories.map(cat => {
+                const catSystems = displaySystems.filter(s => {
                   const matchesCategory = s.categoryId === cat.id;
                   if (!matchesCategory) return false;
                   if (!searchQuery.trim()) return true;
@@ -1021,13 +1057,22 @@ export default function Home() {
                               );
                             })()}
                             {isEditMode && (
-                              <button
-                                onClick={(e) => { e.stopPropagation(); handleDeleteCategory(cat.id); }}
-                                className="text-white/70 hover:text-white hover:bg-red-500 p-1 rounded transition-colors"
-                                title="Xóa nhóm"
-                              >
-                                <Trash2 size={16} />
-                              </button>
+                              <>
+                                <button
+                                  onClick={(e) => { e.stopPropagation(); handleToggleCategoryActive(cat.id, cat.isActive); }}
+                                  className="text-white/70 hover:text-white hover:bg-slate-500 p-1 rounded transition-colors"
+                                  title={cat.isActive !== false ? "Ẩn nhóm (Không hiển thị ở trang chủ)" : "Hiện nhóm"}
+                                >
+                                  {cat.isActive !== false ? <Eye size={16} /> : <EyeOff size={16} className="text-red-300" />}
+                                </button>
+                                <button
+                                  onClick={(e) => { e.stopPropagation(); handleDeleteCategory(cat.id); }}
+                                  className="text-white/70 hover:text-white hover:bg-red-500 p-1 rounded transition-colors"
+                                  title="Xóa nhóm"
+                                >
+                                  <Trash2 size={16} />
+                                </button>
+                              </>
                             )}
                           </div>
                         </div>
@@ -1043,7 +1088,10 @@ export default function Home() {
                                 onChangeValue={(val: string) => handleUpdateSystemName(sys.id, val)}
                                 className="border border-slate-300 rounded px-2 py-1 w-full text-sm focus:border-blue-500 outline-none"
                               />
-                              <button onClick={() => handleDeleteSystem(sys.id)} className="text-red-500 hover:text-red-700 p-1">
+                              <button onClick={() => handleToggleSystemActive(sys.id, sys.isActive)} className="text-slate-400 hover:text-slate-600 p-1" title={sys.isActive !== false ? "Ẩn hệ thống" : "Hiện hệ thống"}>
+                                {sys.isActive !== false ? <Eye size={16} /> : <EyeOff size={16} className="text-red-500" />}
+                              </button>
+                              <button onClick={() => handleDeleteSystem(sys.id)} className="text-red-500 hover:text-red-700 p-1" title="Xóa hệ thống">
                                 <Trash2 size={16} />
                               </button>
                             </div>
