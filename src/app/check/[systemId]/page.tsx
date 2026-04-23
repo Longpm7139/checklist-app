@@ -265,30 +265,8 @@ export default function CheckPage() {
                     duration: durationSeconds
                 }));
 
-                // Auto-link NOK items to History (Mục 25 của Sổ Lý lịch thiết bị)
-                if (hasNOK) {
-                    const todayD = new Date();
-                    const currentH = todayD.getHours();
-                    const sD = new Date(todayD);
-                    if (currentH < 7) {
-                        sD.setDate(sD.getDate() - 1);
-                    }
-                    const sDateStr = `${sD.getFullYear()}-${String(sD.getMonth() + 1).padStart(2, '0')}-${String(sD.getDate()).padStart(2, '0')}`;
-
-                    nokItems.forEach(item => {
-                        const historyId = `${systemId}_${item.id}_${sDateStr}`;
-                        dbPromises.push(saveHistoryItem(historyId, {
-                            id: historyId,
-                            systemId: systemId,
-                            systemName: `${systemName} - ${item.content}`,
-                            issueContent: item.note || item.content,
-                            timestamp: now,
-                            inspectorName: user?.name || 'Unknown',
-                            imageUrl: item.imageUrl || '',
-                            fixStatus: 'No Fix'
-                        }));
-                    });
-                }
+                // The user requested NOT to link NOK items to history immediately.
+                // It will only be added to History when a user resolves it (marks FIXED) in Summary.
 
                 await Promise.all(dbPromises);
 
