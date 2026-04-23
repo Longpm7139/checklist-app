@@ -21,7 +21,7 @@ export default function IncidentsPage() {
 
     // Systems list for dropdown
     const [systems, setSystems] = useState<any[]>([]);
-    const [selectedSystemId, setSelectedSystemId] = useState<string>('');
+    const [selectedSystemIds, setSelectedSystemIds] = useState<string[]>([]);
 
     // Form State
     const [newTitle, setNewTitle] = useState('');
@@ -123,8 +123,20 @@ export default function IncidentsPage() {
         setIsEditing(true);
         setEditingId(inc.id);
         setNewTitle(inc.title);
-        setNewSystem(inc.systemName);
-        setSelectedSystemId(inc.systemId || '');
+        
+        const ids = inc.systemId ? inc.systemId.split(',').filter(Boolean) : [];
+        setSelectedSystemIds(ids);
+
+        let customVal = inc.systemName || '';
+        ids.forEach(id => {
+            const s = systems.find(sys => sys.id === id);
+            if (s) {
+                customVal = customVal.replace(s.name, '');
+            }
+        });
+        customVal = customVal.split(',').map(s => s.trim()).filter(Boolean).join(', ');
+        
+        setNewSystem(customVal);
         setNewDesc(inc.description);
         setNewSeverity(inc.severity || 'MEDIUM');
         setAssignee(inc.assignedTo || '');
@@ -162,8 +174,8 @@ export default function IncidentsPage() {
     };
 
     const handleSaveIncident = async (notifyZalo: boolean = false) => {
-        if (!newTitle || !newSystem) {
-            alert("Vui lòng nhập Tên sự cố và Hệ thống!");
+        if (!newTitle || (!newSystem && selectedSystemIds.length === 0)) {
+            alert("Vui lòng nhập Tên sự cố và chọn Hệ thống!");
             return;
         }
 
@@ -190,14 +202,14 @@ export default function IncidentsPage() {
                 ? new Date(customResolvedAt).toLocaleString('vi-VN', { hour: '2-digit', minute: '2-digit', day: '2-digit', month: '2-digit', year: 'numeric', hour12: false })
                 : '';
 
-            const selectedSystem = systems.find(s => s.id === selectedSystemId);
-            const systemNameForIncident = newSystem || selectedSystem?.name || '';
+            const selectedSystemNames = selectedSystemIds.map(id => systems.find(s => s.id === id)?.name).filter(Boolean);
+            const systemNameForIncident = [...selectedSystemNames, newSystem].filter(Boolean).join(', ');
 
             const incidentData: Incident = {
                 id: isEditing && editingId ? editingId : Date.now().toString(),
                 title: newTitle,
                 systemName: systemNameForIncident,
-                systemId: selectedSystemId || undefined,
+                systemId: selectedSystemIds.length > 0 ? selectedSystemIds.join(',') : undefined,
                 description: newDesc,
                 status: isEditing && editingId ? (incidents.find(i => i.id === editingId)?.status || 'OPEN') : 'OPEN',
                 severity: newSeverity,
@@ -231,7 +243,7 @@ export default function IncidentsPage() {
             // Reset
             setNewTitle('');
             setNewSystem('');
-            setSelectedSystemId('');
+            setSelectedSystemIds([]);
             setNewDesc('');
             setAssignee('');
             setNewSeverity('MEDIUM');
@@ -463,6 +475,7 @@ export default function IncidentsPage() {
                                         // Reset fields
                                         setNewTitle('');
                                         setNewSystem('');
+                                        setSelectedSystemIds([]);
                                         setNewDesc('');
                                         setAssignee('');
                                     }}
@@ -563,28 +576,44 @@ export default function IncidentsPage() {
                                 {/* Dropdown chọn từ danh sách hệ thống → tự động link Lý Lịch TB */}
                                 <select
                                     className="w-full border border-slate-300 rounded p-2 focus:border-red-500 outline-none bg-white text-sm mb-2"
-                                    value={selectedSystemId}
+                                    value=""
                                     onChange={e => {
                                         const id = e.target.value;
-                                        setSelectedSystemId(id);
-                                        // Tự động điền tên hệ thống vào ô bên dưới
-                                        const sys = systems.find(s => s.id === id);
-                                        if (sys) setNewSystem(sys.name);
-                                        else setNewSystem('');
+                                        if (!id) return;
+                                        if (!selectedSystemIds.includes(id)) {
+                                            setSelectedSystemIds(prev => [...prev, id]);
+                                        }
                                     }}
                                 >
-                                    <option value="">-- Chọn thiết bị từ danh sách --</option>
+                                    <option value="">-- Chọn thiết bị từ danh sách (có thể chọn nhiều) --</option>
                                     {[...systems].sort((a, b) => a.id.localeCompare(b.id)).map(s => (
                                         <option key={s.id} value={s.id}>{s.id} · {s.name}</option>
                                     ))}
                                 </select>
+
+                                {selectedSystemIds.length > 0 && (
+                                    <div className="flex flex-wrap gap-2 mb-2">
+                                        {selectedSystemIds.map(id => {
+                                            const sys = systems.find(s => s.id === id);
+                                            return (
+                                                <span key={id} className="bg-blue-100 text-blue-800 text-[12px] px-2 py-1 rounded flex items-center gap-1 font-bold shadow-sm">
+                                                    {sys?.id} · {sys?.name || id}
+                                                    <X size={14} className="cursor-pointer hover:text-red-500 ml-1" onClick={() => {
+                                                        setSelectedSystemIds(prev => prev.filter(x => x !== id));
+                                                    }} />
+                                                </span>
+                                            );
+                                        })}
+                                    </div>
+                                )}
+
                                 <IMESafeInput
-                                    className="w-full border border-slate-300 rounded p-2 focus:border-red-500 outline-none"
-                                    placeholder="Hoặc nhập tay: VD: Khu vực sân đỗ số 5"
+                                    className="w-full border border-slate-300 rounded p-2 focus:border-red-500 outline-none mt-2"
+                                    placeholder="Hệ thống ngoài danh sách (nhập tay)..."
                                     value={newSystem}
-                                    onChangeValue={(val: string) => { setNewSystem(val); setSelectedSystemId(''); }}
+                                    onChangeValue={(val: string) => setNewSystem(val)}
                                 />
-                                <p className="text-[10px] text-blue-600 mt-1 italic">💡 Chọn từ danh sách để tự động link dữ liệu vào Sổ Lý Lịch Thiết Bị (Mục 23)</p>
+                                <p className="text-[10px] text-blue-600 mt-1 italic">💡 Chọn từ danh sách để tự động link dữ liệu vào Sổ Lý Lịch Thiết Bị</p>
                             </div>
                             <div>
                                 <label className="block text-sm font-medium text-slate-700 mb-1">Mô tả chi tiết</label>

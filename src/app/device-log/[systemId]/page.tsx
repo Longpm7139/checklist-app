@@ -244,7 +244,7 @@ export default function DeviceLogDetailPage() {
 
     const relatedIncidents = incidents.filter(inc =>
         // Ưu tiên: khớp theo systemId được lưu trực tiếp trong incident
-        inc.systemId === systemId ||
+        (inc.systemId && inc.systemId.split(',').includes(systemId)) ||
         // Hoặc: khớp theo tên hệ thống trong trường systemName (tìm kiếm rộng)
         matchesSystem(inc.systemName) ||
         matchesSystem(inc.title)
