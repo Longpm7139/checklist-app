@@ -343,7 +343,7 @@ export default function KPIPage() {
     const handleExport = () => {
         const wb = XLSX.utils.book_new();
         const dataArr: any[][] = [
-            ["BẢNG XẾP HẠNG KPI", monthFilter],
+            ["BẢNG ĐÁNH GIÁ KPI", monthFilter],
             [],
             ["Hạng", "Mã NV", "Họ Tên", "Số ca trực", "Điểm trực ca", "Tìm lỗi", "Sửa lỗi", "Sự cố", "Bảo trì", "Thi công", "Giám sát", "Điểm"]
         ];
@@ -371,7 +371,7 @@ export default function KPIPage() {
                         </button>
                         <div>
                             <div className="flex items-center gap-2">
-                                <h1 className="text-3xl font-black uppercase tracking-tight text-slate-900 mb-1">Bảng Xếp Hạng KPI Điểm Tức Thì</h1>
+                                <h1 className="text-3xl font-black uppercase tracking-tight text-slate-900 mb-1">Bảng Đánh Giá KPI</h1>
                                 <span className="bg-blue-600 text-white text-[10px] font-bold px-1.5 py-0.5 rounded shadow-sm">v1.2.0</span>
                             </div>
                             <div className="flex items-center gap-2 text-slate-400 font-bold text-xs uppercase tracking-widest">
