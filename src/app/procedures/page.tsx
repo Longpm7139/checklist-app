@@ -38,6 +38,7 @@ export default function ProceduresPage() {
     const [fileName, setFileName] = useState('');
     const [isEditMode, setIsEditMode] = useState(false);
     const [editId, setEditId] = useState('');
+    const isLicense = type.startsWith('LICENSE_');
 
     useEffect(() => {
         const unsub = subscribeToProcedures((data) => {
@@ -270,52 +271,55 @@ export default function ProceduresPage() {
                             </div>
                         ) : (
                             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                                {filteredProcedures.map(proc => (
-                                    <div key={proc.id} className="bg-white rounded-3xl border border-slate-200 p-6 hover:shadow-xl hover:border-violet-200 transition-all duration-300 group relative overflow-hidden">
-                                        <div className="absolute top-0 right-0 w-24 h-24 bg-violet-50 -mr-12 -mt-12 rounded-full transition-transform group-hover:scale-150 duration-500 -z-0 opacity-50" />
-                                        
-                                        <div className="relative z-10">
-                                            <div className="flex justify-between items-start mb-4">
-                                                <div className="bg-slate-50 text-slate-500 px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-tighter border border-slate-100 flex items-center gap-1">
-                                                    <FileText size={12} /> {proc.ticketNumber}
-                                                </div>
-                                                <div className="flex items-center gap-1">
-                                                    {(currentUser?.role === 'ADMIN' || currentUser?.code === proc.creatorCode) && (
-                                                        <button 
-                                                            onClick={(e) => { e.stopPropagation(); handleEdit(proc); }}
-                                                            className="p-1.5 text-slate-400 hover:text-violet-600 hover:bg-violet-50 rounded-lg transition"
-                                                            title="Sửa"
-                                                        >
-                                                            <Plus size={16} className="rotate-45" /> 
-                                                        </button>
-                                                    )}
-                                                    {currentUser?.role === 'ADMIN' && (
-                                                        <button 
-                                                            onClick={(e) => { e.stopPropagation(); handleDelete(proc.id); }}
-                                                            className="p-1.5 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition"
-                                                            title="Xóa"
-                                                        >
-                                                            <Trash2 size={16} />
-                                                        </button>
-                                                    )}
-                                                </div>
-                                            </div>
+                                {filteredProcedures.map(proc => {
+                                    const isLicenseLog = proc.type.startsWith('LICENSE_');
+                                    return (
+                                                <div key={proc.id} className="bg-white rounded-3xl border border-slate-200 p-6 hover:shadow-xl hover:border-violet-200 transition-all duration-300 group relative overflow-hidden">
+                                                    <div className="absolute top-0 right-0 w-24 h-24 bg-violet-50 -mr-12 -mt-12 rounded-full transition-transform group-hover:scale-150 duration-500 -z-0 opacity-50" />
+                                                    
+                                                    <div className="relative z-10">
+                                                        <div className="flex justify-between items-start mb-4">
+                                                            <div className="bg-slate-50 text-slate-500 px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-tighter border border-slate-100 flex items-center gap-1">
+                                                                <FileText size={12} /> {proc.ticketNumber}
+                                                            </div>
+                                                            <div className="flex items-center gap-1">
+                                                                {(currentUser?.role === 'ADMIN' || currentUser?.code === proc.creatorCode) && (
+                                                                    <button 
+                                                                        onClick={(e) => { e.stopPropagation(); handleEdit(proc); }}
+                                                                        className="p-1.5 text-slate-400 hover:text-violet-600 hover:bg-violet-50 rounded-lg transition"
+                                                                        title="Sửa"
+                                                                    >
+                                                                        <Plus size={16} className="rotate-45" /> 
+                                                                    </button>
+                                                                )}
+                                                                {currentUser?.role === 'ADMIN' && (
+                                                                    <button 
+                                                                        onClick={(e) => { e.stopPropagation(); handleDelete(proc.id); }}
+                                                                        className="p-1.5 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition"
+                                                                        title="Xóa"
+                                                                    >
+                                                                        <Trash2 size={16} />
+                                                                    </button>
+                                                                )}
+                                                            </div>
+                                                        </div>
 
-                                            <h3 className="font-black text-slate-800 text-base leading-tight mb-2 group-hover:text-violet-700 transition-colors uppercase">
-                                                {proc.documentName}
-                                            </h3>
-                                            
-                                            <div className="space-y-1.5 mb-6">
+                                                        <h3 className="font-black text-slate-800 text-base leading-tight mb-2 group-hover:text-violet-700 transition-colors uppercase">
+                                                            {proc.documentName}
+                                                        </h3>
+                                                        {isLicenseLog && <div className="text-[10px] font-bold text-violet-600 bg-violet-50 inline-block px-2 py-0.5 rounded-full mb-3 uppercase tracking-tighter border border-violet-100">{proc.department}</div>}
+                                                        
+                                                        <div className="space-y-1.5 mb-6">
                                                 <div className="flex justify-between text-xs text-slate-500">
-                                                    <span>Ký hiệu:</span>
-                                                    <span className="font-bold text-slate-700">{proc.documentSymbol}</span>
+                                                    <span>{isLicenseLog ? "Mã/Kiểu TB:" : "Ký hiệu:"}</span>
+                                                    <span className="font-bold text-slate-700 truncate max-w-[150px]">{proc.documentSymbol}</span>
                                                 </div>
                                                 <div className="flex justify-between text-xs text-slate-500">
-                                                    <span>Lần ban hành:</span>
-                                                    <span className="font-bold text-slate-700">{proc.revision}</span>
+                                                    <span>{isLicenseLog ? "Hiệu lực đến:" : "Lần ban hành:"}</span>
+                                                    <span className={clsx("font-bold truncate max-w-[150px]", isLicenseLog ? "text-red-600" : "text-slate-700")}>{proc.revision}</span>
                                                 </div>
                                                 <div className="flex justify-between text-xs text-slate-500">
-                                                    <span>Ngày:</span>
+                                                    <span>{isLicenseLog ? "Ngày cấp:" : "Ngày:"}</span>
                                                     <span className="font-bold text-slate-700">{proc.date}</span>
                                                 </div>
                                             </div>
@@ -343,7 +347,8 @@ export default function ProceduresPage() {
                                             </div>
                                         </div>
                                     </div>
-                                ))}
+                                );
+                                })}
                             </div>
                         )}
                     </div>
@@ -359,9 +364,11 @@ export default function ProceduresPage() {
                             </button>
                             <div className="text-center">
                                 <h2 className="text-xl md:text-2xl font-black uppercase tracking-tight leading-none mb-1">
-                                    Phiếu Đề Nghị Ban Hành / Sửa Đổi
+                                    {isLicense ? "Cập Nhật Thông Tin Giấy Phép" : "Phiếu Đề Nghị Ban Hành / Sửa Đổi"}
                                 </h2>
-                                <p className="text-violet-300 font-medium text-xs">(Tài liệu tầng 2)</p>
+                                <p className="text-violet-300 font-medium text-xs">
+                                    {isLicense ? "(Giấy phép, Chứng nhận, Kiểm định)" : "(Tài liệu tầng 2)"}
+                                </p>
                             </div>
                             <div className="absolute bottom-0 right-8 transform translate-y-1/2 flex gap-3 max-w-[80%] overflow-x-auto scrollbar-none pb-2">
                                 <div className={clsx(
@@ -376,7 +383,7 @@ export default function ProceduresPage() {
                                 )}>
                                     <Wrench size={14} /> Bảo Dưỡng
                                 </div>
-                                {type.startsWith('LICENSE') && (
+                                {isLicense && (
                                     <div className={clsx(
                                         "px-4 py-3 rounded-2xl shadow-lg font-black text-[10px] uppercase tracking-widest flex items-center gap-2 border transition-all whitespace-nowrap",
                                         "bg-white text-violet-700 border-white scale-110"
@@ -394,28 +401,29 @@ export default function ProceduresPage() {
                         <div className="p-8 pt-16 space-y-8">
                             <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                                 <div className="space-y-1 group">
-                                    <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1 transition-colors group-focus-within:text-violet-500">Mẫu biểu</label>
+                                    <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1 transition-colors group-focus-within:text-violet-500">{isLicense ? "Loại giấy tờ" : "Mẫu biểu"}</label>
                                     <input 
                                         type="text"
                                         readOnly
-                                        value="B01.QT01/DAD"
+                                        value={isLicense ? "Giấy phép / Kiểm định" : "B01.QT01/DAD"}
                                         className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 transition text-sm font-bold text-slate-500 outline-none"
                                     />
                                 </div>
                                 <div className="space-y-1 group">
-                                    <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1 transition-colors group-focus-within:text-violet-500">Số phiếu *</label>
+                                    <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1 transition-colors group-focus-within:text-violet-500">{isLicense ? "Số G.Phép / S.Đăng ký *" : "Số phiếu *"}</label>
                                     <IMESafeInput 
                                         value={ticketNumber}
                                         onChangeValue={setTicketNumber}
-                                        placeholder="Ví dụ: 09/KG, 47/KG..."
+                                        placeholder={isLicense ? "Ví dụ: 2406/GP-CHK..." : "Ví dụ: 09/KG, 47/KG..."}
                                         className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 outline-none focus:ring-4 focus:ring-violet-50 focus:border-violet-400 transition text-sm font-bold text-slate-800"
                                     />
                                 </div>
                                 <div className="space-y-1 group">
-                                    <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1 transition-colors group-focus-within:text-violet-500">Đơn vị / Bộ phận</label>
+                                    <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1 transition-colors group-focus-within:text-violet-500">{isLicense ? "Cơ quan cấp phép" : "Đơn vị / Bộ phận"}</label>
                                     <IMESafeInput 
                                         value={department}
                                         onChangeValue={setDepartment}
+                                        placeholder={isLicense ? "CỤC HK / SỞ KH&CN / INCOSAF..." : "TRUNG TÂM KHAI THÁC GA..."}
                                         className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 outline-none focus:ring-4 focus:ring-violet-50 focus:border-violet-400 transition text-sm font-bold text-slate-800"
                                     />
                                 </div>
@@ -424,45 +432,45 @@ export default function ProceduresPage() {
                             <div className="bg-violet-50/50 p-6 rounded-3xl space-y-6 border border-violet-100">
                                 <div className="flex items-center gap-2 mb-2">
                                     <div className="w-1.5 h-6 bg-violet-600 rounded-full" />
-                                    <h3 className="font-black text-violet-800 text-sm uppercase tracking-widest">Phần I: Đề nghị ban hành / sửa đổi</h3>
+                                    <h3 className="font-black text-violet-800 text-sm uppercase tracking-widest">{isLicense ? "Thông tin chi tiết" : "Phần I: Đề nghị ban hành / sửa đổi"}</h3>
                                 </div>
 
                                 <div className="space-y-4">
                                     <div className="space-y-1 group">
-                                        <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Tên tài liệu / Quy trình *</label>
+                                        <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">{isLicense ? "Tên đối tượng / Hệ thống *" : "Tên tài liệu / Quy trình *"}</label>
                                         <IMESafeInput 
                                             value={documentName}
                                             onChangeValue={setDocumentName}
-                                            placeholder="QUY TRÌNH VẬN HÀNH HỆ THỐNG CCTV..."
+                                            placeholder={isLicense ? "HỆ THỐNG DẪN ĐỖ TÀU BAY..." : "QUY TRÌNH VẬN HÀNH HỆ THỐNG CCTV..."}
                                             className="w-full bg-white border border-slate-200 rounded-xl px-4 py-3 outline-none focus:ring-4 focus:ring-violet-100 focus:border-violet-400 transition text-sm font-bold text-slate-800 uppercase"
                                         />
                                     </div>
                                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                         <div className="space-y-1 group">
-                                            <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Ký hiệu tài liệu *</label>
+                                            <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">{isLicense ? "Mã hiệu / Kiểu thiết bị *" : "Ký hiệu tài liệu *"}</label>
                                             <IMESafeInput 
                                                 value={documentSymbol}
                                                 onChangeValue={setDocumentSymbol}
-                                                placeholder="QT46/DAD-KG..."
+                                                placeholder={isLicense ? "Safedock Type T1..." : "QT46/DAD-KG..."}
                                                 className="w-full bg-white border border-slate-200 rounded-xl px-4 py-3 outline-none focus:ring-4 focus:ring-violet-100 focus:border-violet-400 transition text-sm font-bold text-slate-800"
                                             />
                                         </div>
                                         <div className="space-y-1 group">
-                                            <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Lần ban hành / sửa đổi</label>
+                                            <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">{isLicense ? "Hiệu lực đến (Ngày)" : "Lần ban hành / sửa đổi"}</label>
                                             <IMESafeInput 
                                                 value={revision}
                                                 onChangeValue={setRevision}
-                                                placeholder="02/00..."
+                                                placeholder={isLicense ? "05/06/2026..." : "02/00..."}
                                                 className="w-full bg-white border border-slate-200 rounded-xl px-4 py-3 outline-none focus:ring-4 focus:ring-violet-100 focus:border-violet-400 transition text-sm font-bold text-slate-800"
                                             />
                                         </div>
                                     </div>
                                     <div className="space-y-1 group">
-                                        <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Lý do biên soạn</label>
+                                        <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">{isLicense ? "Đặc tính kỹ thuật / Ghi chú" : "Lý do biên soạn"}</label>
                                         <IMESafeTextArea 
                                             value={reason}
                                             onChangeValue={setReason}
-                                            placeholder="Ban hành quy trình theo mẫu mới..."
+                                            placeholder={isLicense ? "Năm sản xuất / Tọa độ / Mục đích sử dụng..." : "Ban hành quy trình theo mẫu mới..."}
                                             className="w-full bg-white border border-slate-200 rounded-xl px-4 py-3 outline-none focus:ring-4 focus:ring-violet-100 focus:border-violet-400 transition text-sm font-medium text-slate-700 min-h-[100px]"
                                         />
                                     </div>
@@ -472,7 +480,7 @@ export default function ProceduresPage() {
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-8 items-end">
                                 <div className="space-y-4">
                                     <div className="space-y-1 group">
-                                        <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Ngày lập phiếu *</label>
+                                        <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">{isLicense ? "Ngày cấp *" : "Ngày lập phiếu *"}</label>
                                         <input 
                                             type="date"
                                             value={date}
