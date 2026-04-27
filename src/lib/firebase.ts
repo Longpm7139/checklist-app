@@ -317,7 +317,15 @@ export const uploadImage = async (file: File, path: string) => {
         return downloadUrl;
     } catch (error: any) {
         console.error("Firebase Storage Error:", error);
-        alert("LỖI TẢI ẢNH: " + (error?.code || error?.message || "Không xác định"));
+        
+        let errorMsg = error?.code || error?.message || "Không xác định";
+        
+        if (errorMsg.includes('unauthorized') && file.size > 1.5 * 1024 * 1024) {
+             alert(` LỖI TẢI LÊN (Quá dung lượng): File của bạn nặng ${(file.size/(1024*1024)).toFixed(2)}MB. Hệ thống Server của bạn có thể đang từ chối file nặng hơn một mức trần cố định (thực tế hay gặp mức 2MB). Bạn hãy thử NÉN FILE LẠI nhỏ hơn rồi tải lại nhé!`);
+             throw error;
+        }
+
+        alert("LỖI TẢI ẢNH/FILE: " + errorMsg);
         throw error;
     }
 };
