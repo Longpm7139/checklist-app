@@ -80,7 +80,17 @@ export default function ProceduresPage() {
                 const uploadFolder = isLicenseType ? 'OPERATING' : type;
                 const safeName = fileFile.name.replace(/[^a-zA-Z0-9.-]/g, '_');
                 const path = `procedures/${uploadFolder}/${Date.now()}_${safeName}`;
-                uploadedUrl = await uploadImage(fileFile, path);
+                
+                // --- DEBUGGING ---
+                const fileSizeMB = (fileFile.size / (1024 * 1024)).toFixed(2);
+                alert(`⚠️ DEBUG TRƯỚC KHI TẢI:\n- Dung lượng file: ${fileSizeMB} MB\n- Đường dẫn sẽ lưu: ${path}\n(Nếu sau thông báo này báo Lỗi storage/unauthorized thì 100% là do dung lượng file PDF này quá lớn so với giới hạn trên Firebase)`);
+                
+                try {
+                    uploadedUrl = await uploadImage(fileFile, path);
+                } catch(e: any) {
+                    alert(`🚨 LỖI TẠI NƠI GỌI: ${e.message}\nDung lượng file: ${fileSizeMB}MB\nNếu file Vận Hành tải được mà Giấy phép không tải được, thử dùng trình giảm dung lượng PDF xem sao nhé!`);
+                    throw e; // Dừng tiến trình
+                }
             }
 
             const finalFileName = fileFile?.name || fileName || '';
