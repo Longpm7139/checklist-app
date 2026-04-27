@@ -57,9 +57,18 @@ export default function ProceduresPage() {
     };
 
     const handleSave = async () => {
-        if (!ticketNumber || !documentName || !documentSymbol || !date) {
-            alert("Vui lòng nhập đầy đủ thông tin bắt buộc!");
-            return;
+        const isLicenseType = type.startsWith('LICENSE_');
+        
+        if (!isLicenseType) {
+            if (!ticketNumber || !documentName || !documentSymbol || !date) {
+                alert("Vui lòng nhập đầy đủ thông tin bắt buộc!");
+                return;
+            }
+        } else {
+            if (!fileFile && !fileUrl) {
+                alert("Vui lòng chọn file giấy phép đính kèm!");
+                return;
+            }
         }
 
         setIsSaving(true);
@@ -70,19 +79,22 @@ export default function ProceduresPage() {
                 uploadedUrl = await uploadImage(fileFile, path);
             }
 
+            const finalFileName = fileFile?.name || fileName || '';
+            const finalDocumentName = isLicenseType ? (finalFileName || 'Giấy phép') : documentName;
+
             const newProc: Procedure = {
                 id: isEditMode ? editId : `${Date.now()}`,
                 type,
-                ticketNumber,
+                ticketNumber: isLicenseType ? 'GIẤY PHÉP' : ticketNumber,
                 formCode: 'B01.QT01/DAD',
-                department,
-                documentName,
-                documentSymbol,
-                revision,
-                reason,
-                date: date.split('-').reverse().join('/'),
+                department: isLicenseType ? '' : department,
+                documentName: finalDocumentName,
+                documentSymbol: isLicenseType ? '---' : documentSymbol,
+                revision: isLicenseType ? '---' : revision,
+                reason: isLicenseType ? '' : reason,
+                date: isLicenseType ? new Date().toLocaleDateString('vi-VN') : date.split('-').reverse().join('/'),
                 fileUrl: uploadedUrl,
-                fileName: fileName || fileFile?.name || '',
+                fileName: finalFileName,
                 creatorName: currentUser?.name || 'Unknown',
                 creatorCode: currentUser?.code || 'UNKNOWN',
                 createdAt: isEditMode ? procedures.find(p => p.id === editId)?.createdAt || '' : new Date().toLocaleString('vi-VN', { hour: '2-digit', minute: '2-digit', day: '2-digit', month: '2-digit', year: 'numeric', hour12: false })
@@ -279,9 +291,15 @@ export default function ProceduresPage() {
                                                     
                                                     <div className="relative z-10">
                                                         <div className="flex justify-between items-start mb-4">
-                                                            <div className="bg-slate-50 text-slate-500 px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-tighter border border-slate-100 flex items-center gap-1">
-                                                                <FileText size={12} /> {proc.ticketNumber}
-                                                            </div>
+                                                            {isLicenseLog ? (
+                                                                <div className="bg-violet-50 text-violet-600 px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-tighter border border-violet-100 flex items-center gap-1">
+                                                                    <ShieldCheck size={12} /> Giấy Phép
+                                                                </div>
+                                                            ) : (
+                                                                <div className="bg-slate-50 text-slate-500 px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-tighter border border-slate-100 flex items-center gap-1">
+                                                                    <FileText size={12} /> {proc.ticketNumber}
+                                                                </div>
+                                                            )}
                                                             <div className="flex items-center gap-1">
                                                                 {(currentUser?.role === 'ADMIN' || currentUser?.code === proc.creatorCode) && (
                                                                     <button 
@@ -307,22 +325,24 @@ export default function ProceduresPage() {
                                                         <h3 className="font-black text-slate-800 text-base leading-tight mb-2 group-hover:text-violet-700 transition-colors uppercase">
                                                             {proc.documentName}
                                                         </h3>
-                                                        {isLicenseLog && <div className="text-[10px] font-bold text-violet-600 bg-violet-50 inline-block px-2 py-0.5 rounded-full mb-3 uppercase tracking-tighter border border-violet-100">{proc.department}</div>}
+                                                        {isLicenseLog && proc.department && <div className="text-[10px] font-bold text-violet-600 bg-violet-50 inline-block px-2 py-0.5 rounded-full mb-3 uppercase tracking-tighter border border-violet-100">{proc.department}</div>}
                                                         
-                                                        <div className="space-y-1.5 mb-6">
-                                                <div className="flex justify-between text-xs text-slate-500">
-                                                    <span>{isLicenseLog ? "Mã/Kiểu TB:" : "Ký hiệu:"}</span>
-                                                    <span className="font-bold text-slate-700 truncate max-w-[150px]">{proc.documentSymbol}</span>
-                                                </div>
-                                                <div className="flex justify-between text-xs text-slate-500">
-                                                    <span>{isLicenseLog ? "Hiệu lực đến:" : "Lần ban hành:"}</span>
-                                                    <span className={clsx("font-bold truncate max-w-[150px]", isLicenseLog ? "text-red-600" : "text-slate-700")}>{proc.revision}</span>
-                                                </div>
-                                                <div className="flex justify-between text-xs text-slate-500">
-                                                    <span>{isLicenseLog ? "Ngày cấp:" : "Ngày:"}</span>
-                                                    <span className="font-bold text-slate-700">{proc.date}</span>
-                                                </div>
-                                            </div>
+                                                        {!isLicenseLog && (
+                                                            <div className="space-y-1.5 mb-6">
+                                                                <div className="flex justify-between text-xs text-slate-500">
+                                                                    <span>Ký hiệu:</span>
+                                                                    <span className="font-bold text-slate-700 truncate max-w-[150px]">{proc.documentSymbol}</span>
+                                                                </div>
+                                                                <div className="flex justify-between text-xs text-slate-500">
+                                                                    <span>Lần ban hành:</span>
+                                                                    <span className="font-bold text-slate-700">{proc.revision}</span>
+                                                                </div>
+                                                                <div className="flex justify-between text-xs text-slate-500">
+                                                                    <span>Ngày:</span>
+                                                                    <span className="font-bold text-slate-700">{proc.date}</span>
+                                                                </div>
+                                                            </div>
+                                                        )}
 
                                             <div className="flex items-center justify-between pt-4 border-t border-slate-100 bg-white/50 rounded-b-3xl">
                                                 <div className="flex flex-col">
@@ -353,7 +373,6 @@ export default function ProceduresPage() {
                         )}
                     </div>
                 ) : (
-                    /* Creation Form - Premium Design mimicking the physical form images */
                     <div className="bg-white rounded-[32px] shadow-2xl shadow-slate-200 border border-slate-200 overflow-hidden animate-in zoom-in-95 duration-300">
                         <div className="bg-violet-800 p-8 text-white relative">
                             <button 
@@ -399,95 +418,102 @@ export default function ProceduresPage() {
                         </div>
 
                         <div className="p-8 pt-16 space-y-8">
-                            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                                <div className="space-y-1 group">
-                                    <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1 transition-colors group-focus-within:text-violet-500">{isLicense ? "Loại giấy tờ" : "Mẫu biểu"}</label>
-                                    <input 
-                                        type="text"
-                                        readOnly
-                                        value={isLicense ? "Giấy phép / Kiểm định" : "B01.QT01/DAD"}
-                                        className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 transition text-sm font-bold text-slate-500 outline-none"
-                                    />
-                                </div>
-                                <div className="space-y-1 group">
-                                    <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1 transition-colors group-focus-within:text-violet-500">{isLicense ? "Số G.Phép / S.Đăng ký *" : "Số phiếu *"}</label>
-                                    <IMESafeInput 
-                                        value={ticketNumber}
-                                        onChangeValue={setTicketNumber}
-                                        placeholder={isLicense ? "Ví dụ: 2406/GP-CHK..." : "Ví dụ: 09/KG, 47/KG..."}
-                                        className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 outline-none focus:ring-4 focus:ring-violet-50 focus:border-violet-400 transition text-sm font-bold text-slate-800"
-                                    />
-                                </div>
-                                <div className="space-y-1 group">
-                                    <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1 transition-colors group-focus-within:text-violet-500">{isLicense ? "Cơ quan cấp phép" : "Đơn vị / Bộ phận"}</label>
-                                    <IMESafeInput 
-                                        value={department}
-                                        onChangeValue={setDepartment}
-                                        placeholder={isLicense ? "CỤC HK / SỞ KH&CN / INCOSAF..." : "TRUNG TÂM KHAI THÁC GA..."}
-                                        className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 outline-none focus:ring-4 focus:ring-violet-50 focus:border-violet-400 transition text-sm font-bold text-slate-800"
-                                    />
-                                </div>
-                            </div>
-
-                            <div className="bg-violet-50/50 p-6 rounded-3xl space-y-6 border border-violet-100">
-                                <div className="flex items-center gap-2 mb-2">
-                                    <div className="w-1.5 h-6 bg-violet-600 rounded-full" />
-                                    <h3 className="font-black text-violet-800 text-sm uppercase tracking-widest">{isLicense ? "Thông tin chi tiết" : "Phần I: Đề nghị ban hành / sửa đổi"}</h3>
-                                </div>
-
-                                <div className="space-y-4">
-                                    <div className="space-y-1 group">
-                                        <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">{isLicense ? "Tên đối tượng / Hệ thống *" : "Tên tài liệu / Quy trình *"}</label>
-                                        <IMESafeInput 
-                                            value={documentName}
-                                            onChangeValue={setDocumentName}
-                                            placeholder={isLicense ? "HỆ THỐNG DẪN ĐỖ TÀU BAY..." : "QUY TRÌNH VẬN HÀNH HỆ THỐNG CCTV..."}
-                                            className="w-full bg-white border border-slate-200 rounded-xl px-4 py-3 outline-none focus:ring-4 focus:ring-violet-100 focus:border-violet-400 transition text-sm font-bold text-slate-800 uppercase"
-                                        />
-                                    </div>
-                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            {!isLicense && (
+                                <>
+                                    <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                                         <div className="space-y-1 group">
-                                            <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">{isLicense ? "Mã hiệu / Kiểu thiết bị *" : "Ký hiệu tài liệu *"}</label>
-                                            <IMESafeInput 
-                                                value={documentSymbol}
-                                                onChangeValue={setDocumentSymbol}
-                                                placeholder={isLicense ? "Safedock Type T1..." : "QT46/DAD-KG..."}
-                                                className="w-full bg-white border border-slate-200 rounded-xl px-4 py-3 outline-none focus:ring-4 focus:ring-violet-100 focus:border-violet-400 transition text-sm font-bold text-slate-800"
+                                            <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1 transition-colors group-focus-within:text-violet-500">Mẫu biểu</label>
+                                            <input 
+                                                type="text"
+                                                readOnly
+                                                value="B01.QT01/DAD"
+                                                className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 transition text-sm font-bold text-slate-500 outline-none"
                                             />
                                         </div>
                                         <div className="space-y-1 group">
-                                            <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">{isLicense ? "Hiệu lực đến (Ngày)" : "Lần ban hành / sửa đổi"}</label>
+                                            <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1 transition-colors group-focus-within:text-violet-500">Số phiếu *</label>
                                             <IMESafeInput 
-                                                value={revision}
-                                                onChangeValue={setRevision}
-                                                placeholder={isLicense ? "05/06/2026..." : "02/00..."}
-                                                className="w-full bg-white border border-slate-200 rounded-xl px-4 py-3 outline-none focus:ring-4 focus:ring-violet-100 focus:border-violet-400 transition text-sm font-bold text-slate-800"
+                                                value={ticketNumber}
+                                                onChangeValue={setTicketNumber}
+                                                placeholder="Ví dụ: 09/KG, 47/KG..."
+                                                className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 outline-none focus:ring-4 focus:ring-violet-50 focus:border-violet-400 transition text-sm font-bold text-slate-800"
+                                            />
+                                        </div>
+                                        <div className="space-y-1 group">
+                                            <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1 transition-colors group-focus-within:text-violet-500">Đơn vị / Bộ phận</label>
+                                            <IMESafeInput 
+                                                value={department}
+                                                onChangeValue={setDepartment}
+                                                placeholder="TRUNG TÂM KHAI THÁC GA..."
+                                                className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 outline-none focus:ring-4 focus:ring-violet-50 focus:border-violet-400 transition text-sm font-bold text-slate-800"
                                             />
                                         </div>
                                     </div>
-                                    <div className="space-y-1 group">
-                                        <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">{isLicense ? "Đặc tính kỹ thuật / Ghi chú" : "Lý do biên soạn"}</label>
-                                        <IMESafeTextArea 
-                                            value={reason}
-                                            onChangeValue={setReason}
-                                            placeholder={isLicense ? "Năm sản xuất / Tọa độ / Mục đích sử dụng..." : "Ban hành quy trình theo mẫu mới..."}
-                                            className="w-full bg-white border border-slate-200 rounded-xl px-4 py-3 outline-none focus:ring-4 focus:ring-violet-100 focus:border-violet-400 transition text-sm font-medium text-slate-700 min-h-[100px]"
-                                        />
-                                    </div>
-                                </div>
-                            </div>
 
-                            <div className="grid grid-cols-1 md:grid-cols-2 gap-8 items-end">
-                                <div className="space-y-4">
-                                    <div className="space-y-1 group">
-                                        <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">{isLicense ? "Ngày cấp *" : "Ngày lập phiếu *"}</label>
-                                        <input 
-                                            type="date"
-                                            value={date}
-                                            onChange={(e) => setDate(e.target.value)}
-                                            className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 outline-none focus:ring-4 focus:ring-violet-50 focus:border-violet-400 transition text-sm font-bold text-slate-800"
-                                        />
+                                    <div className="bg-violet-50/50 p-6 rounded-3xl space-y-6 border border-violet-100">
+                                        <div className="flex items-center gap-2 mb-2">
+                                            <div className="w-1.5 h-6 bg-violet-600 rounded-full" />
+                                            <h3 className="font-black text-violet-800 text-sm uppercase tracking-widest">Phần I: Đề nghị ban hành / sửa đổi</h3>
+                                        </div>
+
+                                        <div className="space-y-4">
+                                            <div className="space-y-1 group">
+                                                <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Tên tài liệu / Quy trình *</label>
+                                                <IMESafeInput 
+                                                    value={documentName}
+                                                    onChangeValue={setDocumentName}
+                                                    placeholder="QUY TRÌNH VẬN HÀNH HỆ THỐNG CCTV..."
+                                                    className="w-full bg-white border border-slate-200 rounded-xl px-4 py-3 outline-none focus:ring-4 focus:ring-violet-100 focus:border-violet-400 transition text-sm font-bold text-slate-800 uppercase"
+                                                />
+                                            </div>
+                                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                                <div className="space-y-1 group">
+                                                    <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Ký hiệu tài liệu *</label>
+                                                    <IMESafeInput 
+                                                        value={documentSymbol}
+                                                        onChangeValue={setDocumentSymbol}
+                                                        placeholder="QT46/DAD-KG..."
+                                                        className="w-full bg-white border border-slate-200 rounded-xl px-4 py-3 outline-none focus:ring-4 focus:ring-violet-100 focus:border-violet-400 transition text-sm font-bold text-slate-800"
+                                                    />
+                                                </div>
+                                                <div className="space-y-1 group">
+                                                    <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Lần ban hành / sửa đổi</label>
+                                                    <IMESafeInput 
+                                                        value={revision}
+                                                        onChangeValue={setRevision}
+                                                        placeholder="02/00..."
+                                                        className="w-full bg-white border border-slate-200 rounded-xl px-4 py-3 outline-none focus:ring-4 focus:ring-violet-100 focus:border-violet-400 transition text-sm font-bold text-slate-800"
+                                                    />
+                                                </div>
+                                            </div>
+                                            <div className="space-y-1 group">
+                                                <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Lý do biên soạn</label>
+                                                <IMESafeTextArea 
+                                                    value={reason}
+                                                    onChangeValue={setReason}
+                                                    placeholder="Ban hành quy trình theo mẫu mới..."
+                                                    className="w-full bg-white border border-slate-200 rounded-xl px-4 py-3 outline-none focus:ring-4 focus:ring-violet-100 focus:border-violet-400 transition text-sm font-medium text-slate-700 min-h-[100px]"
+                                                />
+                                            </div>
+                                        </div>
                                     </div>
+                                </>
+                            )}
+
+                            <div className={clsx("grid gap-8 items-end", isLicense ? "grid-cols-1" : "grid-cols-1 md:grid-cols-2")}>
+                                {!isLicense && (
+                                    <div className="space-y-4">
+                                        <div className="space-y-1 group">
+                                            <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Ngày lập phiếu *</label>
+                                            <input 
+                                                type="date"
+                                                value={date}
+                                                onChange={(e) => setDate(e.target.value)}
+                                                className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 outline-none focus:ring-4 focus:ring-violet-50 focus:border-violet-400 transition text-sm font-bold text-slate-800"
+                                            />
+                                        </div>
+                                    </div>
+                                )}
                                     <div className="space-y-2">
                                         <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Tài liệu đính kèm (PDF/Word/Ảnh)</label>
                                         <div className="flex items-center gap-3">
@@ -507,7 +533,6 @@ export default function ProceduresPage() {
                                             )}
                                         </div>
                                     </div>
-                                </div>
 
                                 <div className="flex gap-4">
                                     <button 
