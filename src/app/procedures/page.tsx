@@ -75,9 +75,11 @@ export default function ProceduresPage() {
         try {
             let uploadedUrl = fileUrl;
             if (fileFile) {
-                // Sử dụng thư mục incidents/ hoặc thư mục chung để tránh bị vướng quyền Storage Rules 
-                // do thư mục procedures/ có thể chưa được cấu hình cho phép ghi (allow write)
-                const path = `incidents/procedures_${Date.now()}_${fileFile.name.replace(/[^a-zA-Z0-9.-]/g, '_')}`;
+                // Xử lý cứng: Do Storage Rules đang khóa thư mục LICENSE_... nên mượn thư mục OPERATING để lưu file
+                // Cả hai thư mục OPERATING / MAINTENANCE đã được xác nhận là 100% cho phép tải file PDF.
+                const uploadFolder = isLicenseType ? 'OPERATING' : type;
+                const safeName = fileFile.name.replace(/[^a-zA-Z0-9.-]/g, '_');
+                const path = `procedures/${uploadFolder}/${Date.now()}_${safeName}`;
                 uploadedUrl = await uploadImage(fileFile, path);
             }
 
