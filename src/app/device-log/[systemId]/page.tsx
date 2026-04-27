@@ -107,35 +107,45 @@ function Field({ label, children }: { label: string; children: React.ReactNode }
 
 function InputField({ value, onChange, placeholder, readOnly, type = 'text' }: any) {
     return (
-        <input
-            type={type}
-            value={value || ''}
-            onChange={e => onChange(e.target.value)}
-            placeholder={placeholder}
-            readOnly={readOnly}
-            className={`w-full px-3 py-2 text-sm border rounded-lg outline-none transition-colors ${
-                readOnly
-                    ? 'bg-slate-50 border-slate-200 text-slate-600 cursor-default'
-                    : 'bg-white border-slate-300 focus:border-blue-500 focus:ring-2 focus:ring-blue-100'
-            }`}
-        />
+        <div className="relative w-full">
+            <input
+                type={type}
+                value={value || ''}
+                onChange={e => onChange(e.target.value)}
+                placeholder={placeholder}
+                readOnly={readOnly}
+                className={`w-full px-3 py-2 text-sm border rounded-lg outline-none transition-colors print:hidden ${
+                    readOnly
+                        ? 'bg-slate-50 border-slate-200 text-slate-600 cursor-default'
+                        : 'bg-white border-slate-300 focus:border-blue-500 focus:ring-2 focus:ring-blue-100'
+                }`}
+            />
+            <div className="hidden print:block w-full px-3 py-2 text-sm border border-slate-200 rounded-lg whitespace-pre-wrap break-words min-h-[38px] bg-white">
+                {value || ''}
+            </div>
+        </div>
     );
 }
 
 function TextareaField({ value, onChange, placeholder, readOnly, rows = 3 }: any) {
     return (
-        <textarea
-            value={value || ''}
-            onChange={e => onChange(e.target.value)}
-            placeholder={placeholder}
-            readOnly={readOnly}
-            rows={rows}
-            className={`w-full px-3 py-2 text-sm border rounded-lg outline-none transition-colors resize-none ${
-                readOnly
-                    ? 'bg-slate-50 border-slate-200 text-slate-600 cursor-default'
-                    : 'bg-white border-slate-300 focus:border-blue-500 focus:ring-2 focus:ring-blue-100'
-            }`}
-        />
+        <div className="relative w-full">
+            <textarea
+                value={value || ''}
+                onChange={e => onChange(e.target.value)}
+                placeholder={placeholder}
+                readOnly={readOnly}
+                rows={rows}
+                className={`w-full px-3 py-2 text-sm border rounded-lg outline-none transition-colors resize-none print:hidden ${
+                    readOnly
+                        ? 'bg-slate-50 border-slate-200 text-slate-600 cursor-default'
+                        : 'bg-white border-slate-300 focus:border-blue-500 focus:ring-2 focus:ring-blue-100'
+                }`}
+            />
+            <div className="hidden print:block w-full px-3 py-2 text-sm border border-slate-200 rounded-lg whitespace-pre-wrap break-words min-h-[82px] bg-white">
+                {value || ''}
+            </div>
+        </div>
     );
 }
 
@@ -767,13 +777,16 @@ function OperatorsTable({ operators, onChange, readOnly }: { operators: DeviceOp
                             <tr key={i} className="hover:bg-slate-50">
                                 <td className="border border-slate-200 px-2 py-1.5 text-center text-slate-400 font-bold">{i + 1}</td>
                                 {cols.map(c => (
-                                    <td key={c.key} className="border border-slate-200 px-1 py-1">
+                                    <td key={c.key} className="border border-slate-200 px-1 py-1 align-top">
                                         <input
                                             value={op[c.key] || ''}
                                             onChange={e => updateRow(i, c.key, e.target.value)}
                                             readOnly={readOnly}
-                                            className="w-full px-2 py-1 text-xs outline-none bg-transparent hover:bg-white focus:bg-white focus:border focus:border-blue-300 rounded transition"
+                                            className="w-full px-2 py-1 text-xs outline-none bg-transparent hover:bg-white focus:bg-white focus:border focus:border-blue-300 rounded transition print:hidden"
                                         />
+                                        <div className="hidden print:block px-2 py-1 text-xs whitespace-pre-wrap break-words min-h-[24px]">
+                                            {op[c.key] || ''}
+                                        </div>
                                     </td>
                                 ))}
                                 {!readOnly && (
@@ -830,13 +843,16 @@ function EditableTable({ items, onChange, columns, readOnly, accent = 'blue' }: 
                             <tr key={i} className="hover:bg-slate-50/80">
                                 <td className="border border-slate-200 px-2 py-1.5 text-center text-slate-400 font-bold">{i + 1}</td>
                                 {columns.map(c => (
-                                    <td key={c.key} className="border border-slate-200 px-1 py-1">
+                                    <td key={c.key} className="border border-slate-200 px-1 py-1 align-top">
                                         <input
                                             value={row[c.key] || ''}
                                             onChange={e => updateRow(i, c.key, e.target.value)}
                                             readOnly={readOnly}
-                                            className="w-full px-2 py-1 text-xs outline-none bg-transparent hover:bg-white focus:bg-white focus:border focus:border-blue-300 rounded transition"
+                                            className="w-full px-2 py-1 text-xs outline-none bg-transparent hover:bg-white focus:bg-white focus:border focus:border-blue-300 rounded transition print:hidden"
                                         />
+                                        <div className="hidden print:block px-2 py-1 text-xs whitespace-pre-wrap break-words min-h-[24px]">
+                                            {row[c.key] || ''}
+                                        </div>
                                     </td>
                                 ))}
                                 {!readOnly && (
