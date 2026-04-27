@@ -865,7 +865,10 @@ export default function MaintenancePage() {
                                                     <div className="flex-1 min-w-0">
                                                         <div className="flex flex-wrap items-center gap-2 mb-2">
                                                             <div className="bg-blue-100 text-blue-700 text-[9px] font-black px-1.5 py-0.5 rounded uppercase">{task.systemId}</div>
-                                                            <h3 className="font-bold text-base text-slate-800 leading-tight">{task.title}</h3>
+                                                            <h3 className="font-bold text-base text-slate-800 leading-tight">
+                                                                {task.title}
+                                                                {task.systemName && <span className="font-medium inline-block ml-1 text-slate-500"> - {task.systemName}</span>}
+                                                            </h3>
                                                             {task.status === 'COMPLETED' ? (
                                                                 <span className="bg-green-50 text-green-700 text-[9px] font-black px-2 py-0.5 rounded-full border border-green-200 uppercase tracking-tight shadow-sm">ĐÃ XONG</span>
                                                             ) : (
