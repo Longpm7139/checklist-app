@@ -190,7 +190,7 @@ export interface DeviceLog {
 
 export interface Procedure {
   id: string;
-  type: 'OPERATING' | 'MAINTENANCE';
+  type: 'OPERATING' | 'MAINTENANCE' | 'LICENSE_CDHK' | 'LICENSE_VDGS' | 'LICENSE_MAYSOI';
   ticketNumber: string;
   formCode: string; // B01.QT01/DAD
   department: string;

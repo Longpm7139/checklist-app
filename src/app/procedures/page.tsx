@@ -19,12 +19,13 @@ export default function ProceduresPage() {
     const [procedures, setProcedures] = useState<Procedure[]>([]);
     const [loading, setLoading] = useState(true);
     const [viewMode, setViewMode] = useState<'LIST' | 'CREATE'>('LIST');
-    const [activeTab, setActiveTab] = useState<'OPERATING' | 'MAINTENANCE'>('OPERATING');
+    const [activeTab, setActiveTab] = useState<'OPERATING' | 'MAINTENANCE' | 'LICENSE'>('OPERATING');
+    const [licenseSubTab, setLicenseSubTab] = useState<'LICENSE_CDHK' | 'LICENSE_VDGS' | 'LICENSE_MAYSOI'>('LICENSE_CDHK');
     const [searchTerm, setSearchTerm] = useState('');
     const [isSaving, setIsSaving] = useState(false);
 
     // Form State
-    const [type, setType] = useState<'OPERATING' | 'MAINTENANCE'>('OPERATING');
+    const [type, setType] = useState<'OPERATING' | 'MAINTENANCE' | 'LICENSE_CDHK' | 'LICENSE_VDGS' | 'LICENSE_MAYSOI'>('OPERATING');
     const [ticketNumber, setTicketNumber] = useState('');
     const [department, setDepartment] = useState('TRUNG TÂM KHAI THÁC GA ĐN');
     const [documentName, setDocumentName] = useState('');
@@ -142,12 +143,13 @@ export default function ProceduresPage() {
         setViewMode('CREATE');
     };
 
-    const filteredProcedures = procedures.filter(p => 
-        p.type === activeTab &&
-        (p.documentName.toLowerCase().includes(searchTerm.toLowerCase()) || 
+    const filteredProcedures = procedures.filter(p => {
+        const matchesTab = activeTab === 'LICENSE' ? p.type === licenseSubTab : p.type === activeTab;
+        const matchesSearch = p.documentName.toLowerCase().includes(searchTerm.toLowerCase()) || 
          p.documentSymbol.toLowerCase().includes(searchTerm.toLowerCase()) ||
-         p.ticketNumber.toLowerCase().includes(searchTerm.toLowerCase()))
-    );
+         p.ticketNumber.toLowerCase().includes(searchTerm.toLowerCase());
+        return matchesTab && matchesSearch;
+    });
 
     return (
         <div className="min-h-screen bg-slate-50 font-sans text-slate-900 pb-20">
@@ -168,7 +170,7 @@ export default function ProceduresPage() {
                     </div>
                     {viewMode === 'LIST' && (
                         <button 
-                            onClick={() => { resetForm(); setViewMode('CREATE'); setType(activeTab); }}
+                            onClick={() => { resetForm(); setViewMode('CREATE'); setType(activeTab === 'LICENSE' ? licenseSubTab : activeTab as any); }}
                             className="bg-violet-600 hover:bg-violet-700 text-white px-4 py-2 rounded-xl flex items-center gap-2 shadow-lg shadow-violet-200 transition-all active:scale-95 font-bold text-sm"
                         >
                             <Plus size={18} /> <span className="hidden sm:inline">Thêm mới</span>
@@ -200,7 +202,48 @@ export default function ProceduresPage() {
                             >
                                 <Wrench size={16} /> Bảo Dưỡng
                             </button>
+                            <button 
+                                onClick={() => setActiveTab('LICENSE')}
+                                className={clsx(
+                                    "px-6 py-2.5 rounded-xl font-black text-xs uppercase tracking-widest transition-all duration-300 flex items-center gap-2",
+                                    activeTab === 'LICENSE' ? "bg-white text-violet-700 shadow-sm scale-105" : "text-slate-500 hover:text-slate-700"
+                                )}
+                            >
+                                <ShieldCheck size={16} /> Giấy Phép
+                            </button>
                         </div>
+                        
+                        {activeTab === 'LICENSE' && (
+                            <div className="flex gap-2 justify-center mt-3 mb-6">
+                                <button
+                                    onClick={() => setLicenseSubTab('LICENSE_CDHK')}
+                                    className={clsx(
+                                        "px-4 py-2 rounded-lg text-[11px] font-bold transition-all border",
+                                        licenseSubTab === 'LICENSE_CDHK' ? "bg-violet-100 text-violet-700 border-violet-200" : "bg-white text-slate-500 border-slate-200 hover:border-violet-200 hover:text-violet-600"
+                                    )}
+                                >
+                                    Cầu dẫn hành khách
+                                </button>
+                                <button
+                                    onClick={() => setLicenseSubTab('LICENSE_VDGS')}
+                                    className={clsx(
+                                        "px-4 py-2 rounded-lg text-[11px] font-bold transition-all border",
+                                        licenseSubTab === 'LICENSE_VDGS' ? "bg-violet-100 text-violet-700 border-violet-200" : "bg-white text-slate-500 border-slate-200 hover:border-violet-200 hover:text-violet-600"
+                                    )}
+                                >
+                                    Dẫn đỗ tàu bay
+                                </button>
+                                <button
+                                    onClick={() => setLicenseSubTab('LICENSE_MAYSOI')}
+                                    className={clsx(
+                                        "px-4 py-2 rounded-lg text-[11px] font-bold transition-all border",
+                                        licenseSubTab === 'LICENSE_MAYSOI' ? "bg-violet-100 text-violet-700 border-violet-200" : "bg-white text-slate-500 border-slate-200 hover:border-violet-200 hover:text-violet-600"
+                                    )}
+                                >
+                                    Máy soi an ninh
+                                </button>
+                            </div>
+                        )}
 
                         {/* Search Bar */}
                         <div className="relative group">
@@ -320,19 +363,31 @@ export default function ProceduresPage() {
                                 </h2>
                                 <p className="text-violet-300 font-medium text-xs">(Tài liệu tầng 2)</p>
                             </div>
-                            <div className="absolute bottom-0 right-8 transform translate-y-1/2 flex gap-4">
+                            <div className="absolute bottom-0 right-8 transform translate-y-1/2 flex gap-3 max-w-[80%] overflow-x-auto scrollbar-none pb-2">
                                 <div className={clsx(
-                                    "px-4 py-3 rounded-2xl shadow-lg font-black text-[10px] uppercase tracking-widest flex items-center gap-2 border transition-all",
-                                    type === 'OPERATING' ? "bg-white text-violet-700 border-white scale-110" : "bg-violet-700/50 text-white border-violet-600 opacity-50"
+                                    "px-4 py-3 rounded-2xl shadow-lg font-black text-[10px] uppercase tracking-widest flex items-center gap-2 border transition-all whitespace-nowrap",
+                                    type === 'OPERATING' ? "bg-white text-violet-700 border-white scale-110" : "bg-violet-700/50 text-white border-violet-600 opacity-50 flex-shrink-0"
                                 )}>
                                     <Folder size={14} /> Vận Hành
                                 </div>
                                 <div className={clsx(
-                                    "px-4 py-3 rounded-2xl shadow-lg font-black text-[10px] uppercase tracking-widest flex items-center gap-2 border transition-all",
-                                    type === 'MAINTENANCE' ? "bg-white text-violet-700 border-white scale-110" : "bg-violet-700/50 text-white border-violet-600 opacity-50"
+                                    "px-4 py-3 rounded-2xl shadow-lg font-black text-[10px] uppercase tracking-widest flex items-center gap-2 border transition-all whitespace-nowrap",
+                                    type === 'MAINTENANCE' ? "bg-white text-violet-700 border-white scale-110" : "bg-violet-700/50 text-white border-violet-600 opacity-50 flex-shrink-0"
                                 )}>
                                     <Wrench size={14} /> Bảo Dưỡng
                                 </div>
+                                {type.startsWith('LICENSE') && (
+                                    <div className={clsx(
+                                        "px-4 py-3 rounded-2xl shadow-lg font-black text-[10px] uppercase tracking-widest flex items-center gap-2 border transition-all whitespace-nowrap",
+                                        "bg-white text-violet-700 border-white scale-110"
+                                    )}>
+                                        <ShieldCheck size={14} /> {
+                                            type === 'LICENSE_CDHK' ? 'Giấy phép CDHK' : 
+                                            type === 'LICENSE_VDGS' ? 'Giấy phép VDGS' : 
+                                            'Giấy phép Máy Soi'
+                                        }
+                                    </div>
+                                )}
                             </div>
                         </div>
 
