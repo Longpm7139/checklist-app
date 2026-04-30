@@ -85,7 +85,8 @@ import {
   saveCategory,
   deleteCategory,
   subscribeToHistory,
-  uploadImage
+  uploadImage,
+  subscribeToProcedures
 } from '@/lib/firebase';
 
 // --- HELPER COMPONENT FOR IME-SAFE DEBOUNCED INPUT ---
@@ -106,6 +107,7 @@ export default function Home() {
   const [incidents, setIncidents] = useState<any[]>([]);
   const [duties, setDuties] = useState<any[]>([]);
   const [tasks, setTasks] = useState<MaintenanceTask[]>([]);
+  const [procedures, setProcedures] = useState<any[]>([]);
   const [isLoaded, setIsLoaded] = useState(false);
   const [errors, setErrors] = useState<Set<string>>(new Set());
   const [isEditMode, setIsEditMode] = useState(false);
@@ -118,6 +120,8 @@ export default function Home() {
   const [showReminder, setShowReminder] = useState(true);
   const [expandedCategories, setExpandedCategories] = useState<Set<string>>(new Set());
   const [customTimestamp, setCustomTimestamp] = useState<string>('');
+  const [customDate, setCustomDate] = useState<string>('');
+  const [customTime, setCustomTime] = useState<string>('');
 
   const displayCategories = useMemo(() => isEditMode ? categories : categories.filter(c => c.isActive !== false), [categories, isEditMode]);
   const displaySystems = useMemo(() => isEditMode ? systems : systems.filter(s => s.isActive !== false && displayCategories.some(c => c.id === s.categoryId)), [systems, displayCategories, isEditMode]);
@@ -207,15 +211,18 @@ export default function Home() {
         }));
       }
     });
+    const unsubProcedures = subscribeToProcedures(setProcedures);
 
     // Initialize custom timestamp
     const now = new Date();
-    const isoStr = now.getFullYear() + '-' + 
+    const dateStr = now.getFullYear() + '-' + 
                  String(now.getMonth() + 1).padStart(2, '0') + '-' + 
-                 String(now.getDate()).padStart(2, '0') + 'T' + 
-                 String(now.getHours()).padStart(2, '0') + ':' + 
+                 String(now.getDate()).padStart(2, '0');
+    const timeStr = String(now.getHours()).padStart(2, '0') + ':' + 
                  String(now.getMinutes()).padStart(2, '0');
-    setCustomTimestamp(isoStr);
+    setCustomDate(dateStr);
+    setCustomTime(timeStr);
+    setCustomTimestamp(dateStr + 'T' + timeStr);
 
     return () => {
       unsubSystems();
@@ -224,6 +231,7 @@ export default function Home() {
       unsubMaintenance();
       unsubHistory();
       unsubCategories();
+      unsubProcedures();
     };
   }, []);
 
@@ -622,6 +630,27 @@ export default function Home() {
     return str.normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/đ/g, 'd').replace(/Đ/g, 'D');
   };
 
+  const expiringLicenses = useMemo(() => {
+    return procedures.filter(p => {
+      if (!p.type?.startsWith('LICENSE_') || !p.expirationDate || !p.expirationWarningDays) return false;
+      const parts = p.expirationDate.split('/'); // dd/mm/yyyy
+      if (parts.length !== 3) return false;
+      const expDate = new Date(`${parts[2]}-${parts[1]}-${parts[0]}`);
+      const warningDays = parseInt(p.expirationWarningDays, 10);
+      if (isNaN(warningDays)) return false;
+      
+      const now = new Date();
+      // Reset hours to compare pure days
+      now.setHours(0, 0, 0, 0);
+      expDate.setHours(0, 0, 0, 0);
+      
+      const diffTime = expDate.getTime() - now.getTime();
+      const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+      
+      return diffDays <= warningDays;
+    });
+  }, [procedures]);
+
   const highlightText = (text: string | undefined, query: string) => {
     if (!text) return text;
     if (!query.trim()) return text;
@@ -693,6 +722,7 @@ export default function Home() {
             tasks={tasks}
             failedCategoryIds={failedCategoryIds}
             categories={activeCategoriesForLogic}
+            expiringLicenses={expiringLicenses}
           />
         </div>
 
@@ -705,12 +735,26 @@ export default function Home() {
               <span className="text-[10px] text-slate-500 italic">Áp dụng cho tất cả các thao tác đánh dấu nhanh trên trang này.</span>
             </div>
           </div>
-          <div className="flex items-center gap-2 min-w-[200px]">
+          <div className="flex items-center gap-2">
             <input
-              type="datetime-local"
-              className="w-full border border-slate-300 rounded-lg p-2 focus:border-blue-500 outline-none bg-white font-medium text-sm"
-              value={customTimestamp}
-              onChange={(e) => setCustomTimestamp(e.target.value)}
+              type="date"
+              lang="vi"
+              className="border border-slate-300 rounded-lg p-2 focus:border-blue-500 outline-none bg-white font-medium text-sm w-[140px]"
+              value={customDate}
+              onChange={(e) => {
+                setCustomDate(e.target.value);
+                setCustomTimestamp(e.target.value + 'T' + customTime);
+              }}
+            />
+            <input
+              type="time"
+              lang="vi"
+              className="border border-slate-300 rounded-lg p-2 focus:border-blue-500 outline-none bg-white font-medium text-sm w-[100px]"
+              value={customTime}
+              onChange={(e) => {
+                setCustomTime(e.target.value);
+                setCustomTimestamp(customDate + 'T' + e.target.value);
+              }}
             />
           </div>
         </div>

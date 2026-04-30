@@ -399,7 +399,7 @@ export default function PcccReportPage() {
 
 
     return (
-        <div className="min-h-screen bg-slate-50 p-4 md:p-8 font-sans text-slate-900 pb-20">
+        <div className="min-h-screen bg-slate-50 p-4 md:p-8 font-sans text-slate-900 pb-20 overflow-x-hidden">
             <div className="max-w-6xl mx-auto">
                 <header className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-8">
                     <div className="flex items-center gap-4">
@@ -507,12 +507,12 @@ export default function PcccReportPage() {
                             <span className="text-xs bg-slate-200 text-slate-500 font-medium px-2 py-1 rounded">Chế độ nhập liệu nhanh mới</span>
                         </div>
                     </div>
-                    <div className="overflow-x-auto p-4">
+                    <div className="overflow-x-auto p-4 -mx-4 px-4">
                         {/* Mobile swipe hint */}
-                        <div className="flex items-center justify-center gap-2 text-xs text-slate-400 mb-2 md:hidden">
-                            <span>←</span>
-                            <span>Vuốt ngang để xem đầy đủ bảng</span>
-                            <span>→</span>
+                        <div className="flex items-center justify-center gap-2 text-xs text-slate-400 mb-3 md:hidden bg-slate-50 border border-slate-100 rounded-lg py-2 px-3">
+                            <span className="text-base">👈</span>
+                            <span className="font-medium">Vuốt ngang để xem đầy đủ bảng</span>
+                            <span className="text-base">👉</span>
                         </div>
                         {/* DATA ENTRY MODE - 8 COLUMNS */}
                         <table className="w-full min-w-[900px] border-collapse text-sm">

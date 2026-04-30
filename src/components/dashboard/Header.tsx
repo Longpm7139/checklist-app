@@ -45,7 +45,7 @@ export default function Header({
 
       <div className="flex flex-col gap-2 w-full md:w-auto">
         {/* === NHÓM NÚT CHỨC NĂNG CHÍNH === */}
-        <div className="flex gap-1.5 flex-wrap justify-start w-full md:w-auto md:justify-end">
+        <div className="flex gap-1.5 overflow-x-auto pb-1 justify-start w-full md:w-auto md:justify-end md:flex-wrap md:overflow-x-visible md:pb-0 scrollbar-thin">
           <button
             onClick={() => router.push('/incidents')}
             className="p-2 rounded text-sm font-normal flex items-center gap-1 bg-red-600 hover:bg-red-700 text-white transition"
@@ -209,7 +209,7 @@ export default function Header({
         </div>
 
         {/* === NHÓM NÚT TIỆN ÍCH (hàng 2) === */}
-        <div className="flex gap-1.5 flex-wrap justify-start w-full md:w-auto md:justify-end">
+        <div className="flex gap-1.5 overflow-x-auto pb-1 justify-start w-full md:w-auto md:justify-end md:flex-wrap md:overflow-x-visible md:pb-0 scrollbar-thin">
           <button
             onClick={() => { setIsSearchOpen(!isSearchOpen); if (isSearchOpen) setSearchQuery(''); }}
             className={clsx("p-2 rounded text-sm font-normal flex items-center gap-1 transition", isSearchOpen ? "bg-blue-500 text-white" : "bg-slate-700 hover:bg-slate-600 text-slate-200")}

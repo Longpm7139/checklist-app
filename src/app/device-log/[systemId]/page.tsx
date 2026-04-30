@@ -5,12 +5,14 @@ import { useRouter, useParams } from 'next/navigation';
 import {
     ArrowLeft, BookOpen, Save, Printer, Lock, Edit3,
     ChevronDown, ChevronUp, Plus, Trash2, AlertTriangle,
-    CheckCircle, Clock, Wrench, FileText, BarChart2, Package, Shield
+    CheckCircle, Clock, Wrench, FileText, BarChart2, Package, Shield, ExternalLink,
+    Download, Link2, X as XIcon
 } from 'lucide-react';
 import { useUser } from '@/providers/UserProvider';
 import {
     subscribeToSystems, getDeviceLog, saveDeviceLog,
-    subscribeToIncidents, subscribeToMaintenance, subscribeToHistory
+    subscribeToIncidents, subscribeToMaintenance, subscribeToHistory,
+    subscribeToProcedures
 } from '@/lib/firebase';
 import { DeviceLog, DeviceOperator, DeviceComponent, DeviceCertification, DeviceDocument } from '@/lib/types';
 
@@ -885,9 +887,196 @@ function ComponentsTable({ items, onChange, readOnly }: any) {
     />;
 }
 function CertsTable({ items, onChange, readOnly }: any) {
-    return <EditableTable items={items} onChange={onChange} readOnly={readOnly}
-        columns={[{ key: 'number', label: 'Số GP hoặc tem kiểm định' }, { key: 'issuedBy', label: 'Đơn vị cấp' }, { key: 'expiry', label: 'Thời hạn', w: 'w-28' }, { key: 'note', label: 'Ghi chú' }]}
-    />;
+    const emptyRow = () => ({ number: '', issuedBy: '', expiry: '', note: '', licenseFileUrl: '', licenseFileName: '' });
+    const addRow = () => onChange([...items, emptyRow()]);
+    const updateRow = (i: number, key: string, val: string) =>
+        onChange(items.map((row: any, idx: number) => idx === i ? { ...row, [key]: val } : row));
+    const removeRow = (i: number) => onChange(items.filter((_: any, idx: number) => idx !== i));
+
+    // State for the license picker popup
+    const [pickerOpenIdx, setPickerOpenIdx] = useState<number | null>(null);
+    const [allLicenses, setAllLicenses] = useState<any[]>([]);
+    const [licenseSearch, setLicenseSearch] = useState('');
+
+    useEffect(() => {
+        const unsub = subscribeToProcedures((data: any[]) => {
+            setAllLicenses(data.filter((p: any) => p.type?.startsWith('LICENSE_')));
+        });
+        return () => unsub();
+    }, []);
+
+    const handleAttach = (i: number, proc: any) => {
+        const updated = items.map((row: any, idx: number) =>
+            idx === i ? { ...row, licenseFileUrl: proc.fileUrl || '', licenseFileName: proc.documentName || proc.fileName || '' } : row
+        );
+        onChange(updated);
+        setPickerOpenIdx(null);
+        setLicenseSearch('');
+    };
+
+    const handleDetach = (i: number) => {
+        const updated = items.map((row: any, idx: number) =>
+            idx === i ? { ...row, licenseFileUrl: '', licenseFileName: '' } : row
+        );
+        onChange(updated);
+    };
+
+    const filteredLicenses = allLicenses.filter(p =>
+        (p.documentName || '').toLowerCase().includes(licenseSearch.toLowerCase()) ||
+        (p.fileName || '').toLowerCase().includes(licenseSearch.toLowerCase())
+    );
+
+    const textCols = [
+        { key: 'number', label: 'Số GP hoặc tem kiểm định' },
+        { key: 'issuedBy', label: 'Đơn vị cấp', w: 'w-28' },
+        { key: 'expiry', label: 'Thời hạn', w: 'w-28' },
+    ];
+
+    return (
+        <div className="relative">
+            {/* License Picker Popup */}
+            {pickerOpenIdx !== null && (
+                <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 print:hidden" onClick={() => { setPickerOpenIdx(null); setLicenseSearch(''); }}>
+                    <div className="bg-white rounded-2xl shadow-2xl border border-amber-200 w-full max-w-lg mx-4 overflow-hidden" onClick={e => e.stopPropagation()}>
+                        <div className="bg-amber-600 px-5 py-4 flex items-center justify-between">
+                            <div className="flex items-center gap-2 text-white">
+                                <Link2 size={18} />
+                                <span className="font-bold text-sm">Chọn Giấy Phép Đính Kèm</span>
+                            </div>
+                            <button onClick={() => { setPickerOpenIdx(null); setLicenseSearch(''); }} className="text-white/80 hover:text-white">
+                                <XIcon size={18} />
+                            </button>
+                        </div>
+                        <div className="p-4">
+                            <input
+                                autoFocus
+                                type="text"
+                                placeholder="Tìm kiếm giấy phép..."
+                                value={licenseSearch}
+                                onChange={e => setLicenseSearch(e.target.value)}
+                                className="w-full border border-slate-200 rounded-xl px-3 py-2 text-sm outline-none focus:border-amber-400 mb-3"
+                            />
+                            <div className="max-h-64 overflow-y-auto space-y-1">
+                                {filteredLicenses.length === 0 ? (
+                                    <div className="text-center py-8 text-slate-400 text-sm">
+                                        <Shield size={32} className="mx-auto mb-2 opacity-30" />
+                                        Chưa có giấy phép nào. Hãy upload trước tại Quy trình → Giấy Phép.
+                                    </div>
+                                ) : filteredLicenses.map((proc: any) => (
+                                    <button
+                                        key={proc.id}
+                                        onClick={() => handleAttach(pickerOpenIdx, proc)}
+                                        className="w-full text-left px-4 py-3 rounded-xl border border-slate-100 hover:border-amber-300 hover:bg-amber-50 transition group flex items-center justify-between gap-2"
+                                    >
+                                        <div className="min-w-0">
+                                            <p className="text-sm font-bold text-slate-800 truncate">{proc.documentName || proc.fileName}</p>
+                                            <p className="text-[10px] text-slate-400 mt-0.5">{proc.date} • {proc.creatorName}</p>
+                                        </div>
+                                        <div className="shrink-0 w-7 h-7 rounded-full bg-amber-100 group-hover:bg-amber-500 flex items-center justify-center transition">
+                                            <Link2 size={13} className="text-amber-600 group-hover:text-white" />
+                                        </div>
+                                    </button>
+                                ))}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            <div className="overflow-x-auto">
+                <table className="w-full text-xs border-collapse border border-slate-200 min-w-[500px]">
+                    <thead>
+                        <tr className="bg-amber-50">
+                            <th className="border border-slate-200 px-2 py-2 text-center text-slate-500 font-bold w-8">STT</th>
+                            {textCols.map(c => (
+                                <th key={c.key} className={`border border-slate-200 px-3 py-2 text-left text-slate-600 font-bold ${c.w || ''}`}>{c.label}</th>
+                            ))}
+                            <th className="border border-slate-200 px-3 py-2 text-left text-slate-600 font-bold w-44">Ghi chú / Đính kèm GP</th>
+                            {!readOnly && <th className="border border-slate-200 w-8"></th>}
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {items.map((row: any, i: number) => (
+                            <tr key={i} className="hover:bg-amber-50/30">
+                                <td className="border border-slate-200 px-2 py-1.5 text-center text-slate-400 font-bold">{i + 1}</td>
+                                {textCols.map(c => (
+                                    <td key={c.key} className="border border-slate-200 px-1 py-1 align-top">
+                                        <input
+                                            value={row[c.key] || ''}
+                                            onChange={e => updateRow(i, c.key, e.target.value)}
+                                            readOnly={readOnly}
+                                            className="w-full px-2 py-1 text-xs outline-none bg-transparent hover:bg-white focus:bg-white focus:border focus:border-amber-300 rounded transition print:hidden"
+                                        />
+                                        <div className="hidden print:block px-2 py-1 text-xs whitespace-pre-wrap break-words min-h-[24px]">{row[c.key] || ''}</div>
+                                    </td>
+                                ))}
+                                {/* Cột Ghi chú + Đính kèm */}
+                                <td className="border border-slate-200 px-1 py-1 align-top">
+                                    <div className="flex flex-col gap-1">
+                                        <input
+                                            value={row.note || ''}
+                                            onChange={e => updateRow(i, 'note', e.target.value)}
+                                            readOnly={readOnly}
+                                            placeholder="Ghi chú..."
+                                            className="w-full px-2 py-1 text-xs outline-none bg-transparent hover:bg-white focus:bg-white focus:border focus:border-amber-300 rounded transition print:hidden"
+                                        />
+                                        {/* Nếu đã đính kèm GP */}
+                                        {row.licenseFileUrl ? (
+                                            <div className="flex items-center gap-1">
+                                                <a
+                                                    href={row.licenseFileUrl}
+                                                    target="_blank"
+                                                    rel="noopener noreferrer"
+                                                    title={row.licenseFileName}
+                                                    className="flex-1 flex items-center gap-1 px-2 py-1 bg-green-50 border border-green-200 text-green-700 rounded-lg text-[10px] font-bold hover:bg-green-100 transition truncate"
+                                                >
+                                                    <Download size={11} className="shrink-0" />
+                                                    <span className="truncate">{row.licenseFileName || 'Xem GP'}</span>
+                                                </a>
+                                                {!readOnly && (
+                                                    <button
+                                                        onClick={() => handleDetach(i)}
+                                                        title="Gỡ đính kèm"
+                                                        className="p-1 text-red-400 hover:text-red-600 hover:bg-red-50 rounded shrink-0"
+                                                    >
+                                                        <XIcon size={11} />
+                                                    </button>
+                                                )}
+                                            </div>
+                                        ) : !readOnly ? (
+                                            <button
+                                                onClick={() => setPickerOpenIdx(i)}
+                                                className="flex items-center gap-1 px-2 py-1 bg-amber-50 hover:bg-amber-100 border border-amber-200 hover:border-amber-400 text-amber-700 rounded-lg text-[10px] font-bold transition-all active:scale-95 whitespace-nowrap"
+                                            >
+                                                <Link2 size={11} />
+                                                Đính kèm GP
+                                            </button>
+                                        ) : null}
+                                    </div>
+                                    <div className="hidden print:block px-2 py-1 text-xs">{row.licenseFileName || row.note || ''}</div>
+                                </td>
+                                {!readOnly && (
+                                    <td className="border border-slate-200 px-1 py-1 text-center align-top pt-2">
+                                        <button onClick={() => removeRow(i)} className="p-1 text-red-400 hover:text-red-600 hover:bg-red-50 rounded">
+                                            <Trash2 size={13} />
+                                        </button>
+                                    </td>
+                                )}
+                            </tr>
+                        ))}
+                        {items.length === 0 && (
+                            <tr><td colSpan={textCols.length + 3} className="text-center py-4 text-slate-400 text-xs italic border border-slate-200">Chưa có dữ liệu</td></tr>
+                        )}
+                    </tbody>
+                </table>
+            </div>
+            {!readOnly && (
+                <button onClick={addRow} className="mt-3 flex items-center gap-1.5 text-sm text-amber-600 hover:text-amber-800 font-semibold">
+                    <Plus size={16} /> Thêm hàng
+                </button>
+            )}
+        </div>
+    );
 }
 function DocsTable({ items, onChange, readOnly }: any) {
     return <EditableTable items={items} onChange={onChange} readOnly={readOnly}

@@ -109,7 +109,7 @@ export default function UsersPage() {
     };
 
     return (
-        <div className="min-h-screen bg-slate-50 p-4 md:p-8 text-slate-900">
+        <div className="min-h-screen bg-slate-50 p-4 md:p-8 text-slate-900 overflow-x-hidden">
             <div className="max-w-4xl mx-auto">
                 <header className="flex items-center gap-4 mb-6">
                     <button onClick={() => router.push('/')} className="p-2 bg-white rounded-full border border-slate-200 hover:bg-slate-100">

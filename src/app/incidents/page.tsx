@@ -406,7 +406,7 @@ export default function IncidentsPage() {
     );
 
     return (
-        <div className="min-h-screen bg-slate-50 p-4 md:p-8 font-sans text-slate-900">
+        <div className="min-h-screen bg-slate-50 p-4 md:p-8 font-sans text-slate-900 overflow-x-hidden">
             <div className="max-w-4xl mx-auto">
                 <header className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-8">
                     <div className="flex items-center gap-4">

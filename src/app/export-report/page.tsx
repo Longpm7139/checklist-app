@@ -207,7 +207,7 @@ function ExportReportContent() {
     };
 
     return (
-        <div className="min-h-screen bg-slate-50 p-4 md:p-8 font-sans text-slate-900 pb-20">
+        <div className="min-h-screen bg-slate-50 p-4 md:p-8 font-sans text-slate-900 pb-20 overflow-x-hidden">
             <div className="max-w-5xl mx-auto">
                 {/* Header */}
                 <header className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-8">

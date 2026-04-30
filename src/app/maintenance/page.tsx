@@ -47,6 +47,7 @@ export default function MaintenancePage() {
     const [afterImagePreview, setAfterImagePreview] = useState<string | null>(null);
     const [isCompleting, setIsCompleting] = useState(false);
     const [viewingImage, setViewingImage] = useState<string | null>(null);
+    const [completedAtInput, setCompletedAtInput] = useState('');
 
     // Edit Completion Report State
     const [editCompletedNote, setEditCompletedNote] = useState('');
@@ -275,6 +276,13 @@ export default function MaintenancePage() {
         setSelectedTaskId(taskId);
         setCompleteNote('');
         setRemainingIssues('');
+        
+        // Init with current local time
+        const now = new Date();
+        const pad = (n: number) => n.toString().padStart(2, '0');
+        const localISO = `${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(now.getDate())}T${pad(now.getHours())}:${pad(now.getMinutes())}`;
+        setCompletedAtInput(localISO);
+        
         setIsCompleteModalOpen(true);
     };
 
@@ -295,10 +303,17 @@ export default function MaintenancePage() {
 
             const taskToUpdate = tasks.find(t => t.id === selectedTaskId);
             if (taskToUpdate) {
+                // Convert YYYY-MM-DDTHH:mm back to HH:mm dd/MM/yyyy
+                const d = new Date(completedAtInput);
+                const pad = (n: number) => n.toString().padStart(2, '0');
+                const formattedCompletedAt = completedAtInput 
+                    ? `${pad(d.getHours())}:${pad(d.getMinutes())} ${pad(d.getDate())}/${pad(d.getMonth() + 1)}/${d.getFullYear()}`
+                    : new Date().toLocaleString('vi-VN', { hour: '2-digit', minute: '2-digit', day: '2-digit', month: '2-digit', year: 'numeric', hour12: false });
+
                 const updatedTask: MaintenanceTask = {
                     ...taskToUpdate,
                     status: 'COMPLETED',
-                    completedAt: new Date().toLocaleString('vi-VN', { hour: '2-digit', minute: '2-digit', day: '2-digit', month: '2-digit', year: 'numeric', hour12: false }),
+                    completedAt: formattedCompletedAt,
                     completedNote: completeNote,
                     remainingIssues: remainingIssues,
                     afterImageUrl: uploadedAfterUrl
@@ -409,7 +424,7 @@ export default function MaintenancePage() {
     });
 
     return (
-        <div className="min-h-screen bg-slate-50 p-4 md:p-8 font-sans text-slate-900">
+        <div className="min-h-screen bg-slate-50 p-4 md:p-8 font-sans text-slate-900 overflow-x-hidden">
             <div className="max-w-4xl mx-auto">
                 <header className="flex items-center justify-between mb-8">
                     <div className="flex items-center gap-4">
@@ -1007,6 +1022,18 @@ export default function MaintenancePage() {
                         </div>
 
                         <div className="space-y-4">
+                            <div>
+                                <label className="block text-sm font-medium text-slate-700 mb-1">
+                                    Thời gian hoàn thành thực tế *
+                                </label>
+                                <input
+                                    type="datetime-local"
+                                    className="w-full border border-slate-300 rounded p-2 focus:border-blue-500 outline-none"
+                                    value={completedAtInput}
+                                    onChange={e => setCompletedAtInput(e.target.value)}
+                                />
+                            </div>
+
                             <div>
                                 <label className="block text-sm font-medium text-slate-700 mb-1">
                                     Kết quả bảo dưỡng (Đã làm được gì?) *

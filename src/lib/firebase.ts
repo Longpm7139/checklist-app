@@ -3,7 +3,7 @@
 // Import the functions you need from the SDKs you need
 import { initializeApp, getApps, getApp } from "firebase/app";
 import { getFirestore, collection, getDocs, doc, setDoc, updateDoc, deleteDoc, query, where, onSnapshot, getDoc, addDoc, limit, orderBy } from "firebase/firestore";
-import { getStorage, ref, uploadBytes, getDownloadURL } from "firebase/storage";
+import { getStorage, ref, uploadBytes, uploadBytesResumable, getDownloadURL } from "firebase/storage";
 
 // TODO: Thay thế phần bên dưới bằng Config từ Firebase Console
 // 1. Vào console.firebase.google.com
@@ -306,13 +306,18 @@ export const uploadImage = async (file: File, path: string) => {
 
         const storageRef = ref(storage, path);
         
-        // Add a 30-second timeout to the upload
-        const uploadPromise = uploadBytes(storageRef, compressedFile);
+        // Return a promise that uses the simpler uploadBytes
+        // Adding explicit contentType can help with some storage rules
+        const metadata = { contentType: compressedFile.type || file.type };
+        
+        const uploadTask = uploadBytes(storageRef, compressedFile, metadata);
+        
+        // 60-second timeout is plenty for <10MB on most connections
         const timeoutPromise = new Promise((_, reject) => 
-            setTimeout(() => reject(new Error("QUÁ THỜI GIAN: Đường truyền mạng hoặc Kho ảnh đang bị treo (30s timeout)")), 30000)
+            setTimeout(() => reject(new Error("QUÁ THỜI GIAN: Đường truyền mạng quá tải (60s timeout).")), 60000)
         );
 
-        const snapshot = await Promise.race([uploadPromise, timeoutPromise]) as any;
+        const snapshot = await Promise.race([uploadTask, timeoutPromise]) as any;
         const downloadUrl = await getDownloadURL(snapshot.ref);
         return downloadUrl;
     } catch (error: any) {
@@ -320,12 +325,11 @@ export const uploadImage = async (file: File, path: string) => {
         
         let errorMsg = error?.code || error?.message || "Không xác định";
         
-        if (errorMsg.includes('unauthorized') && file.size > 1.5 * 1024 * 1024) {
-             alert(` LỖI TẢI LÊN (Quá dung lượng): File của bạn nặng ${(file.size/(1024*1024)).toFixed(2)}MB. Hệ thống Server của bạn có thể đang từ chối file nặng hơn một mức trần cố định (thực tế hay gặp mức 2MB). Bạn hãy thử NÉN FILE LẠI nhỏ hơn rồi tải lại nhé!`);
-             throw error;
+        if (errorMsg.includes('unauthorized')) {
+             alert(`LỖI TRUY CẬP (unauthorized):\n\n- Đường dẫn: ${path}\n- Dung lượng: ${(file.size/(1024*1024)).toFixed(2)}MB\n- Lỗi hệ thống: ${errorMsg}\n\nNguyên nhân: Server từ chối ghi vào đường dẫn này. Hướng xử lý: Hãy liên hệ Admin để kiểm tra Storage Rules cho thư mục 'procedures/'.`);
+        } else {
+             alert(`LỖI TẢI FILE (Code: ${error.code || 'ERR'}):\n${errorMsg}`);
         }
-
-        alert("LỖI TẢI ẢNH/FILE: " + errorMsg);
         throw error;
     }
 };
@@ -639,4 +643,25 @@ export const backupAllData = async () => {
 
     // Convert to JSON string
     return JSON.stringify(backupData, null, 2);
+};
+
+// License Categories
+export const subscribeToLicenseCategories = (callback: (data: any[]) => void) => {
+    const q = query(collection(db, "license_categories"));
+    return onSnapshot(q, (querySnapshot) => {
+        const items: any[] = [];
+        querySnapshot.forEach((doc) => {
+            items.push({ ...doc.data(), id: doc.id });
+        });
+        callback(items);
+    });
+};
+
+export const saveLicenseCategory = async (category: any) => {
+    const docId = category.id || Date.now().toString();
+    await setDoc(doc(db, "license_categories", docId), removeUndefined(category), { merge: true });
+};
+
+export const deleteLicenseCategory = async (id: string) => {
+    await deleteDoc(doc(db, "license_categories", id));
 };

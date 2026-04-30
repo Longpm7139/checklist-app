@@ -9,13 +9,14 @@ interface DashboardStatsProps {
   tasks: any[];
   failedCategoryIds: string[];
   categories: any[];
+  expiringLicenses?: any[];
 }
 
-export default function DashboardStats({ systems, incidents, tasks, failedCategoryIds, categories }: DashboardStatsProps) {
+export default function DashboardStats({ systems, incidents, tasks, failedCategoryIds, categories, expiringLicenses }: DashboardStatsProps) {
   const router = useRouter();
   
   return (
-    <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4">
+    <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
       <div className="bg-white p-4 rounded-lg shadow-sm border border-slate-200">
         <div className="flex justify-between items-start mb-2">
           <div>
@@ -106,9 +107,9 @@ export default function DashboardStats({ systems, incidents, tasks, failedCatego
       </div>
 
       <div className="bg-white p-4 rounded-lg shadow-sm border border-slate-200 col-span-2 md:col-span-1 lg:col-span-1">
-        <div className="flex justify-between items-start">
-          <div>
-            <h3 className="text-slate-500 text-[10px] sm:text-xs font-bold uppercase tracking-wider text-red-600 line-clamp-2 min-h-[1.5rem] sm:min-h-0">Nhóm hệ thống đang lỗi</h3>
+        <div className="flex justify-between items-start gap-2">
+          <div className="flex-1 min-w-0">
+            <h3 className="text-slate-500 text-[10px] sm:text-xs font-bold uppercase tracking-wider text-red-600 leading-tight mb-1">Nhóm hệ thống đang lỗi</h3>
             <div className="mt-2 flex flex-wrap gap-1">
               {failedCategoryIds.length > 0 ? (
                 failedCategoryIds.map(id => {
@@ -124,9 +125,33 @@ export default function DashboardStats({ systems, incidents, tasks, failedCatego
               )}
             </div>
           </div>
-          <div className={clsx("p-2 rounded-lg transition-colors", failedCategoryIds.length > 0 ? "bg-red-100 text-red-600 animate-pulse" : "bg-green-100 text-green-600")}>
-            <AlertTriangle size={20} />
+          <div className={clsx("p-2 rounded-lg transition-colors shrink-0", failedCategoryIds.length > 0 ? "bg-red-100 text-red-600 animate-pulse" : "bg-green-100 text-green-600")}>
+            <AlertTriangle size={18} />
           </div>
+        </div>
+      </div>
+
+      <div
+        onClick={() => router.push('/procedures?tab=LICENSE')}
+        className="bg-white p-4 rounded-lg shadow-sm border border-slate-200 cursor-pointer hover:shadow-md hover:border-orange-300 transition-all active:scale-95 group col-span-2 md:col-span-1 lg:col-span-1"
+      >
+        <div className="flex justify-between items-start gap-2">
+          <div className="flex-1 min-w-0">
+            <h3 className="text-slate-500 text-[10px] sm:text-xs font-bold uppercase tracking-wider group-hover:text-orange-600 transition-colors leading-tight mb-1">Cảnh báo giấy phép</h3>
+            <div className="text-2xl font-bold text-slate-800">
+              {expiringLicenses?.length || 0}
+            </div>
+          </div>
+          <div className={clsx("p-2 rounded-lg transition-colors shrink-0", expiringLicenses && expiringLicenses.length > 0 ? "bg-orange-100 text-orange-600 animate-pulse" : "bg-green-100 text-green-600")}>
+            {expiringLicenses && expiringLicenses.length > 0 ? <AlertTriangle size={18} /> : <CheckCheck size={18} />}
+          </div>
+        </div>
+        <div className="mt-3 text-xs font-medium flex items-center gap-1">
+          {expiringLicenses && expiringLicenses.length > 0 ? (
+            <span className="text-orange-600 flex items-center gap-1">Sắp hết hạn! <ArrowRight size={12} className="opacity-0 group-hover:opacity-100 transition-all transform translate-x-0 group-hover:translate-x-1" /></span>
+          ) : (
+            <span className="text-slate-400">Đang còn hiệu lực</span>
+          )}
         </div>
       </div>
     </div>

@@ -188,9 +188,15 @@ export interface DeviceLog {
   createdAt?: string;
 }
 
+export interface LicenseCategory {
+  id: string;
+  name: string;
+  isActive?: boolean;
+}
+
 export interface Procedure {
   id: string;
-  type: 'OPERATING' | 'MAINTENANCE' | 'LICENSE_CDHK' | 'LICENSE_VDGS' | 'LICENSE_MAYSOI';
+  type: 'OPERATING' | 'MAINTENANCE' | string;
   ticketNumber: string;
   formCode: string; // B01.QT01/DAD
   department: string;
@@ -204,4 +210,12 @@ export interface Procedure {
   creatorName: string;
   creatorCode: string;
   createdAt: string; // "HH:mm dd/MM/yyyy"
+  // Thêm mới cho Giấy phép
+  licensingAuthority?: string;
+  userOrganization?: string;
+  purposeOfUse?: string;
+  installationLocation?: string;
+  inspectionDate?: string;
+  expirationDate?: string;
+  expirationWarningDays?: string; // Số ngày cảnh báo hết hạn
 }

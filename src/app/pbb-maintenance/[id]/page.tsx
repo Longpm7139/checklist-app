@@ -495,7 +495,7 @@ export default function PbbMaintenanceFormPage() {
     if (loading) return <div className="p-20 text-center animate-pulse text-slate-400 font-bold uppercase tracking-widest">Đang tải dữ liệu...</div>;
 
     return (
-        <div className="min-h-screen bg-slate-50 p-2 md:p-8 font-sans text-slate-900 pb-32">
+        <div className="min-h-screen bg-slate-50 p-2 md:p-8 font-sans text-slate-900 pb-32 overflow-x-hidden">
             <div className="max-w-6xl mx-auto">
                 {/* Header Section */}
                 <header className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-4">

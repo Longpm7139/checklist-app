@@ -362,7 +362,7 @@ export default function KPIPage() {
     };
 
     return (
-        <div className="min-h-screen bg-slate-50 p-4 font-sans text-slate-900 pb-20">
+        <div className="min-h-screen bg-slate-50 p-4 font-sans text-slate-900 pb-20 overflow-x-hidden">
             <div className="max-w-6xl mx-auto">
                 <header className="mb-8 flex flex-col md:flex-row justify-between items-center gap-6">
                     <div className="flex items-center gap-4">

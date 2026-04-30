@@ -30,6 +30,25 @@ body {
 .overflow-x-auto {
     -webkit-overflow-scrolling: touch;
     scrollbar-width: thin;
+    scrollbar-color: #cbd5e1 #f1f5f9;
+}
+
+.overflow-x-auto::-webkit-scrollbar {
+    height: 6px;
+}
+
+.overflow-x-auto::-webkit-scrollbar-track {
+    background: #f1f5f9;
+    border-radius: 999px;
+}
+
+.overflow-x-auto::-webkit-scrollbar-thumb {
+    background: #cbd5e1;
+    border-radius: 999px;
+}
+
+.overflow-x-auto::-webkit-scrollbar-thumb:hover {
+    background: #94a3b8;
 }
 
 /* Ensure buttons are clickable and visually distinct */
@@ -70,14 +89,20 @@ button {
         border-radius: 1rem;
     }
 
-    /* Ensure tables don't break layout */
-    table {
-        display: block;
-        max-width: 100%;
+    /* Ensure tables scroll horizontally within their scroll container */
+    .overflow-x-auto table {
+        display: table;
+        max-width: none;
     }
 }
 
-/* Smooth transitions for all interactive elements */
+/* Force date input to display in dd/mm/yyyy format (Vietnamese locale) */
+input[type="date"]:lang(vi),
+input[type="date"][lang="vi"] {
+    text-align: left;
+}
+
+/* Ensure button tap targets are large enough */
 button,
 a,
 input,

@@ -255,7 +255,7 @@ export default function ReportsPage() {
     };
 
     return (
-        <div className="min-h-screen bg-slate-50 p-4 font-sans text-slate-900 pb-20">
+        <div className="min-h-screen bg-slate-50 p-4 font-sans text-slate-900 pb-20 overflow-x-hidden">
             <div className="max-w-4xl mx-auto">
                 <header className="mb-8 flex items-center justify-between">
                     <div className="flex items-center gap-4">
