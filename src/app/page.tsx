@@ -6,7 +6,7 @@ import { SystemCheck, Status, SystemCategory, MaintenanceTask } from '@/lib/type
 import {
   Save, AlertCircle, Edit2, Trash2, Plus, Check, X, RotateCcw, History as HistoryIcon,
   CheckCheck, Search, LogOut, Users, Lock, ClipboardList, BarChart2, Package,
-  Wrench, QrCode, Key, UserCheck, FileText, ArrowRight, CheckCircle, Filter, AlertTriangle, Send, Camera, Clock, Eye, EyeOff
+  Wrench, QrCode, Key, UserCheck, FileText, ArrowRight, CheckCircle, Filter, AlertTriangle, Send, Camera, Clock, Eye, EyeOff, Calendar
 } from 'lucide-react';
 import clsx from 'clsx';
 import { useUser } from '@/providers/UserProvider';
@@ -736,16 +736,27 @@ export default function Home() {
             </div>
           </div>
           <div className="flex items-center gap-2">
-            <input
-              type="date"
-              lang="vi"
-              className="border border-slate-300 rounded-lg p-2 focus:border-blue-500 outline-none bg-white font-medium text-sm w-[140px]"
-              value={customDate}
-              onChange={(e) => {
-                setCustomDate(e.target.value);
-                setCustomTimestamp(e.target.value + 'T' + customTime);
-              }}
-            />
+            <div className="relative w-[140px]">
+              <input
+                type="date"
+                lang="vi"
+                className="absolute inset-0 opacity-0 w-full h-full cursor-pointer z-10"
+                value={customDate}
+                onChange={(e) => {
+                  setCustomDate(e.target.value);
+                  setCustomTimestamp(e.target.value + 'T' + customTime);
+                }}
+              />
+              <div className="border border-slate-300 rounded-lg p-2 bg-white font-medium text-sm w-full flex items-center justify-between h-[38px] focus-within:border-blue-500 focus-within:ring-1 focus-within:ring-blue-500">
+                <span className="text-slate-700">
+                  {customDate ? (() => {
+                    const parts = customDate.split('-');
+                    return parts.length === 3 ? `${parts[2]}/${parts[1]}/${parts[0]}` : customDate;
+                  })() : 'dd/mm/yyyy'}
+                </span>
+                <Calendar size={16} className="text-slate-500" />
+              </div>
+            </div>
             <input
               type="time"
               lang="vi"
