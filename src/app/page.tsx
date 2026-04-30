@@ -122,6 +122,7 @@ export default function Home() {
   const [customTimestamp, setCustomTimestamp] = useState<string>('');
   const [customDate, setCustomDate] = useState<string>('');
   const [customTime, setCustomTime] = useState<string>('');
+  const [isDateFocused, setIsDateFocused] = useState(false);
 
   const displayCategories = useMemo(() => isEditMode ? categories : categories.filter(c => c.isActive !== false), [categories, isEditMode]);
   const displaySystems = useMemo(() => isEditMode ? systems : systems.filter(s => s.isActive !== false && displayCategories.some(c => c.id === s.categoryId)), [systems, displayCategories, isEditMode]);
@@ -738,24 +739,26 @@ export default function Home() {
           <div className="flex items-center gap-2">
             <div className="relative w-[140px]">
               <input
-                type="date"
+                type={isDateFocused ? "date" : "text"}
                 lang="vi"
-                className="absolute inset-0 opacity-0 w-full h-full cursor-pointer z-10"
-                value={customDate}
+                className="w-full border border-slate-300 rounded-lg p-2 focus:border-blue-500 outline-none bg-white font-medium text-sm"
+                value={isDateFocused ? customDate : (customDate ? (() => {
+                  const parts = customDate.split('-');
+                  return parts.length === 3 ? `${parts[2]}/${parts[1]}/${parts[0]}` : customDate;
+                })() : '')}
+                placeholder="dd/mm/yyyy"
+                onFocus={() => setIsDateFocused(true)}
+                onBlur={() => setIsDateFocused(false)}
                 onChange={(e) => {
-                  setCustomDate(e.target.value);
-                  setCustomTimestamp(e.target.value + 'T' + customTime);
+                  if (isDateFocused) {
+                    setCustomDate(e.target.value);
+                    setCustomTimestamp(e.target.value + 'T' + customTime);
+                  }
                 }}
               />
-              <div className="border border-slate-300 rounded-lg p-2 bg-white font-medium text-sm w-full flex items-center justify-between h-[38px] focus-within:border-blue-500 focus-within:ring-1 focus-within:ring-blue-500">
-                <span className="text-slate-700">
-                  {customDate ? (() => {
-                    const parts = customDate.split('-');
-                    return parts.length === 3 ? `${parts[2]}/${parts[1]}/${parts[0]}` : customDate;
-                  })() : 'dd/mm/yyyy'}
-                </span>
-                <Calendar size={16} className="text-slate-500" />
-              </div>
+              {!isDateFocused && (
+                <Calendar size={16} className="absolute right-3 top-1/2 transform -translate-y-1/2 text-slate-500 pointer-events-none" />
+              )}
             </div>
             <input
               type="time"
