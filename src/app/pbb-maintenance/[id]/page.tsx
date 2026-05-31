@@ -13,7 +13,7 @@ import {
 import { saveAs } from 'file-saver';
 import clsx from 'clsx';
 
-const MAINT_LEVELS = ['1T', '3T', '6T', '12T'] as const;
+const MAINT_LEVELS = ['1T', '6T', '12T'] as const;
 type MaintLevel = typeof MAINT_LEVELS[number];
 
 export default function PbbMaintenanceFormPage() {
@@ -426,10 +426,9 @@ export default function PbbMaintenanceFormPage() {
                                     children: [
                                         new TableCell({ width: { size: 5, type: WidthType.PERCENTAGE }, children: [new Paragraph({ children: [new TextRun({ text: "Stt", bold: true })], alignment: AlignmentType.CENTER })] }),
                                         new TableCell({ width: { size: 55, type: WidthType.PERCENTAGE }, children: [new Paragraph({ children: [new TextRun({ text: "Hạng mục bảo dưỡng", bold: true })], alignment: AlignmentType.CENTER })] }),
-                                        new TableCell({ width: { size: 10, type: WidthType.PERCENTAGE }, children: [new Paragraph({ children: [new TextRun({ text: "1T", bold: true })], alignment: AlignmentType.CENTER })] }),
-                                        new TableCell({ width: { size: 10, type: WidthType.PERCENTAGE }, children: [new Paragraph({ children: [new TextRun({ text: "3T", bold: true })], alignment: AlignmentType.CENTER })] }),
-                                        new TableCell({ width: { size: 10, type: WidthType.PERCENTAGE }, children: [new Paragraph({ children: [new TextRun({ text: "6T", bold: true })], alignment: AlignmentType.CENTER })] }),
-                                        new TableCell({ width: { size: 10, type: WidthType.PERCENTAGE }, children: [new Paragraph({ children: [new TextRun({ text: "12T", bold: true })], alignment: AlignmentType.CENTER })] }),
+                                        new TableCell({ width: { size: 15, type: WidthType.PERCENTAGE }, children: [new Paragraph({ children: [new TextRun({ text: "1T", bold: true })], alignment: AlignmentType.CENTER })] }),
+                                        new TableCell({ width: { size: 15, type: WidthType.PERCENTAGE }, children: [new Paragraph({ children: [new TextRun({ text: "6T", bold: true })], alignment: AlignmentType.CENTER })] }),
+                                        new TableCell({ width: { size: 15, type: WidthType.PERCENTAGE }, children: [new Paragraph({ children: [new TextRun({ text: "12T", bold: true })], alignment: AlignmentType.CENTER })] }),
                                     ]
                                 }),
                                 ...PBB_CHECKLIST_SECTIONS.flatMap(section => [
@@ -571,7 +570,10 @@ export default function PbbMaintenanceFormPage() {
 
                         {/* Checklist Sections */}
                         <div className="space-y-4">
-                            {PBB_CHECKLIST_SECTIONS.map((section) => {
+                            {PBB_CHECKLIST_SECTIONS.filter((section) => {
+                                const idx = MAINT_LEVELS.indexOf(maintLevel);
+                                return section.tasks.some(t => t.reqs[idx] || t.subTasks?.some(s => s.reqs[idx]));
+                            }).map((section) => {
                                 const idx = MAINT_LEVELS.indexOf(maintLevel);
                                 let totalReq = 0;
                                 let doneReq = 0;

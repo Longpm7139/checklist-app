@@ -1,7 +1,7 @@
 export interface PbbTaskDef {
   no: string;
   name: string;
-  reqs: [string, string, string, string]; // 1M, 3M, 6M, 12M respectively
+  reqs: [string, string, string]; // 1T, 6T, 12T
   subTasks?: PbbTaskDef[];
 }
 
@@ -11,224 +11,188 @@ export interface PbbSectionDef {
   tasks: PbbTaskDef[];
 }
 
+// 1T items: reqs=['I','','']  |  6T+12T items: reqs=['','I','I']
+
 export const PBB_CHECKLIST_SECTIONS: PbbSectionDef[] = [
+  // ============ 1T: FILE 1 ============
   {
-    no: '1',
-    name: 'Các công tắc hành trình / Limit switches',
+    no: 'A',
+    name: 'A. Kiểm tra phần cơ khí / Mechanical Checks',
     tasks: [
+      { no: '1', name: 'Nâng bằng cầu và kéo cầu tới giới hạn / Fully extend and level the bridge', reqs: ['I','',''] },
+      { no: '2', name: 'Ngắt toàn bộ nguồn điện ra khỏi cầu / Remove all power from the bridge', reqs: ['I','',''] },
+      { no: '3', name: 'Kiểm tra độ chính xác của sàn và trần Rotunda / Verify that both the rotunda floor and ceiling are properly aligned', reqs: ['I','',''] },
+      { no: '4', name: 'Kiểm tra độ chính xác và độ căng của màn cuốn Rotunda / Verify that the rotunda curtain is properly aligned and tensioned', reqs: ['I','',''] },
+      { no: '5', name: 'Kiểm tra thảm sàn và lót sàn Rotunda / Inspect the rotunda floors carpet, threshold plate and aluminum pound downs', reqs: ['I','',''] },
+      { no: '6', name: 'Kiểm tra chốt kết nối vị trí đặt A tunnel và trụ Rotunda / Verify that tunnel A is properly positioned in the rotunda rigid frame', reqs: ['I','',''] },
+      { no: '7', name: 'Kiểm tra kính tunnel, tấm dốc chuyển tiếp, tay vịn và thảm sàn tunnel / Inspect the tunnel walls, transition ramps, handrails, and carpet', reqs: ['I','',''] },
+      { no: '8', name: 'Kiểm tra vị trí kết nối của các đốt cầu Tunnel và dẫn hướng phù hợp / Verify that the tunnels are properly positioned and are tracking properly', reqs: ['I','',''] },
+      { no: '9', name: 'Kiểm tra khoảng cách trần và sàn trên của các đốt cầu được căn chỉnh chính xác / Verify that both the bubble floor and ceiling are properly aligned', reqs: ['I','',''] },
+      { no: '10', name: 'Kiểm tra dải cao su chắn nước bên ngoài cầu và các nẹp nhôm cao su chắn nước / Inspect the bubble floors ribbed rubber and aluminum pound downs', reqs: ['I','',''] },
+      { no: '11', name: 'Kiểm tra độ căng và chính xác của màn cuốn Cabin / Verify that the cab curtain is properly aligned and tensioned', reqs: ['I','',''] },
+      { no: '12', name: 'Kiểm tra hoạt động và vệ sinh cửa Cabin ra máy bay / Inspect the cab doors for cleanliness and proper operation', reqs: ['I','',''] },
+      { no: '13', name: 'Kiểm tra cửa Cabin và các cửa sổ / Inspect all cab and bubble windows', reqs: ['I','',''] },
+      { no: '14', name: 'Kiểm tra và vệ sinh cửa dịch vụ / Inspect the service door for cleanliness and proper operation', reqs: ['I','',''] },
+      { no: '15', name: 'Kiểm tra xích dẫn động Cabin / Inspect the cab drive chain', reqs: ['I','',''] },
+      { no: '16', name: 'Kiểm tra giá đỡ trục Cabin và các kết nối thanh giằng (nằm trên nóc Cabin) / Inspect the cab pivot bracket and tie rod connections', reqs: ['I','',''] },
+      { no: '17', name: 'Kiểm tra hư hỏng vật lý đối với các thiết bị phụ trợ cấp điện và cấp khí mát nếu có / Inspect for any physical damage to the JTP and PC air units if present', reqs: ['I','',''] },
+      { no: '18', name: 'Kiểm tra hệ thống dẫn động bánh xe / Inspect the wheel bogie', reqs: ['I','',''] },
+      { no: '19', name: 'Kiểm tra hệ thống treo cáp và cáp tunnel / Inspect the cable carrier system operation and make sure that the cables are not worn or binding', reqs: ['I','',''] },
+      { no: '20', name: 'Kiểm tra cân bằng và độ trùng của cáp / Inspect the equalizing cable and clamping ring. Make sure that the cable is not sagging', reqs: ['I','',''] },
+      { no: '21', name: 'Kiểm tra tủ điện và cáp điện không bị hư hỏng vật lý / Verify that the input power panel and input cables are not physically damaged', reqs: ['I','',''] },
+      { no: '22', name: 'Kiểm tra tất cả dây cáp điện có hư hỏng vật lý không / Inspect all electrical cables for physical damage', reqs: ['I','',''] },
+    ]
+  },
+  {
+    no: 'B',
+    name: 'B. Kiểm tra phần điện / Electrical Checks',
+    tasks: [
+      { no: '1', name: 'Kiểm tra tủ điện chính / Inspect the inside of the main bridge power panel. Verify that the proper voltages are present', reqs: ['I','',''] },
+      { no: '2', name: 'Kiểm tra tủ điện của cầu (Cabin) - Tìm các dây lỏng và hư hỏng / Inspect the inside of the bridge control console. Look for loose wires and/or damaged components', reqs: ['I','',''] },
+      { no: '3', name: 'Bật lại nguồn điện cho cầu / Turn power back on to the bridge', reqs: ['I','',''] },
+      { no: '4', name: 'Kiểm tra đèn trong Rotunda, tunnel và Cabin hoạt động bình thường / Verify that the lights in the rotunda, tunnels, bubble, and cab work properly', reqs: ['I','',''] },
+      { no: '5', name: 'Kiểm tra đèn cảnh báo hoạt động bình thường / Verify that the emergency lights work properly', reqs: ['I','',''] },
+      { no: '6', name: 'Kiểm tra đèn cảnh báo bật sáng khi mất điện trên cầu / Verify that the emergency lights come on when power to the bridge is removed', reqs: ['I','',''] },
+    ]
+  },
+  {
+    no: 'C',
+    name: 'C. Kiểm tra vận hành / Operational Checks',
+    tasks: [
+      { no: '1', name: 'Kích hoạt CON-1 bằng cách xoay công tắc phím sang vị trí vận hành hoặc nhập đúng mật khẩu / Energize CON-1 by turning the key switch to the operate position or entering the correct password', reqs: ['I','',''] },
+      { no: '2', name: 'Thực hiện điều chỉnh con lăn đường hầm (tham khảo sổ tay vận hành và bảo trì cầu) / Perform tunnel roller adjustment (refer to bridge operation and maintenance manual)', reqs: ['I','',''] },
       {
-        no: '1',
-        name: 'Vận hành cầu để kiểm tra các giới hạn sau / Operate the bridge to inspect the following limit switches:',
-        reqs: ['I', 'I', 'I', 'I'],
+        no: '3',
+        name: 'Lái cầu theo chiều ngang tới tất cả các giới hạn điện để phát hiện mọi sự cố vận hành / Drive the bridge horizontally to all electrical limits to detect any operational problems',
+        reqs: ['I','',''],
         subTasks: [
-          { no: 'a', name: 'Chuyển động ngang / Horizontal travel', reqs: ['I', 'I', 'I', 'I'] },
-          { no: 'b', name: 'Chuyển động quay trục boogie / Max boogie steering', reqs: ['I', 'I', 'I', 'I'] },
-          { no: 'c', name: 'Chuyển động lên xuống canopy của Cabin / Canopy up & down', reqs: ['I', 'I', 'I', 'I'] },
-          { no: 'd', name: 'Các công tắc hành trình chuyển động lên xuống / Vertical limit switches', reqs: ['', '', 'I', 'I'] },
-          { no: 'e', name: 'Độ dốc cho phép / Slope limit', reqs: ['I', '', 'I', 'I'] },
-          { no: 'f', name: 'Góc quay lớn nhất của Cabin / Max cab Rotation', reqs: ['', '', 'I', 'I'] },
-          { no: 'g', name: 'Góc quay lớn nhất của Rotunda / Max Rotunda swing', reqs: ['', '', 'I', 'I'] },
-          { no: 'h', name: 'Chuyển động lên xuống của hệ thống tự động điều chỉnh độ cao sàn Cabin / Auto level up & down', reqs: ['I', 'I', 'I', 'I'] },
-          { no: 'i', name: 'Kiểm tra Safety shoe / Check safety shoe', reqs: ['I', 'I', 'I', 'I'] },
-          { no: 'j', name: 'Kiểm tra cảm biến hồng ngoại / Infra slow down sensor', reqs: ['', '', 'I', 'I'] }
+          { no: 'a', name: 'Kiểm tra chuông và đèn cảnh báo di chuyển / Verify that the travel warning bell operates properly', reqs: ['I','',''] },
+          { no: 'b', name: 'Nghe độ ồn con lăn / Listen carefully for any roller banging or scrapping noises', reqs: ['I','',''] },
+          { no: 'c', name: 'Kiểm tra tất cả các giới hạn điện được đặt đúng vị trí / Verify that all electrical limits are set to the desired position', reqs: ['I','',''] },
+          { no: 'd', name: 'Kiểm tra các công tắc giới hạn tốc độ chậm và dừng theo chiều ngang / Verify that the horizontal slowdown and stop limit switches work properly', reqs: ['I','',''] },
         ]
-      }
+      },
+      { no: '4', name: 'Kiểm tra các công tắc giới hạn độ xoay và độ dốc Rotunda / Manually manipulate the rotunda swing and slope limit switches and verify their proper operation', reqs: ['I','',''] },
+      { no: '5', name: 'Kiểm tra giới hạn điện độ cao tối đa của cầu / Drive the bridge vertically to the maximum electrical limits to detect any operational problems', reqs: ['I','',''] },
+      { no: '6', name: 'Kiểm tra giới hạn chiều cao và các công tắc giới hạn cột thủy lực / Manually manipulate the vertical height and column rack limit switches and verify their proper operation', reqs: ['I','',''] },
+      { no: '7', name: 'Kiểm tra Canopies / Operate the canopies and verify that both sides operate properly', reqs: ['I','',''] },
+      { no: '8', name: 'Kiểm tra khóa liên động Canopies / Verify that the canopy interlock works according to the canopy option selected', reqs: ['I','',''] },
+      { no: '9', name: 'Kiểm tra sàn Cabin hoạt động chính xác cả chế độ bằng tay và chế độ tự động / Verify that the articulating cab floor operates correctly in both the automatic and manual modes', reqs: ['I','',''] },
+      {
+        no: '10',
+        name: 'Kiểm tra hoạt động Autoleveler / Make sure that the autoleveler works properly',
+        reqs: ['I','',''],
+        subTasks: [
+          { no: 'a', name: 'Kiểm tra vít kết nối và bánh xe được siết chặt / Make sure that the set screws that hold the wheel to the limit switch are tight', reqs: ['I','',''] },
+          { no: 'b', name: 'Kiểm tra bánh xe Autoleveler / Check the wheel for wear, flat spots, shiny spots, or deterioration, and replace it if necessary', reqs: ['I','',''] },
+          { no: 'c', name: 'Xoay bánh xe bằng tay cả hai hướng để đảm bảo không bị kẹt / Turn the wheel by hand in both directions to make sure that it moves freely and positively returns to neutral', reqs: ['I','',''] },
+          { no: 'd', name: 'Kiểm tra đai ốc khóa trên cần Autoleveler được xiết chặt / Make sure that the locknuts on the autolevel arm are tight', reqs: ['I','',''] },
+          { no: 'e', name: 'Kiểm tra cần Autoleveler di chuyển tự do cả hai hướng / Make sure that the autolevel arm moves freely in both directions', reqs: ['I','',''] },
+          { no: 'f', name: 'Kiểm tra giới hạn hành trình Autoleveler / Check the autolevel travel limits with the arm extended and the bridge in AUTOLEVEL mode', reqs: ['I','',''] },
+          { no: 'g', name: 'Xoay bánh xe bằng tay và giữ để mô phỏng máy bay đang bay lên - sau ~4 giây đèn cảnh báo và chuông phải kêu / Turn the wheel by hand and hold it to simulate the aircraft rising. After about 4 seconds the autolevel warning light turns on and the warning bell sounds', reqs: ['I','',''] },
+          { no: 'h', name: 'Đặt lại Autoleveler rồi xoay bánh xe theo hướng ngược lại để mô phỏng hạ thấp máy bay - sau ~4 giây đèn cảnh báo và chuông phải kêu / Reset the autoleveler, turn wheel in opposite direction to simulate aircraft lowering. After about 4 seconds the autolevel warning light turns on and the warning bell sounds', reqs: ['I','',''] },
+          { no: 'i', name: 'Đặt lại Autoleveler / Reset the autoleveler', reqs: ['I','',''] },
+        ]
+      },
     ]
   },
   {
-    no: '2',
-    name: 'Cửa Cabin / Shutter door',
+    no: 'D',
+    name: 'D. Bôi trơn / Lubrication',
     tasks: [
-      { no: '2.1', name: 'Kiểm tra xem có bị cong vênh / Check the alignment', reqs: ['I', 'I', 'I', 'I'] },
-      { no: '2.2', name: 'Kiểm tra chốt, khóa / Check the key/ Locking mechanism', reqs: ['I', 'I', 'I', 'I'] }
+      { no: '1', name: 'Tiêu chuẩn chất bôi trơn: Multipurpose EP2 grease, SAE 30W-50 motor oil, SAE 30W-30 motor oil, Dry film lubricant containing Teflon, molybdenum disulfide, or graphite hoặc các loại tương đương / Lubrication standard: Multipurpose EP2 grease, SAE 30W-50 motor oil, SAE 30W-30 motor oil, Dry film lubricant', reqs: ['I','',''] },
+      { no: '2', name: 'Bơm mỡ vào các vị trí có vú bơm: trụ xoay Rotunda, ổ bi mâm xoay bánh xe, hệ thống trụ nâng hạ và tra dầu mỡ nhớt vào cột thủy lực, bi lăn, dẫn hướng và ray / Grease all grease fittings: Rotunda pivot, wheel turntable bearings, lifting column system, and lubricate hydraulic column, rollers, guides and rails', reqs: ['L','',''] },
+    ]
+  },
+
+  // ============ 6T / 12T: FILE 2 ============
+  {
+    no: 'A2',
+    name: 'A. Kiểm tra phần cơ khí / Mechanical Checks',
+    tasks: [
+      { no: '1', name: 'Nâng bằng cầu và kéo cầu tới giới hạn / Fully extend and level the bridge', reqs: ['','I','I'] },
+      { no: '2', name: 'Ngắt toàn bộ nguồn điện ra khỏi cầu / Remove all power from the bridge', reqs: ['','I','I'] },
+      { no: '3', name: 'Kiểm tra độ chính xác của sàn và trần Rotunda / Verify that both the rotunda floor and ceiling are properly aligned', reqs: ['','I','I'] },
+      { no: '4', name: 'Kiểm tra độ chính xác và độ căng của màn cuốn Rotunda / Verify that the rotunda curtain is properly aligned and tensioned', reqs: ['','I','I'] },
+      { no: '5', name: 'Kiểm tra thảm sàn và lót sàn Rotunda / Inspect the rotunda floors carpet, threshold plate and aluminum pound downs', reqs: ['','I','I'] },
+      { no: '6', name: 'Kiểm tra chốt kết nối vị trí đặt A tunnel và trụ Rotunda / Verify that tunnel A is properly positioned in the rotunda rigid frame', reqs: ['','I','I'] },
+      { no: '7', name: 'Kiểm tra kính tunnel, tấm dốc chuyển tiếp, tay vịn và thảm sàn tunnel / Inspect the tunnel walls, transition ramps, handrails, and carpet', reqs: ['','I','I'] },
+      { no: '8', name: 'Kiểm tra vị trí kết nối của các đốt cầu Tunnel và dẫn hướng phù hợp / Verify that the tunnels are properly positioned and are tracking properly', reqs: ['','I','I'] },
+      { no: '9', name: 'Kiểm tra khoảng cách trần và sàn trên của các đốt cầu được căn chỉnh chính xác / Verify that both the bubble floor and ceiling are properly aligned', reqs: ['','I','I'] },
+      { no: '10', name: 'Kiểm tra dải cao su chắn nước bên ngoài cầu và các nẹp nhôm cao su chắn nước / Inspect the bubble floors ribbed rubber and aluminum pound downs', reqs: ['','I','I'] },
+      { no: '11', name: 'Kiểm tra độ căng và chính xác của màn cuốn Cabin / Verify that the cab curtain is properly aligned and tensioned', reqs: ['','I','I'] },
+      { no: '12', name: 'Kiểm tra hoạt động và vệ sinh cửa Cabin ra máy bay / Inspect the cab doors for cleanliness and proper operation', reqs: ['','I','I'] },
+      { no: '13', name: 'Kiểm tra cửa Cabin và các cửa sổ / Inspect all cab and bubble windows', reqs: ['','I','I'] },
+      { no: '14', name: 'Kiểm tra và vệ sinh cửa dịch vụ / Inspect the service door for cleanliness and proper operation', reqs: ['','I','I'] },
+      { no: '15', name: 'Kiểm tra xích dẫn động Cabin / Inspect the cab drive chain', reqs: ['','I','I'] },
+      { no: '16', name: 'Kiểm tra giá đỡ trục Cabin và các kết nối thanh giằng (nằm trên nóc Cabin) / Inspect the cab pivot bracket and tie rod connections', reqs: ['','I','I'] },
+      { no: '17', name: 'Kiểm tra hư hỏng vật lý đối với các thiết bị phụ trợ cấp điện và cấp khí mát nếu có / Inspect for any physical damage to the JTP and PC air units if present', reqs: ['','I','I'] },
+      { no: '18', name: 'Kiểm tra hệ thống dẫn động bánh xe / Inspect the wheel bogie', reqs: ['','I','I'] },
+      { no: '19', name: 'Kiểm tra hệ thống treo cáp và cáp tunnel / Inspect the cable carrier system operation and make sure that the cables are not worn or binding', reqs: ['','I','I'] },
+      { no: '20', name: 'Kiểm tra cân bằng và độ trùng của cáp / Inspect the equalizing cable and clamping ring. Make sure that the cable is not sagging', reqs: ['','I','I'] },
+      { no: '21', name: 'Kiểm tra tủ điện và cáp điện không bị hư hỏng vật lý / Verify that the input power panel and input cables are not physically damaged', reqs: ['','I','I'] },
+      { no: '22', name: 'Kiểm tra tất cả dây cáp điện có hư hỏng vật lý không / Inspect all electrical cables for physical damage', reqs: ['','I','I'] },
     ]
   },
   {
-    no: '3',
-    name: 'Hệ thống tự động điều chỉnh cao độ sàn Cabin / Auto level',
+    no: 'B2',
+    name: 'B. Kiểm tra phần điện / Electrical Checks',
     tasks: [
-      { no: '3.1', name: 'Kiểm tra toàn bộ đai ốc kết nối bánh xe với công tắc hành trình / Check the set of screws which hold the wheel...', reqs: ['I', 'I', 'I', 'I'] },
-      { no: '3.2', name: 'Dùng tay quay bánh xe theo hai chiều để đảm bảo không bị kẹt bánh khi vận hành... / Turn the wheel by hand...', reqs: ['I', 'I', 'I', 'I'] },
-      { no: '3.3', name: 'Kiểm tra cần với / Check the arm', reqs: ['I', 'I', 'I', 'I'] },
-      { no: '3.4', name: 'Bật chế độ AUTO LEVEL & kiểm tra hệ thống tự động điều chỉnh cao độ sàn Cabin... / Turn on AUTO LEVEL & check...', reqs: ['I', 'I', 'I', 'I'] },
-      { no: '3.5', name: 'Xoay và giữ bánh xe bằng tay để mô phỏng sự lên của sàn máy bay... / Turn & hold wheel by hand...', reqs: ['I', 'I', 'I', 'I'] },
-      { no: '3.6', name: 'Khởi động lại auto level và kiểm tra hành trình xuống bằng cách xoay và giữ bánh xe theo hướng ngược lại... / Reset the auto level...', reqs: ['I', 'I', 'I', 'I'] },
-      { no: '3.7', name: 'Bật trạng thái khẩn cấp bằng cách nhấn nút "EMERGENCY" khi cầu đang ở chế độ tự động... / Check the sound of the alarm horn', reqs: ['I', 'I', 'I', 'I'] },
-      { no: '3.8', name: 'Tra mỡ xích dẫn động, bánh tỳ và rail chuyển động / Lubricate chain, guide rail', reqs: ['', 'L', 'L', 'L'] }
+      { no: '1', name: 'Kiểm tra tủ điện chính / Inspect the inside of the main bridge power panel. Verify that the proper voltages are present', reqs: ['','I','I'] },
+      { no: '2', name: 'Kiểm tra tủ điện của cầu (Cabin) - Tìm các dây lỏng và hư hỏng / Inspect the inside of the bridge control console. Look for loose wires and/or damaged components', reqs: ['','I','I'] },
+      { no: '3', name: 'Bật lại nguồn điện cho cầu / Turn power back on to the bridge', reqs: ['','I','I'] },
+      { no: '4', name: 'Kiểm tra đèn trong Rotunda, tunnel và Cabin hoạt động bình thường / Verify that the lights in the rotunda, tunnels, bubble, and cab work properly', reqs: ['','I','I'] },
+      { no: '5', name: 'Kiểm tra đèn cảnh báo hoạt động bình thường / Verify that the emergency lights work properly', reqs: ['','I','I'] },
+      { no: '6', name: 'Kiểm tra đèn cảnh báo bật sáng khi mất điện trên cầu / Verify that the emergency lights come on when power to the bridge is removed', reqs: ['','I','I'] },
     ]
   },
   {
-    no: '4',
-    name: 'Xích truyền động / Motor drive chain',
+    no: 'C2',
+    name: 'C. Kiểm tra vận hành / Operational Checks',
     tasks: [
-      { no: '4', name: 'Kiểm tra xích truyền động của động cơ chuyển động ngang, động cơ Cabin / Check drive chain of cabin motor & horizontal motor', reqs: ['I', 'I', 'I', 'I'] }
+      { no: '1', name: 'Kích hoạt CON-1 bằng cách xoay công tắc phím sang vị trí vận hành hoặc nhập đúng mật khẩu / Energize CON-1 by turning the key switch to the operate position or entering the correct password', reqs: ['','I','I'] },
+      { no: '2', name: 'Thực hiện điều chỉnh con lăn đường hầm (tham khảo sổ tay vận hành và bảo trì cầu) / Perform tunnel roller adjustment (refer to bridge operation and maintenance manual)', reqs: ['','I','I'] },
+      {
+        no: '3',
+        name: 'Lái cầu theo chiều ngang tới tất cả các giới hạn điện để phát hiện mọi sự cố vận hành / Drive the bridge horizontally to all electrical limits to detect any operational problems',
+        reqs: ['','I','I'],
+        subTasks: [
+          { no: 'a', name: 'Kiểm tra chuông và đèn cảnh báo di chuyển / Verify that the travel warning bell operates properly', reqs: ['','I','I'] },
+          { no: 'b', name: 'Nghe độ ồn con lăn / Listen carefully for any roller banging or scrapping noises', reqs: ['','I','I'] },
+          { no: 'c', name: 'Kiểm tra tất cả các giới hạn điện được đặt đúng vị trí / Verify that all electrical limits are set to the desired position', reqs: ['','I','I'] },
+          { no: 'd', name: 'Kiểm tra các công tắc giới hạn tốc độ chậm và dừng theo chiều ngang / Verify that the horizontal slowdown and stop limit switches work properly', reqs: ['','I','I'] },
+        ]
+      },
+      { no: '4', name: 'Kiểm tra các công tắc giới hạn độ xoay và độ dốc Rotunda / Manually manipulate the rotunda swing and slope limit switches and verify their proper operation', reqs: ['','I','I'] },
+      { no: '5', name: 'Kiểm tra giới hạn điện độ cao tối đa của cầu / Drive the bridge vertically to the maximum electrical limits to detect any operational problems', reqs: ['','I','I'] },
+      { no: '6', name: 'Kiểm tra giới hạn chiều cao và các công tắc giới hạn cột thủy lực / Manually manipulate the vertical height and column rack limit switches and verify their proper operation', reqs: ['','I','I'] },
+      { no: '7', name: 'Kiểm tra Canopies / Operate the canopies and verify that both sides operate properly', reqs: ['','I','I'] },
+      { no: '8', name: 'Kiểm tra khóa liên động Canopies / Verify that the canopy interlock works according to the canopy option selected', reqs: ['','I','I'] },
+      { no: '9', name: 'Kiểm tra sàn Cabin hoạt động chính xác cả chế độ bằng tay và chế độ tự động / Verify that the articulating cab floor operates correctly in both the automatic and manual modes', reqs: ['','I','I'] },
+      {
+        no: '10',
+        name: 'Kiểm tra hoạt động Autoleveler / Make sure that the autoleveler works properly',
+        reqs: ['','I','I'],
+        subTasks: [
+          { no: 'a', name: 'Kiểm tra vít kết nối và bánh xe được siết chặt / Make sure that the set screws that hold the wheel to the limit switch are tight', reqs: ['','I','I'] },
+          { no: 'b', name: 'Kiểm tra bánh xe Autoleveler / Check the wheel for wear, flat spots, shiny spots, or deterioration, and replace it if necessary', reqs: ['','I','I'] },
+          { no: 'c', name: 'Xoay bánh xe bằng tay cả hai hướng để đảm bảo không bị kẹt / Turn the wheel by hand in both directions to make sure that it moves freely and positively returns to neutral', reqs: ['','I','I'] },
+          { no: 'd', name: 'Kiểm tra đai ốc khóa trên cần Autoleveler được xiết chặt / Make sure that the locknuts on the autolevel arm are tight', reqs: ['','I','I'] },
+          { no: 'e', name: 'Kiểm tra cần Autoleveler di chuyển tự do cả hai hướng / Make sure that the autolevel arm moves freely in both directions', reqs: ['','I','I'] },
+          { no: 'f', name: 'Kiểm tra giới hạn hành trình Autoleveler / Check the autolevel travel limits with the arm extended and the bridge in AUTOLEVEL mode', reqs: ['','I','I'] },
+          { no: 'g', name: 'Xoay bánh xe bằng tay và giữ để mô phỏng máy bay đang bay lên - sau ~4 giây đèn cảnh báo và chuông phải kêu / Turn the wheel by hand and hold it to simulate the aircraft rising. After about 4 seconds the autolevel warning light turns on and the warning bell sounds', reqs: ['','I','I'] },
+          { no: 'h', name: 'Đặt lại Autoleveler rồi xoay bánh xe theo hướng ngược lại để mô phỏng hạ thấp máy bay - sau ~4 giây đèn cảnh báo và chuông phải kêu / Reset the autoleveler, turn wheel in opposite direction to simulate aircraft lowering. After about 4 seconds warning light and bell activate', reqs: ['','I','I'] },
+          { no: 'i', name: 'Đặt lại Autoleveler / Reset the autoleveler', reqs: ['','I','I'] },
+        ]
+      },
     ]
   },
   {
-    no: '5',
-    name: 'Cabin',
+    no: 'D2',
+    name: 'D. Bôi trơn / Lubrication',
     tasks: [
-      { no: '5.1', name: 'Kiểm tra chuyển động xoay của Cabin bằng cách quay Cabin sang trái và phải đến góc quay giới hạn / Check cabin rotation...', reqs: ['', '', 'I', 'I'] },
-      { no: '5.2', name: 'Kiểm tra hoạt động của mái chụp vào máy bay / Check closure operation:', reqs: ['', '', '', ''], subTasks: [
-          { no: 'a', name: 'Hạ thấp cả phía trái & phải của vòm mái che tại cùng thời điểm... / Lower both left & right canopies...', reqs: ['I', 'I', 'I', 'I'] },
-          { no: 'b', name: 'Nâng cả phía trái và phía phải của vòm mái che. Động cơ sẽ ngừng hoạt động khi mái che đi đến giới hạn / Raise both left & right canopies...', reqs: ['I', 'I', 'I', 'I'] }
-      ]},
-      { no: '5.3', name: 'Kiểm tra các tấm màn Cabin, điều chỉnh nếu cần thiết / Check the cabin side curtains for tightness', reqs: ['I', 'I', 'I', 'I'] },
-      { no: '5.4', name: 'Kiểm tra con lăn tỳ mành cuốn cabin / Check the cabin roller blind', reqs: ['I', 'I', 'I', 'I'] },
-      { no: '5.5', name: 'Kiểm tra cảm biến góc cabin / Check cabin angle sensor', reqs: ['I', 'I', 'I', 'I'] },
-      { no: '5.6', name: 'Đưa cảm biến góc cabin về giá trị và tọa độ ban đầu / Return the cabin angle sensor to original position', reqs: ['', '', '', 'I'] },
-      { no: '5.7', name: 'Kiểm tra các cáp điện / Check the following electrical cable:', reqs: ['', '', '', ''], subTasks: [
-          { no: 'a', name: 'Các cáp điện bên dưới ống lồng / Exposed cables under tunnels', reqs: ['I', 'I', 'I', 'I'] },
-          { no: 'b', name: 'Các cáp điện bên dưới Cabin / Exposed cables under cabin', reqs: ['I', 'I', 'I', 'I'] },
-          { no: 'c', name: 'Các cáp điện từ cột Rotunda đến tunnel / Cable from rotunda to tunnel', reqs: ['I', 'I', 'I', 'I'] }
-      ]},
-      { no: '5.8', name: 'Kiểm tra giảm xóc & cảm biến giới hạn trái và phải của Cabin / Check the bumper condition & left/right limit sensor...', reqs: ['I', 'I', 'I', 'I'] },
-      { no: '5.9', name: 'Tra mỡ cho các thiết bị cơ khí của vòm mái che / Lubricate closure mechanical parts', reqs: ['L', 'L', 'L', 'L'] },
-      { no: '5.10', name: 'Tra mỡ các thiết bị cơ khí của Cabin / Lubricate cabin mechanical parts', reqs: ['L', 'L', 'L', 'L'] },
-      { no: '5.11', name: 'Tra mỡ các bộ phận của thiết bị tự động điều chỉnh cao độ sàn / Lubricate cabin levelling floor', reqs: ['L', 'L', 'L', 'L'] },
-      { no: '5.12', name: 'Kiểm tra hệ thống lạnh / Check air conditioner system', reqs: ['C', 'C', 'C', 'C'] },
-      { no: '5.13', name: 'Kiểm tra chức năng Cabfloor bằng cách nhấn chọn chức năng Cabfloor... / Check the cabfloor function...', reqs: ['I', 'I', 'I', 'I'] }
+      { no: '1', name: 'Tiêu chuẩn chất bôi trơn: Multipurpose EP2 grease, SAE 30W-50 motor oil, SAE 30W-30 motor oil, Dry film lubricant containing Teflon, molybdenum disulfide, or graphite hoặc các loại tương đương / Lubrication standard: Multipurpose EP2 grease, SAE 30W-50 motor oil, SAE 30W-30 motor oil, Dry film lubricant', reqs: ['','I','I'] },
+      { no: '2', name: 'Bơm mỡ vào các vị trí có vú bơm: trụ xoay Rotunda, ổ bi mâm xoay bánh xe, hệ thống trụ nâng hạ và tra dầu mỡ nhớt vào cột thủy lực, bi lăn, dẫn hướng và ray / Grease all grease fittings: Rotunda pivot, wheel turntable bearings, lifting column system, and lubricate hydraulic column, rollers, guides and rails', reqs: ['','L','L'] },
     ]
   },
-  {
-    no: '6',
-    name: 'Hệ thống truyền động nâng hạ / Vertical drive',
-    tasks: [
-      { no: '6.1', name: 'Kiểm tra làm sạch công tắc hành trình chiều cao cột / Check column height limit switch cleanliness', reqs: ['C', 'C', 'C', 'C'] },
-      { no: '6.2', name: 'Kiểm tra báo lỗi công tắc hành trình lệch cột / Check vertical lift column fault limit switch', reqs: ['', '', '', ''], subTasks: [
-          { no: 'a', name: 'Dùng tay gạt công tắc hành trình, trong khi người khác cố gắng nâng hoặc hạ cầu... / Manually trip limit switch...', reqs: ['I', 'I', 'I', 'I'] },
-          { no: 'b', name: 'Lặp lại quy trình trên với các công tắc hành trình khác / Repeat this procedure on the other limit switch', reqs: ['I', 'I', 'I', 'I'] }
-      ]},
-      { no: '6.3', name: 'Tra mỡ các tấm định hướng của cột (4 phía mỗi cột) / Lubricate column stainless steel guide plate', reqs: ['L', 'L', 'L', 'L'] },
-      { no: '6.4', name: 'Kiểm tra các tiếng ồn lạ từ cột nâng hạ trong quá trình chuyển động / Check for vertical lift column abnormal noise...', reqs: ['I', 'I', 'I', 'I'] },
-      { no: '6.5', name: 'Kiểm tra đo đạc độ nghiêng của 2 cột nâng hạ / Measure the tilt of two lifting columns', reqs: ['M', 'M', 'M', 'M'] },
-      { no: '6.6', name: 'Kiểm tra các ống thuỷ lực / Check hydraulic hose', reqs: ['I', 'I', 'I', 'I'] },
-      { no: '6.7', name: 'Kiểm tra các khối van thuỷ lực / Check valvets hydraulic', reqs: ['I', 'I', 'I', 'I'] },
-      { no: '6.8', name: 'Kiểm tra bộ nguồn thuỷ lực / Check hydraulic power unit', reqs: ['I', 'I', 'I', 'I'] },
-      { no: '6.9', name: 'Kiểm tra lọc thuỷ lực / Check hydraulic oil filter', reqs: ['I', 'I', 'I', 'R'] },
-      { no: '6.10', name: 'Kiểm tra dầu thủy lực / Check hydraulic oil', reqs: ['I', 'I', 'I', 'R'] },
-      { no: '6.11', name: 'Kiểm tra cảm biến chiều cao / Check height sensor', reqs: ['I', 'I', 'I', 'I'] },
-      { no: '6.12', name: 'Đưa cảm biến chiều cao về giá trị và tọa độ ban đầu / Return the height sensor out of its original position', reqs: ['', '', '', 'I'] }
-    ]
-  },
-  {
-    no: '7',
-    name: 'Hệ thống dẫn động ngang / Horizontal drive',
-    tasks: [
-      { no: '7.1', name: 'Kiểm tra xích động cơ dẫn động / Check drive chain of horizontal motor', reqs: ['I', 'I', 'I', 'I'] },
-      { no: '7.2', name: 'Lái cầu tiến lên giới hạn phía trước và lùi lại / Drive the bridge fully forward & Reverse', reqs: ['I', 'I', 'I', 'I'] },
-      { no: '7.3', name: 'Đảm bảo còi báo di chuyển hoạt động trong suốt quá trình cầu di chuyển / Ensure the travel warning horn is activated...', reqs: ['I', 'I', 'I', 'I'] },
-      { no: '7.4', name: 'Quay trục bánh xe sang trái và phải hết giới hạn / Steer the wheel boogie to the left & right extremely', reqs: ['I', 'I', 'I', 'I'] },
-      { no: '7.5', name: 'Kiểm tra cảm biến góc bánh xe / Check wheel sensor', reqs: ['I', 'I', 'I', 'I'] },
-      { no: '7.6', name: 'Đưa giá trị cảm biến góc bánh xe về giá trị ban đầu / Return the wheel sensor to its original position', reqs: ['', '', '', 'I'] },
-      { no: '7.7', name: 'Tra mỡ ổ bi / Lubricate rooler bearing', reqs: ['', 'L', 'L', 'L'] },
-      { no: '7.8', name: 'Tra mỡ khớp nối, ổ trục / Lubricate bushings & Trunion pin', reqs: ['', 'L', 'L', 'L'] },
-      { no: '7.9', name: 'Tra mỡ các xích truyền động trên cụm bánh xe / Lubricate drive chains on the wheel assembly', reqs: ['L', 'L', 'L', 'L'] },
-      { no: '7.10', name: 'Kiểm tra khe hở phanh của 02 động cơ bánh xe / Check the brake clearance of both wheel motors', reqs: ['I', 'I', 'I', 'I'] }
-    ]
-  },
-  {
-    no: '8',
-    name: 'Bánh lốp (Lốp đặc) / Tires',
-    tasks: [
-      { no: '8.1', name: 'Kiểm tra độ mòn của lốp / Check surface wear of tires', reqs: ['', 'I', 'I', 'I'] },
-      { no: '8.2', name: 'Kiểm tra lực xiết các bulông (Lực xiết ≥ 392 N.m) / Check tire mounting bolts and nuts', reqs: ['', 'I', 'I', 'I'] }
-    ]
-  },
-  {
-    no: '9',
-    name: 'Rotunda',
-    tasks: [
-      { no: '9.1', name: 'Kiểm tra các công tắc hành trình để đảm bảo các công tắc này hoạt động an toàn / Check the limit switches...', reqs: ['', '', '', ''], subTasks: [
-          { no: 'a', name: 'Công tắc hành trình quay Rotunda / Rotunda rotary limit switch', reqs: ['I', 'I', 'I', 'I'] },
-          { no: 'b', name: 'Công tắc giới hạn độ dốc / Slop limit switch', reqs: ['I', 'I', 'I', 'I'] }
-      ]},
-      { no: '9.2', name: 'Kiểm tra độ trùng mành cuốn / Check Rotunda curtain slat tension', reqs: ['I', 'I', 'I', 'I'] },
-      { no: '9.3', name: 'Kiểm tra trần sàn, con lăn trần sàn, các bánh răng, xích / Check ceiling, roller and chain', reqs: ['I', 'I', 'I', 'I'] },
-      { no: '9.4', name: 'Kiểm tra thảm sàn Rotunda để đảm bảo sàn không bị vênh, điều chỉnh nếu cần thiết / Check the Rotunda floor mat...', reqs: ['I', 'I', 'I', 'I'] },
-      { no: '9.5', name: 'Tra mỡ ổ bi và bạc lót / Lubricate rotunda column flange & sleeve bearings', reqs: ['', 'L', 'L', 'L'] },
-      { no: '9.6', name: 'Kiểm tra cảm biến góc rotunda / Check rotunda angle sensor', reqs: ['I', 'I', 'I', 'I'] },
-      { no: '9.7', name: 'Đưa cảm biến góc rotunda về vị trí ban đầu / Return the rotunda angle sensor to its original position', reqs: ['', '', '', 'I'] }
-    ]
-  },
-  {
-    no: '10',
-    name: 'Ống lồng / Tunnel',
-    tasks: [
-      { no: '10.1', name: 'Tra mỡ các khung treo cáp / Lubricate cable tension device sheave mounts', reqs: ['L', 'L', 'L', 'L'] },
-      { no: '10.2', name: 'Tra mỡ hệ thống cuộn cáp và điều chỉnh lại hệ thống / Lubricate tunnel cable take-up & Equalising system parts', reqs: ['', 'L', 'L', 'L'] },
-      { no: '10.3', name: 'Kiểm tra và tra dầu mỡ chốt / Check & lubricate hinge pin', reqs: ['L', 'L', 'L', 'L'] },
-      { no: '10.4', name: 'Kiểm tra và tra mỡ hệ thống con lăn / Inspection and lubricate roller units', reqs: ['', 'L', 'L', 'L'] },
-      { no: '10.5', name: 'Tra mỡ các thanh rail con lăn bao gồm thanh rail bên trong và bên ngoài / Lubricate rail include inside and outside', reqs: ['', 'L', 'L', 'L'] }
-    ]
-  },
-  {
-    no: '11',
-    name: 'Các bộ phận khác của PBB / Other structures of PBB',
-    tasks: [
-      { no: '11.1', name: 'Kiểm tra xem có vết nứt, gãy xuất hiện trên tường, trần và sàn / Visually check for any crecks or damage...', reqs: ['I', 'I', 'I', 'I'] },
-      { no: '11.2', name: 'Kiểm tra đèn chiếu sáng, thay thế nếu cần thiết / Check for any blown lighting, replace if necessary', reqs: ['I', 'I', 'I', 'I'] },
-      { no: '11.3', name: 'Kiểm tra các miếng nẹp kín / Check for any damage to weather strip or seals', reqs: ['I', 'I', 'I', 'I'] },
-      { no: '11.4', name: 'Kiểm tra hiện trạng cầu thang dịch vụ / Check the condition of the staircase', reqs: ['I', 'I', 'I', 'I'] },
-      { no: '11.5', name: 'Tra mỡ các chốt, bản lề của thang dịch vụ / Lubricate hinge pin of the staircase', reqs: ['L', 'L', 'L', 'L'] },
-      { no: '11.6', name: 'Kiểm tra hiện trạng bề mặt các lớp sơn / Check the paint surface condition', reqs: ['I', 'I', 'I', 'I'] },
-      { no: '11.7', name: 'Kiểm tra tổng quát các mối hàn của cầu ống / Check the welds of the passenger boarding bridge...', reqs: ['I', 'I', 'I', 'I'] }
-    ]
-  },
-  {
-    no: '12',
-    name: 'Kết nối điện / Electrical connection',
-    tasks: [
-      { no: '12.1', name: 'Kiểm tra bảng điều khiển, tủ điện và các mạch điện chính / Inspect the control console, power panel...', reqs: ['', '', '', ''], subTasks: [
-          { no: 'a', name: 'Kiểm tra các đường dây kết nối & các điểm treo / Check all PCB wire connections & Electrical mounting...', reqs: ['I', 'I', 'I', 'I'] },
-          { no: 'b', name: 'Kiểm tra độ ẩm, rỉ sét và các mảnh vỡ / Check for moisture, rust & debris', reqs: ['I', 'I', 'I', 'I'] },
-          { no: 'c', name: 'Kiểm tra các công tắc điều khiển / Check all the control buttons', reqs: ['I', 'I', 'I', 'I'] },
-          { no: 'd', name: 'Kiểm tra các công tắc ngắt mạch khẩn cấp / Check all the control button', reqs: ['I', 'I', 'I', 'I'] },
-          { no: 'e', name: 'Kiểm tra các thiết bị đo điện / Check all electrical measuring devices', reqs: ['', 'I', 'I', 'I'] },
-          { no: 'f', name: 'Kiểm tra độ sáng rõ của màn hình cảm ứng / Check cleanliness of touch screen & all indicators', reqs: ['I', 'I', 'I', 'I'] },
-          { no: 'g', name: 'Kiểm tra độ sáng rõ của camera, vệ sinh / Check monitor camera side glass cleanliness...', reqs: ['I', 'I', 'I', 'I'] },
-          { no: 'h', name: 'Kiểm tra điện áp 3 pha cấp vào tủ điện chính nằm trong ngưỡng 230/400 VAC ±10%', reqs: ['I', 'I', 'I', 'I'] },
-          { no: 'i', name: 'Kiểm tra bộ nguồn DC: đèn "DC OK" / Check the DC power supply...', reqs: ['', 'I', 'I', 'I'] },
-          { no: 'j', name: 'Kiểm tra Acquy, bộ UPS DC / Check the battery, DC UPS unit...', reqs: ['I', 'I', 'I', 'I'] },
-          { no: 'k', name: 'Xiết chặt các tiếp điểm đấu nối động lực và điều khiển', reqs: ['', '', 'I', 'I'] },
-          { no: 'l', name: 'Kiểm tra PLC: các đèn trạng thái bình thường / Check the PLC...', reqs: ['I', 'I', 'I', 'I'] }
-      ]},
-      { no: '12.2', name: 'Kiểm tra bộ chống sét lan truyền tủ điện / Check the surge protection device (SPD)...', reqs: ['I', 'I', 'I', 'I'] },
-      { no: '12.3', name: 'Kiểm tra điện trở cách điện các động cơ điện (> 1 MΩ) / Check the insulation resistance...', reqs: ['', '', 'I', 'I'] },
-      { no: '12.4', name: 'Kiểm tra điện áp cuộn thắng của 02 động cơ bánh xe (100VDC ≤ U ≤ 110VDC) / Check the brake coil voltage...', reqs: ['', '', 'I', 'I'] },
-      { no: '12.5', name: 'Đo và ghi giá trị dòng điện của động cơ canopy bên trái trong khi hoạt động / Measure and record...', reqs: ['', '', 'M', 'M'] },
-      { no: '12.6', name: 'Đo và ghi giá trị dòng điện của động cơ canopy bên phải trong khi hoạt động / Measure and record...', reqs: ['', '', 'M', 'M'] },
-      { no: '12.6*', name: 'Đo và ghi giá trị dòng điện của động cơ xoay cabin trong khi hoạt động / Measure and record...', reqs: ['', '', 'M', 'M'] }, // Numbered 12.6 again in image
-      { no: '12.8', name: 'Đo và ghi giá trị dòng điện của động cơ bánh xe bên trái trong khi hoạt động / Measure and record...', reqs: ['', '', 'M', 'M'] },
-      { no: '12.9', name: 'Đo và ghi giá trị dòng điện của động cơ bánh xe bên phải trong khi hoạt động / Measure and record...', reqs: ['', '', 'M', 'M'] },
-      { no: '12.10', name: 'Đo và ghi giá trị dòng điện của động cơ bơm thủy lực trong khi hoạt động / Measure and record...', reqs: ['', '', 'M', 'M'] },
-      { no: '12.11', name: 'Đo và ghi giá trị dòng điện của động cơ auto level trong khi hoạt động / Measure and record...', reqs: ['', '', 'M', 'M'] },
-      { no: '12.12', name: 'Đo và ghi giá trị dòng điện của động cơ tự động điều chỉnh cân bằng sàn... / Measure and record...', reqs: ['', '', 'M', 'M'] }
-    ]
-  },
-  {
-    no: '13',
-    name: 'Tình trạng chung của bên ngoài và lớp bảo vệ ngoài trời / General condition...',
-    tasks: [
-      { no: '13.1', name: 'Kiểm tra thiết bị căng cáp, điều chỉnh khi cần thiết / Check the cable tension device. Adjust if necessary', reqs: ['I', 'I', 'I', 'I'] },
-      { no: '13.2', name: 'Kiểm tra lớp bảo vệ ngoài trời sau đây / Check the following weather seals', reqs: ['', '', '', ''], subTasks: [
-          { no: 'a', name: 'Từ Rotunda đến Gangway / Rotunda to Gangway', reqs: ['I', 'I', 'I', 'I'] },
-          { no: 'b', name: 'Lớp bảo vệ ngoài trời giữa các ống lồng / Weather seal between the tunnel', reqs: ['I', 'I', 'I', 'I'] }
-      ]},
-      { no: '13.3', name: 'Kiểm tra vết nứt và rỉ sét trên bề mặt sơn, sơn sửa nếu cần thiết / Inspect to paint...', reqs: ['I', 'I', 'I', 'I'] },
-      { no: '13.4', name: 'Kiểm tra độ chặt của các bulong gắn trên các động cơ bánh xe và động cơ nâng hạ / Check the mounting bolt...', reqs: ['I', 'I', 'I', 'I'] },
-      { no: '13.5', name: 'Kiểm tra bộ phận theo dõi con lăn (bánh đà) ống lồng. Điều chỉnh nếu cần thiết / Check tunnel roller tracking...', reqs: ['I', 'I', 'I', 'I'] },
-      { no: '13.6', name: 'Kiểm tra hoạt động bánh xe nhỏ của thang dịch vụ / Inspect service staircase castor wheel condition', reqs: ['I', 'I', 'I', 'I'] }
-    ]
-  },
-  {
-    no: '14',
-    name: 'Safety Hoop',
-    tasks: [
-      { no: '14.1', name: 'Kiểm tra xem cầu có dừng hoạt động và cảnh báo khi tác động safetyhoop phía trước không... / Check if the bridge stops...', reqs: ['I', 'I', 'I', 'I'] },
-      { no: '14.2', name: 'Kiểm tra xem cầu có dừng hoạt động và cảnh báo khi tác động safetyhoop phía sau không... / Check if the bridge stops...', reqs: ['I', 'I', 'I', 'I'] },
-      { no: '14.3', name: 'Vào màn hình, chuyển sang chế độ bypass, kiểm tra xem có tin nhắn hiển thị không... / Access the screen...', reqs: ['I', 'I', 'I', 'I'] },
-      { no: '14.4', name: 'Kiểm tra cầu có hoạt động ở chế độ bypass khi tác động safetyhoop phía trước và phía sau / Check if the bridge...', reqs: ['I', 'I', 'I', 'I'] }
-    ]
-  }
 ];
