@@ -105,6 +105,34 @@ export const PBB_CHECKLIST_SECTIONS: PbbSectionDef[] = [
     ]
   },
 
+  // ============ BỔ SUNG 6T ============
+  {
+    no: 'E6',
+    name: 'Bổ sung công việc bảo dưỡng 6 tháng',
+    tasks: [
+      { no: '1', name: 'Kiểm tra, bảo dưỡng cột Rotunda và Rotunda', reqs: ['', 'I', ''] },
+      { no: '2', name: 'Kiểm tra, bảo dưỡng hệ thống ống lồng (Tunnel)', reqs: ['', 'I', ''] },
+      { no: '3', name: 'Kiểm tra, bảo dưỡng hệ thống Cabin và Canopy (Mái chụp)', reqs: ['', 'I', ''] },
+      { no: '4', name: 'Kiểm tra, bảo dưỡng hệ thống nâng hạ', reqs: ['', 'I', ''] },
+      { no: '5', name: 'Kiểm tra, bảo dưỡng hệ thống lái', reqs: ['', 'I', ''] },
+      { no: '6', name: 'Kiểm tra vận hành toàn bộ thiết bị', reqs: ['', 'I', ''] },
+    ]
+  },
+
+  // ============ BỔ SUNG 12T ============
+  {
+    no: 'E12',
+    name: 'Bổ sung công việc bảo dưỡng 12 tháng',
+    tasks: [
+      { no: '1', name: 'Kiểm tra, bảo dưỡng cột Rotunda và Rotunda', reqs: ['', '', 'I'] },
+      { no: '2', name: 'Kiểm tra, bảo dưỡng hệ thống ống lồng (Tunnel)', reqs: ['', '', 'I'] },
+      { no: '3', name: 'Kiểm tra, bảo dưỡng hệ thống Cabin và Canopy (Mái chụp)', reqs: ['', '', 'I'] },
+      { no: '4', name: 'Kiểm tra, bảo dưỡng hệ thống nâng hạ', reqs: ['', '', 'I'] },
+      { no: '5', name: 'Kiểm tra, bảo dưỡng hệ thống lái', reqs: ['', '', 'I'] },
+      { no: '6', name: 'Kiểm tra vận hành toàn bộ thiết bị', reqs: ['', '', 'I'] },
+    ]
+  },
+
   // ============ 6T / 12T: FILE 2 ============
   {
     no: 'A2',
