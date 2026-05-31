@@ -634,17 +634,9 @@ export default function PbbMaintenanceFormPage() {
                                                 <tr className="bg-slate-50 text-slate-400 font-black border-b border-slate-100 uppercase tracking-tighter">
                                                     <th className="p-3 border-r w-10 text-center">#</th>
                                                     <th className="p-3 border-r min-w-[280px] text-left">Nội dung</th>
-                                                    {MAINT_LEVELS.map(level => (
-                                                        <th 
-                                                            key={level} 
-                                                            className={clsx(
-                                                                "p-3 border-r w-14 text-center transition-all",
-                                                                maintLevel === level ? "bg-sky-50 text-sky-600" : ""
-                                                            )}
-                                                        >
-                                                            {level}
-                                                        </th>
-                                                    ))}
+                                                    <th className="p-3 border-r w-20 text-center text-sky-600">Kiểm tra</th>
+                                                    <th className="p-3 border-r w-24 text-center">Tình trạng</th>
+                                                    <th className="p-3 text-left">Ghi chú</th>
                                                 </tr>
                                             </thead>
                                             <tbody>
@@ -653,95 +645,81 @@ export default function PbbMaintenanceFormPage() {
                                                         <tr className="border-b border-slate-50 hover:bg-slate-50/50 transition-colors group">
                                                             <td className="p-3 border-r text-center font-black text-slate-300 group-hover:text-sky-400 transition-colors">{task.no}</td>
                                                             <td className="p-3 border-r font-bold text-slate-700 leading-snug">{task.name}</td>
-                                                            {MAINT_LEVELS.map((level, idx) => {
+                                                            {(() => {
+                                                                const idx = MAINT_LEVELS.indexOf(maintLevel);
                                                                 const reqChar = task.reqs[idx];
-                                                                const taskId = `${section.no}_${task.no}_${level}`;
-                                                                const isCurrent = maintLevel === level;
+                                                                const taskId = `${section.no}_${task.no}_${maintLevel}`;
                                                                 const resp = responses[taskId];
-
-                                                                return (
-                                                                    <td 
-                                                                        key={level} 
-                                                                        className={clsx(
-                                                                            "p-1.5 border-r text-center",
-                                                                            isCurrent ? "bg-sky-50/40" : "bg-slate-100/10"
-                                                                        )}
-                                                                    >
+                                                                return (<>
+                                                                    <td className="p-1.5 border-r text-center bg-sky-50/30">
                                                                         {reqChar ? (
-                                                                            reqChar === 'M' ? (
-                                                                                <input 
-                                                                                    value={resp?.value || ''} 
-                                                                                    onChange={(e) => handleValueChange(taskId, e.target.value)}
-                                                                                    placeholder="M"
-                                                                                    className={clsx(
-                                                                                        "w-full p-2 text-center font-black rounded-lg border-2 transition-all outline-none",
-                                                                                        resp?.value ? "border-sky-500 bg-sky-50 text-sky-700" : "border-slate-100 bg-slate-50 text-slate-400 focus:border-sky-200"
-                                                                                    )}
-                                                                                />
-                                                                            ) : (
-                                                                                <button
-                                                                                    onClick={() => handleToggleStatus(taskId, reqChar)}
-                                                                                    className={clsx(
-                                                                                        "w-9 h-9 rounded-xl border-2 font-black transition-all flex items-center justify-center mx-auto text-[10px]",
-                                                                                        !resp?.status && "bg-white border-slate-100 text-slate-200 hover:border-sky-200",
-                                                                                        resp?.status === 'OK' && "bg-green-500 border-green-600 text-white shadow-lg shadow-green-500/20 scale-110",
-                                                                                        resp?.status === 'NOK' && "bg-red-500 border-red-600 text-white shadow-lg shadow-red-500/20 scale-110"
-                                                                                    )}
-                                                                                >
-                                                                                    {resp?.status === 'OK' ? '✔️' : (resp?.status === 'NOK' ? '!' : reqChar)}
-                                                                                </button>
-                                                                            )
-                                                                        ) : <span className="text-slate-100">---</span>}
+                                                                            <button
+                                                                                onClick={() => handleToggleStatus(taskId, reqChar)}
+                                                                                className={clsx(
+                                                                                    "w-9 h-9 rounded-xl border-2 font-black transition-all flex items-center justify-center mx-auto text-[10px]",
+                                                                                    !resp?.status && "bg-white border-slate-200 text-slate-300 hover:border-sky-300 hover:text-sky-400",
+                                                                                    resp?.status === 'OK' && "bg-green-500 border-green-600 text-white shadow-lg shadow-green-500/20 scale-110",
+                                                                                    resp?.status === 'NOK' && "bg-red-500 border-red-600 text-white shadow-lg shadow-red-500/20 scale-110"
+                                                                                )}
+                                                                            >
+                                                                                {resp?.status === 'OK' ? '✔' : resp?.status === 'NOK' ? '✗' : reqChar}
+                                                                            </button>
+                                                                        ) : <span className="text-slate-200 text-xs">—</span>}
                                                                     </td>
-                                                                );
-                                                            })}
+                                                                    <td className="p-1.5 border-r text-center">
+                                                                        {resp?.status === 'OK' && <span className="px-2 py-0.5 rounded-full bg-green-100 text-green-700 font-black text-[9px]">Đạt</span>}
+                                                                        {resp?.status === 'NOK' && <span className="px-2 py-0.5 rounded-full bg-red-100 text-red-700 font-black text-[9px]">Không Đạt</span>}
+                                                                    </td>
+                                                                    <td className="p-1.5">
+                                                                        <input
+                                                                            value={resp?.value || ''}
+                                                                            onChange={(e) => handleValueChange(taskId, e.target.value)}
+                                                                            placeholder="Ghi chú..."
+                                                                            className="w-full p-1.5 text-[10px] border border-slate-100 rounded-lg bg-transparent outline-none focus:bg-white focus:border-sky-200 transition-all font-medium text-slate-600"
+                                                                        />
+                                                                    </td>
+                                                                </>);
+                                                            })()}
                                                         </tr>
                                                         {task.subTasks?.map(sub => (
                                                             <tr key={sub.no} className="border-b border-slate-50 hover:bg-slate-50/50 transition-colors group bg-slate-50/30">
                                                                 <td className="p-3 border-r text-center text-slate-200 italic font-bold">{sub.no}</td>
                                                                 <td className="p-3 border-r text-slate-500 pl-8 italic font-medium">{sub.name}</td>
-                                                                {MAINT_LEVELS.map((level, idx) => {
+                                                                {(() => {
+                                                                    const idx = MAINT_LEVELS.indexOf(maintLevel);
                                                                     const reqChar = sub.reqs[idx];
-                                                                    const taskId = `${section.no}_${task.no}_${sub.no}_${level}`;
-                                                                    const isCurrent = maintLevel === level;
+                                                                    const taskId = `${section.no}_${task.no}_${sub.no}_${maintLevel}`;
                                                                     const resp = responses[taskId];
-
-                                                                    return (
-                                                                        <td 
-                                                                            key={level} 
-                                                                            className={clsx(
-                                                                                "p-1.5 border-r text-center",
-                                                                                isCurrent ? "bg-sky-50/40" : "bg-slate-100/10"
-                                                                            )}
-                                                                        >
+                                                                    return (<>
+                                                                        <td className="p-1.5 border-r text-center bg-sky-50/20">
                                                                             {reqChar ? (
-                                                                                reqChar === 'M' ? (
-                                                                                    <input 
-                                                                                        value={resp?.value || ''} 
-                                                                                        onChange={(e) => handleValueChange(taskId, e.target.value)}
-                                                                                        placeholder="M"
-                                                                                        className={clsx(
-                                                                                            "w-full p-1.5 text-center font-black rounded-lg border transition-all outline-none text-[10px]",
-                                                                                            resp?.value ? "border-sky-300 bg-sky-50 text-sky-700" : "border-slate-100 bg-slate-50 text-slate-300 focus:border-sky-200"
-                                                                                        )}
-                                                                                    />
-                                                                                ) : (
-                                                                                    <button
-                                                                                        onClick={() => handleToggleStatus(taskId, reqChar)}
-                                                                                        className={clsx(
-                                                                                            "w-8 h-8 rounded-lg border font-black transition-all flex items-center justify-center mx-auto text-[9px]",
-                                                                                            !resp?.status && "bg-white border-slate-100 text-slate-200 hover:border-sky-200",
-                                                                                            resp?.status === 'OK' && "bg-green-500 border-green-600 text-white shadow shadow-green-500/10",
-                                                                                            resp?.status === 'NOK' && "bg-red-500 border-red-600 text-white shadow shadow-red-500/10"
-                                                                                        )}
-                                                                                    >
-                                                                                        {resp?.status === 'OK' ? '✔️' : (resp?.status === 'NOK' ? '!' : reqChar)}
-                                                                                    </button>
-                                                                                )
-                                                                            ) : <span className="text-slate-100">---</span>}
+                                                                                <button
+                                                                                    onClick={() => handleToggleStatus(taskId, reqChar)}
+                                                                                    className={clsx(
+                                                                                        "w-8 h-8 rounded-lg border font-black transition-all flex items-center justify-center mx-auto text-[9px]",
+                                                                                        !resp?.status && "bg-white border-slate-200 text-slate-300 hover:border-sky-300",
+                                                                                        resp?.status === 'OK' && "bg-green-500 border-green-600 text-white shadow shadow-green-500/10",
+                                                                                        resp?.status === 'NOK' && "bg-red-500 border-red-600 text-white shadow shadow-red-500/10"
+                                                                                    )}
+                                                                                >
+                                                                                    {resp?.status === 'OK' ? '✔' : resp?.status === 'NOK' ? '✗' : reqChar}
+                                                                                </button>
+                                                                            ) : <span className="text-slate-200 text-xs">—</span>}
                                                                         </td>
-                                                                    );
-                                                                })}
+                                                                        <td className="p-1.5 border-r text-center">
+                                                                            {resp?.status === 'OK' && <span className="px-1.5 py-0.5 rounded-full bg-green-100 text-green-700 font-black text-[8px]">Đạt</span>}
+                                                                            {resp?.status === 'NOK' && <span className="px-1.5 py-0.5 rounded-full bg-red-100 text-red-700 font-black text-[8px]">K.Đạt</span>}
+                                                                        </td>
+                                                                        <td className="p-1.5">
+                                                                            <input
+                                                                                value={resp?.value || ''}
+                                                                                onChange={(e) => handleValueChange(taskId, e.target.value)}
+                                                                                placeholder="Ghi chú..."
+                                                                                className="w-full p-1 text-[9px] border border-slate-100 rounded bg-transparent outline-none focus:bg-white focus:border-sky-200 transition-all font-medium text-slate-500"
+                                                                            />
+                                                                        </td>
+                                                                    </>);
+                                                                })()}
                                                             </tr>
                                                         ))}
                                                     </React.Fragment>
