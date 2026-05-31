@@ -418,63 +418,78 @@ export default function PbbMaintenanceFormPage() {
                         // Checklist Table Header
                         new Paragraph({ children: [new TextRun({ text: `CHI TIẾT KIỂM TRA BẢO DƯỠNG ${maintLevel}`, bold: true, size: 24 })], alignment: AlignmentType.CENTER, spacing: { after: 200 } }),
 
-                        // Existing Tasks Table logic (re-using the logic from the previous version)
                         new Table({
                             width: { size: 100, type: WidthType.PERCENTAGE },
                             rows: [
                                 new TableRow({
                                     children: [
                                         new TableCell({ width: { size: 5, type: WidthType.PERCENTAGE }, children: [new Paragraph({ children: [new TextRun({ text: "Stt", bold: true })], alignment: AlignmentType.CENTER })] }),
-                                        new TableCell({ width: { size: 55, type: WidthType.PERCENTAGE }, children: [new Paragraph({ children: [new TextRun({ text: "Hạng mục bảo dưỡng", bold: true })], alignment: AlignmentType.CENTER })] }),
-                                        new TableCell({ width: { size: 15, type: WidthType.PERCENTAGE }, children: [new Paragraph({ children: [new TextRun({ text: "1T", bold: true })], alignment: AlignmentType.CENTER })] }),
-                                        new TableCell({ width: { size: 15, type: WidthType.PERCENTAGE }, children: [new Paragraph({ children: [new TextRun({ text: "6T", bold: true })], alignment: AlignmentType.CENTER })] }),
-                                        new TableCell({ width: { size: 15, type: WidthType.PERCENTAGE }, children: [new Paragraph({ children: [new TextRun({ text: "12T", bold: true })], alignment: AlignmentType.CENTER })] }),
+                                        new TableCell({ width: { size: 55, type: WidthType.PERCENTAGE }, children: [new Paragraph({ children: [new TextRun({ text: "Hạng mục kiểm tra", bold: true })], alignment: AlignmentType.CENTER })] }),
+                                        new TableCell({ width: { size: 12, type: WidthType.PERCENTAGE }, children: [new Paragraph({ children: [new TextRun({ text: "Kiểm tra", bold: true })], alignment: AlignmentType.CENTER })] }),
+                                        new TableCell({ width: { size: 13, type: WidthType.PERCENTAGE }, children: [new Paragraph({ children: [new TextRun({ text: "Tình trạng", bold: true })], alignment: AlignmentType.CENTER })] }),
+                                        new TableCell({ width: { size: 15, type: WidthType.PERCENTAGE }, children: [new Paragraph({ children: [new TextRun({ text: "Ghi chú", bold: true })], alignment: AlignmentType.CENTER })] }),
                                     ]
                                 }),
-                                ...PBB_CHECKLIST_SECTIONS.flatMap(section => [
-                                    new TableRow({
-                                        children: [
-                                            new TableCell({ children: [new Paragraph({ children: [new TextRun({ text: section.no, bold: true })], alignment: AlignmentType.CENTER })], shading: { fill: "F2F2F2" } }),
-                                            new TableCell({ children: [new Paragraph({ children: [new TextRun({ text: section.name.toUpperCase(), bold: true })] })], columnSpan: 5, shading: { fill: "F2F2F2" } }),
-                                        ]
-                                    }),
-                                    ...section.tasks.flatMap(task => [
+                                ...PBB_CHECKLIST_SECTIONS.filter((section) => {
+                                    const idx = MAINT_LEVELS.indexOf(maintLevel);
+                                    return section.tasks.some(t => t.reqs[idx] || t.subTasks?.some(s => s.reqs[idx]));
+                                }).flatMap(section => {
+                                    const idx = MAINT_LEVELS.indexOf(maintLevel);
+                                    return [
                                         new TableRow({
                                             children: [
-                                                new TableCell({ children: [new Paragraph({ text: task.no, alignment: AlignmentType.CENTER })] }),
-                                                new TableCell({ children: [new Paragraph({ text: task.name })] }),
-                                                ...MAINT_LEVELS.map((level, idx) => {
-                                                    const req = task.reqs[idx];
-                                                    const resp = responses[`${section.no}_${task.no}_${level}`];
-                                                    let text = req || "";
-                                                    if (resp?.status === 'OK') text = `✔️ (${req})`;
-                                                    if (resp?.status === 'NOK') text = `! (${req})`;
-                                                    if (resp?.value) text = resp.value;
-
-                                                    return new TableCell({ children: [new Paragraph({ text, alignment: AlignmentType.CENTER })] });
-                                                })
+                                                new TableCell({ children: [new Paragraph({ children: [new TextRun({ text: section.no, bold: true })], alignment: AlignmentType.CENTER })], shading: { fill: "F2F2F2" } }),
+                                                new TableCell({ children: [new Paragraph({ children: [new TextRun({ text: section.name.toUpperCase(), bold: true })] })], columnSpan: 4, shading: { fill: "F2F2F2" } }),
                                             ]
                                         }),
-                                        ...(task.subTasks || []).map(sub => (
-                                            new TableRow({
-                                                children: [
-                                                    new TableCell({ children: [new Paragraph({ text: sub.no, alignment: AlignmentType.CENTER })] }),
-                                                    new TableCell({ children: [new Paragraph({ children: [new TextRun({ text: `    - ${sub.name}`, italics: true })] })] }),
-                                                    ...MAINT_LEVELS.map((level, idx) => {
-                                                        const req = sub.reqs[idx];
-                                                        const resp = responses[`${section.no}_${task.no}_${sub.no}_${level}`];
-                                                        let text = req || "";
-                                                        if (resp?.status === 'OK') text = `✔️ (${req})`;
-                                                        if (resp?.status === 'NOK') text = `! (${req})`;
-                                                        if (resp?.value) text = resp.value;
+                                        ...section.tasks.flatMap(task => {
+                                            const taskId = `${section.no}_${task.no}_${maintLevel}`;
+                                            const resp = responses[taskId];
+                                            const req = task.reqs[idx];
+                                            
+                                            let checkText = req || "";
+                                            if (resp?.status === 'OK') checkText = `✔ (${req})`;
+                                            if (resp?.status === 'NOK') checkText = `✗ (${req})`;
+                                            
+                                            const statusText = resp?.status === 'OK' ? "Đạt" : resp?.status === 'NOK' ? "Không Đạt" : "";
+                                            const remarkText = resp?.value || "";
 
-                                                        return new TableCell({ children: [new Paragraph({ text, alignment: AlignmentType.CENTER })] });
-                                                    })
-                                                ]
-                                            })
-                                        ))
-                                    ])
-                                ])
+                                            return [
+                                                new TableRow({
+                                                    children: [
+                                                        new TableCell({ children: [new Paragraph({ text: task.no, alignment: AlignmentType.CENTER })] }),
+                                                        new TableCell({ children: [new Paragraph({ text: task.name })] }),
+                                                        new TableCell({ children: [new Paragraph({ text: checkText, alignment: AlignmentType.CENTER })] }),
+                                                        new TableCell({ children: [new Paragraph({ text: statusText, alignment: AlignmentType.CENTER })] }),
+                                                        new TableCell({ children: [new Paragraph({ text: remarkText })] }),
+                                                    ]
+                                                }),
+                                                ...(task.subTasks || []).map(sub => {
+                                                    const subTaskId = `${section.no}_${task.no}_${sub.no}_${maintLevel}`;
+                                                    const subResp = responses[subTaskId];
+                                                    const subReq = sub.reqs[idx];
+                                                    
+                                                    let subCheckText = subReq || "";
+                                                    if (subResp?.status === 'OK') subCheckText = `✔ (${subReq})`;
+                                                    if (subResp?.status === 'NOK') subCheckText = `✗ (${subReq})`;
+                                                    
+                                                    const subStatusText = subResp?.status === 'OK' ? "Đạt" : subResp?.status === 'NOK' ? "Không Đạt" : "";
+                                                    const subRemarkText = subResp?.value || "";
+
+                                                    return new TableRow({
+                                                        children: [
+                                                            new TableCell({ children: [new Paragraph({ text: sub.no, alignment: AlignmentType.CENTER })] }),
+                                                            new TableCell({ children: [new Paragraph({ children: [new TextRun({ text: `    - ${sub.name}`, italics: true })] })] }),
+                                                            new TableCell({ children: [new Paragraph({ text: subCheckText, alignment: AlignmentType.CENTER })] }),
+                                                            new TableCell({ children: [new Paragraph({ text: subStatusText, alignment: AlignmentType.CENTER })] }),
+                                                            new TableCell({ children: [new Paragraph({ text: subRemarkText })] }),
+                                                        ]
+                                                    });
+                                                })
+                                            ];
+                                        })
+                                    ];
+                                })
                             ]
                         })
                     ]
