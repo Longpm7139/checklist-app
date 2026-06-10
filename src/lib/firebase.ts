@@ -326,7 +326,8 @@ export const uploadImage = async (file: File, path: string) => {
         let errorMsg = error?.code || error?.message || "Không xác định";
         
         if (errorMsg.includes('unauthorized')) {
-             alert(`LỖI TRUY CẬP (unauthorized):\n\n- Đường dẫn: ${path}\n- Dung lượng: ${(file.size/(1024*1024)).toFixed(2)}MB\n- Lỗi hệ thống: ${errorMsg}\n\nNguyên nhân: Server từ chối ghi vào đường dẫn này. Hướng xử lý: Hãy liên hệ Admin để kiểm tra Storage Rules cho thư mục 'procedures/'.`);
+             const rootFolder = path.split('/')[0] || 'được yêu cầu';
+             alert(`LỖI TRUY CẬP (unauthorized):\n\n- Đường dẫn: ${path}\n- Dung lượng: ${(file.size/(1024*1024)).toFixed(2)}MB\n- Lỗi hệ thống: ${errorMsg}\n\nNguyên nhân: Server từ chối ghi vào đường dẫn này. Hướng xử lý: Hãy liên hệ Admin để kiểm tra Storage Rules cho thư mục '${rootFolder}/'.`);
         } else {
              alert(`LỖI TẢI FILE (Code: ${error.code || 'ERR'}):\n${errorMsg}`);
         }
@@ -396,12 +397,15 @@ export const subscribeToSafetyReports = (callback: (data: any[]) => void) => {
         querySnapshot.forEach((doc) => {
             items.push({ ...doc.data(), id: doc.id });
         });
-        // Sort by createdAt descending
-        items.sort((a, b) => {
-            const timeA = new Date(a.createdAt).getTime() || 0;
-            const timeB = new Date(b.createdAt).getTime() || 0;
-            return timeB - timeA;
-        });
+        // Sort by createdAt descending (createdAt format: "HH:mm dd/MM/yyyy")
+        const parseCreatedAt = (createdAt: string) => {
+            const [time, date] = (createdAt || '').split(' ');
+            const [day, month, year] = (date || '').split('/').map(Number);
+            const [hour, minute] = (time || '').split(':').map(Number);
+            if (!day || !month || !year) return 0;
+            return new Date(year, month - 1, day, hour || 0, minute || 0).getTime();
+        };
+        items.sort((a, b) => parseCreatedAt(b.createdAt) - parseCreatedAt(a.createdAt));
         callback(items);
     });
 };
