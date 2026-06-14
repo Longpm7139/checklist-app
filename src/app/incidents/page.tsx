@@ -233,7 +233,7 @@ export default function IncidentsPage() {
 
             // Notification Logic (only for NEW incidents)
             if (notifyZalo && !isEditing) {
-                const message = `[BÁO CÁO SỰ CỐ KHẨN CẤP] 🚨\n\n📌 Tên sự cố: ${newTitle}\n📍 Hệ thống/Khu vực: ${newSystem}\n🕒 Thời gian xảy ra: ${incidentDate}\n📝 Mô tả: ${newDesc || 'Không có mô tả'}\n👤 Người báo: ${currentUser?.name || 'Admin'}${uploadedUrl ? `\n🖼 Ảnh đính kèm: [Xem trong App]` : ''}\n\n👉 Đề nghị kiểm tra xử lý ngay!`;
+                const message = `[BÁO CÁO SỰ CỐ KHẨN CẤP] 🚨\n\n📌 Tên sự cố: ${newTitle}\n📍 Hệ thống/Khu vực: ${systemNameForIncident}\n🕒 Thời gian xảy ra: ${incidentDate}\n📝 Mô tả: ${newDesc || 'Không có mô tả'}\n👤 Người báo: ${currentUser?.name || 'Admin'}${uploadedUrl ? `\n🖼 Ảnh đính kèm: [Xem trong App]` : ''}\n\n👉 Đề nghị kiểm tra xử lý ngay!`;
                 alert(isEditing ? "Đã cập nhật sự cố thành công!" : "Đã tạo sự cố thành công!");
                 sendZaloMessage(message);
             } else {
