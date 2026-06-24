@@ -88,6 +88,7 @@ export default function MaintenancePage() {
     const [cardExportLevel, setCardExportLevel] = useState<Record<string, string>>({});
     // Checklist nhân viên điền khi báo cáo hoàn thành
     const [completeModalChecklist, setCompleteModalChecklist] = useState<VdgsChecklistItem[]>([]);
+    const [completeModalLevel, setCompleteModalLevel] = useState<'1 tháng' | '6 tháng' | '12 tháng' | ''>('');
 
     // Complete Modal State
     const [isCompleteModalOpen, setIsCompleteModalOpen] = useState(false);
@@ -227,6 +228,16 @@ export default function MaintenancePage() {
 
     const updateModalChecklistItem = (index: number, field: keyof VdgsChecklistItem, value: string | boolean) => {
         setCompleteModalChecklist(prev => prev.map((item, i) => i === index ? { ...item, [field]: value } : item));
+    };
+
+    const handleCompleteModalLevelChange = (level: '1 tháng' | '6 tháng' | '12 tháng' | '') => {
+        setCompleteModalLevel(level);
+        if (level) {
+            const tmpl = VDGS_CHECKLIST[level] || [];
+            setCompleteModalChecklist(tmpl.map(item => ({ ...item, kiemTra: false, tinhTrang: '', ghiChu: '' })));
+        } else {
+            setCompleteModalChecklist([]);
+        }
     };
 
     const toggleSystemSelection = (id: string) => {
@@ -372,16 +383,18 @@ export default function MaintenancePage() {
         // Load checklist để nhân viên điền kiểm tra / tình trạng / ghi chú
         const isVdgs = task?.systemName?.toUpperCase().includes('VDGS');
         if (isVdgs) {
+            const level = task?.maintenanceLevel || '';
+            setCompleteModalLevel(level as '1 tháng' | '6 tháng' | '12 tháng' | '');
             if (task?.vdgsChecklist?.length) {
-                // Đã có checklist — reset kiemTra + tinhTrang để nhân viên điền lại
                 setCompleteModalChecklist(task.vdgsChecklist.map(item => ({ ...item, kiemTra: false, tinhTrang: '', ghiChu: '' })));
-            } else if (task?.maintenanceLevel) {
-                const tmpl = VDGS_CHECKLIST[task.maintenanceLevel] || [];
+            } else if (level) {
+                const tmpl = VDGS_CHECKLIST[level] || [];
                 setCompleteModalChecklist(tmpl.map(item => ({ ...item, kiemTra: false, tinhTrang: '', ghiChu: '' })));
             } else {
                 setCompleteModalChecklist([]);
             }
         } else {
+            setCompleteModalLevel('');
             setCompleteModalChecklist([]);
         }
 
@@ -1494,85 +1507,114 @@ export default function MaintenancePage() {
                                 />
                             </div>
 
-                            {/* Checklist VDGS — nhân viên điền khi báo cáo */}
-                            {completeModalChecklist.length > 0 && (
-                                <div className="border border-blue-200 rounded-xl bg-blue-50/30 p-3">
-                                    <div className="text-sm font-bold text-blue-800 mb-2 uppercase tracking-wide">
-                                        📋 Checklist bảo dưỡng VDGS — Nhân viên điền
+                            {/* Checklist VDGS — luôn hiện cho task VDGS, nhân viên điền */}
+                            {(() => {
+                                const modalTask = tasks.find(t => t.id === selectedTaskId);
+                                const isVdgs = modalTask?.systemName?.toUpperCase().includes('VDGS');
+                                if (!isVdgs) return null;
+                                return (
+                                    <div className="border border-blue-200 rounded-xl bg-blue-50/30 p-3">
+                                        <div className="flex items-center justify-between mb-2 flex-wrap gap-2">
+                                            <div className="text-sm font-bold text-blue-800 uppercase tracking-wide">
+                                                📋 Checklist bảo dưỡng VDGS — Nhân viên điền
+                                            </div>
+                                            {/* Level selector: hiện khi task chưa có maintenanceLevel */}
+                                            {!modalTask?.maintenanceLevel && (
+                                                <select
+                                                    value={completeModalLevel}
+                                                    onChange={e => handleCompleteModalLevelChange(e.target.value as '1 tháng' | '6 tháng' | '12 tháng' | '')}
+                                                    className="text-xs border border-blue-300 rounded px-2 py-1.5 outline-none bg-white font-medium"
+                                                >
+                                                    <option value="">-- Chọn cấp bảo dưỡng --</option>
+                                                    <option value="1 tháng">1 tháng (3 hạng mục)</option>
+                                                    <option value="6 tháng">6 tháng (12 hạng mục)</option>
+                                                    <option value="12 tháng">12 tháng (14 hạng mục)</option>
+                                                </select>
+                                            )}
+                                        </div>
+
+                                        {completeModalChecklist.length === 0 ? (
+                                            <div className="text-center py-6 text-blue-400 text-sm font-medium">
+                                                Vui lòng chọn cấp bảo dưỡng để hiển thị checklist
+                                            </div>
+                                        ) : (
+                                            <>
+                                                <div className="overflow-x-auto rounded-lg border border-blue-200 shadow-sm">
+                                                    <table className="w-full text-xs border-collapse min-w-[560px]">
+                                                        <thead>
+                                                            <tr className="bg-blue-700 text-white">
+                                                                <th className="border border-blue-600 px-2 py-2 text-center w-8">STT</th>
+                                                                <th className="border border-blue-600 px-2 py-2 text-left">Nội dung kiểm tra</th>
+                                                                <th className="border border-blue-600 px-2 py-2 text-center w-16">Kiểm tra</th>
+                                                                <th className="border border-blue-600 px-2 py-2 text-center w-24">Tình trạng</th>
+                                                                <th className="border border-blue-600 px-2 py-2 text-left w-32">Ghi chú</th>
+                                                            </tr>
+                                                        </thead>
+                                                        <tbody>
+                                                            {completeModalChecklist.map((item, idx) => {
+                                                                const needNote = item.tinhTrang === 'Không đạt' || item.tinhTrang === 'N/A';
+                                                                const missing = needNote && !item.ghiChu.trim();
+                                                                return (
+                                                                    <tr key={idx} className={idx % 2 === 0 ? 'bg-white' : 'bg-blue-50/20'}>
+                                                                        <td className="border border-blue-100 px-2 py-1.5 text-center font-bold text-slate-600">{item.stt}</td>
+                                                                        <td className="border border-blue-100 px-2 py-1.5 text-slate-700 leading-snug">{item.noiDung}</td>
+                                                                        <td className="border border-blue-100 px-2 py-1.5 text-center">
+                                                                            <input
+                                                                                type="checkbox"
+                                                                                checked={item.kiemTra}
+                                                                                onChange={e => updateModalChecklistItem(idx, 'kiemTra', e.target.checked)}
+                                                                                className="w-4 h-4 text-blue-600 rounded cursor-pointer"
+                                                                            />
+                                                                        </td>
+                                                                        <td className="border border-blue-100 px-1 py-1">
+                                                                            <select
+                                                                                value={item.tinhTrang}
+                                                                                onChange={e => updateModalChecklistItem(idx, 'tinhTrang', e.target.value)}
+                                                                                className={clsx(
+                                                                                    "w-full text-xs border rounded px-1 py-1 outline-none bg-white",
+                                                                                    (item.tinhTrang === 'Không đạt' || item.tinhTrang === 'N/A')
+                                                                                        ? "border-red-400 text-red-700 font-bold"
+                                                                                        : item.tinhTrang === 'Đạt'
+                                                                                            ? "border-green-400 text-green-700 font-bold"
+                                                                                            : "border-slate-200"
+                                                                                )}
+                                                                            >
+                                                                                <option value="">--</option>
+                                                                                <option value="Đạt">Đạt</option>
+                                                                                <option value="Không đạt">Không đạt</option>
+                                                                                <option value="N/A">N/A</option>
+                                                                            </select>
+                                                                        </td>
+                                                                        <td className="border border-blue-100 px-1 py-1">
+                                                                            <input
+                                                                                type="text"
+                                                                                value={item.ghiChu}
+                                                                                onChange={e => updateModalChecklistItem(idx, 'ghiChu', e.target.value)}
+                                                                                placeholder={needNote ? '⚠ Bắt buộc...' : 'Ghi chú...'}
+                                                                                className={clsx(
+                                                                                    "w-full text-xs border rounded px-1.5 py-1 outline-none",
+                                                                                    missing ? "border-red-500 bg-red-50 placeholder-red-400 animate-pulse"
+                                                                                        : needNote && item.ghiChu.trim() ? "border-green-400 bg-green-50"
+                                                                                            : "border-slate-200"
+                                                                                )}
+                                                                            />
+                                                                        </td>
+                                                                    </tr>
+                                                                );
+                                                            })}
+                                                        </tbody>
+                                                    </table>
+                                                </div>
+                                                <div className="mt-1.5 text-[10px] text-blue-600 font-medium">
+                                                    ✅ Đã kiểm tra: {completeModalChecklist.filter(i => i.kiemTra).length}/{completeModalChecklist.length} hạng mục
+                                                    &nbsp;|&nbsp; Đạt: {completeModalChecklist.filter(i => i.tinhTrang === 'Đạt').length}
+                                                    &nbsp;|&nbsp; Không đạt: {completeModalChecklist.filter(i => i.tinhTrang === 'Không đạt').length}
+                                                </div>
+                                            </>
+                                        )}
                                     </div>
-                                    <div className="overflow-x-auto rounded-lg border border-blue-200 shadow-sm">
-                                        <table className="w-full text-xs border-collapse min-w-[560px]">
-                                            <thead>
-                                                <tr className="bg-blue-700 text-white">
-                                                    <th className="border border-blue-600 px-2 py-2 text-center w-8">STT</th>
-                                                    <th className="border border-blue-600 px-2 py-2 text-left">Nội dung kiểm tra</th>
-                                                    <th className="border border-blue-600 px-2 py-2 text-center w-16">Kiểm tra</th>
-                                                    <th className="border border-blue-600 px-2 py-2 text-center w-24">Tình trạng</th>
-                                                    <th className="border border-blue-600 px-2 py-2 text-left w-32">Ghi chú</th>
-                                                </tr>
-                                            </thead>
-                                            <tbody>
-                                                {completeModalChecklist.map((item, idx) => {
-                                                    const needNote = item.tinhTrang === 'Không đạt' || item.tinhTrang === 'N/A';
-                                                    const missing = needNote && !item.ghiChu.trim();
-                                                    return (
-                                                        <tr key={idx} className={idx % 2 === 0 ? 'bg-white' : 'bg-blue-50/20'}>
-                                                            <td className="border border-blue-100 px-2 py-1.5 text-center font-bold text-slate-600">{item.stt}</td>
-                                                            <td className="border border-blue-100 px-2 py-1.5 text-slate-700 leading-snug">{item.noiDung}</td>
-                                                            <td className="border border-blue-100 px-2 py-1.5 text-center">
-                                                                <input
-                                                                    type="checkbox"
-                                                                    checked={item.kiemTra}
-                                                                    onChange={e => updateModalChecklistItem(idx, 'kiemTra', e.target.checked)}
-                                                                    className="w-4 h-4 text-blue-600 rounded cursor-pointer"
-                                                                />
-                                                            </td>
-                                                            <td className="border border-blue-100 px-1 py-1">
-                                                                <select
-                                                                    value={item.tinhTrang}
-                                                                    onChange={e => updateModalChecklistItem(idx, 'tinhTrang', e.target.value)}
-                                                                    className={clsx(
-                                                                        "w-full text-xs border rounded px-1 py-1 outline-none bg-white",
-                                                                        (item.tinhTrang === 'Không đạt' || item.tinhTrang === 'N/A')
-                                                                            ? "border-red-400 text-red-700 font-bold"
-                                                                            : item.tinhTrang === 'Đạt'
-                                                                                ? "border-green-400 text-green-700 font-bold"
-                                                                                : "border-slate-200"
-                                                                    )}
-                                                                >
-                                                                    <option value="">--</option>
-                                                                    <option value="Đạt">Đạt</option>
-                                                                    <option value="Không đạt">Không đạt</option>
-                                                                    <option value="N/A">N/A</option>
-                                                                </select>
-                                                            </td>
-                                                            <td className="border border-blue-100 px-1 py-1">
-                                                                <input
-                                                                    type="text"
-                                                                    value={item.ghiChu}
-                                                                    onChange={e => updateModalChecklistItem(idx, 'ghiChu', e.target.value)}
-                                                                    placeholder={needNote ? '⚠ Bắt buộc...' : 'Ghi chú...'}
-                                                                    className={clsx(
-                                                                        "w-full text-xs border rounded px-1.5 py-1 outline-none",
-                                                                        missing ? "border-red-500 bg-red-50 placeholder-red-400 animate-pulse"
-                                                                            : needNote && item.ghiChu.trim() ? "border-green-400 bg-green-50"
-                                                                                : "border-slate-200"
-                                                                    )}
-                                                                />
-                                                            </td>
-                                                        </tr>
-                                                    );
-                                                })}
-                                            </tbody>
-                                        </table>
-                                    </div>
-                                    <div className="mt-1.5 text-[10px] text-blue-600 font-medium">
-                                        ✅ Đã kiểm tra: {completeModalChecklist.filter(i => i.kiemTra).length}/{completeModalChecklist.length} hạng mục
-                                        &nbsp;|&nbsp; Đạt: {completeModalChecklist.filter(i => i.tinhTrang === 'Đạt').length}
-                                        &nbsp;|&nbsp; Không đạt: {completeModalChecklist.filter(i => i.tinhTrang === 'Không đạt').length}
-                                    </div>
-                                </div>
-                            )}
+                                );
+                            })()}
 
                             <div className="pt-2">
                                 <label className="block text-sm font-bold text-slate-700 mb-2 flex items-center gap-2">
