@@ -224,11 +224,27 @@ export default function MaintenancePage() {
     const toggleSystemSelection = (id: string) => {
         if (isEditMode) {
             setSelectedSystemIds([id]);
+            // Reset VDGS checklist nếu hệ thống mới chọn không phải VDGS
+            const sys = availableSystems.find(s => s.id === id);
+            if (!sys?.name?.toUpperCase().includes('VDGS')) {
+                setMaintenanceLevel('');
+                setVdgsChecklist([]);
+            }
             return;
         }
-        setSelectedSystemIds(prev =>
-            prev.includes(id) ? prev.filter(i => i !== id) : [...prev, id]
-        );
+        setSelectedSystemIds(prev => {
+            const next = prev.includes(id) ? prev.filter(i => i !== id) : [...prev, id];
+            // Reset checklist nếu không còn hệ thống VDGS nào được chọn
+            const hasVdgs = next.some(sid => {
+                const s = availableSystems.find(s => s.id === sid);
+                return s?.name?.toUpperCase().includes('VDGS');
+            });
+            if (!hasVdgs) {
+                setMaintenanceLevel('');
+                setVdgsChecklist([]);
+            }
+            return next;
+        });
     };
 
     const selectAllSystems = () => {
@@ -454,6 +470,12 @@ export default function MaintenancePage() {
         setEditAfterImageFile(null);
         setViewMode('LIST');
     };
+
+    // True khi ít nhất 1 hệ thống VDGS được chọn
+    const isVdgsSelected = selectedSystemIds.some(id => {
+        const sys = availableSystems.find(s => s.id === id);
+        return sys?.name?.toUpperCase().includes('VDGS');
+    });
 
     // Helper: Group tasks by month
     const groupTasksByMonth = (taskList: MaintenanceTask[]) => {
@@ -731,8 +753,8 @@ export default function MaintenancePage() {
                                 />
                             </div>
 
-                            {/* VDGS Checklist Section */}
-                            <div className="border border-blue-200 rounded-xl bg-blue-50/40 p-4">
+                            {/* VDGS Checklist Section — chỉ hiện khi chọn hệ thống VDGS */}
+                            {isVdgsSelected && <div className="border border-blue-200 rounded-xl bg-blue-50/40 p-4">
                                 <label className="block text-sm font-bold text-blue-800 mb-2 uppercase tracking-wide">
                                     📋 Checklist bảo dưỡng VDGS
                                 </label>
@@ -802,7 +824,7 @@ export default function MaintenancePage() {
                                         </div>
                                     </div>
                                 )}
-                            </div>
+                            </div>}
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                                 <div>
                                     <label className="block text-sm font-medium text-slate-700 mb-2">Giao cho nhân viên (Chọn nhiều) *</label>
