@@ -1336,7 +1336,29 @@ export default function MaintenancePage() {
                                                                 ✅ {task.vdgsChecklist.filter(i => i.kiemTra).length}/{task.vdgsChecklist.length} hạng mục
                                                             </span>
                                                         </div>
-                                                        <div className="overflow-x-auto">
+                                                        {/* Mobile: card list */}
+                                                        <div className="md:hidden divide-y divide-blue-100">
+                                                            {task.vdgsChecklist.map((item, idx) => (
+                                                                <div key={idx} className={`px-3 py-2 ${idx % 2 === 0 ? 'bg-white' : 'bg-blue-50/30'}`}>
+                                                                    <div className="text-[11px] font-medium text-slate-700 leading-snug mb-1">
+                                                                        <span className="font-black text-blue-700 mr-1">{item.stt}.</span>{item.noiDung}
+                                                                    </div>
+                                                                    <div className="flex items-center gap-2 flex-wrap">
+                                                                        <span className={`text-[10px] font-bold ${item.kiemTra ? 'text-green-600' : 'text-slate-400'}`}>
+                                                                            {item.kiemTra ? '✓ Đã kiểm tra' : '— Chưa kiểm tra'}
+                                                                        </span>
+                                                                        {item.tinhTrang && (
+                                                                            <span className={`px-1.5 py-0.5 rounded text-[10px] font-bold ${item.tinhTrang === 'Đạt' ? 'bg-green-100 text-green-700' : item.tinhTrang === 'Không đạt' ? 'bg-red-100 text-red-700' : 'bg-slate-100 text-slate-500'}`}>
+                                                                                {item.tinhTrang}
+                                                                            </span>
+                                                                        )}
+                                                                        {item.ghiChu && <span className="text-[10px] text-slate-500 italic">"{item.ghiChu}"</span>}
+                                                                    </div>
+                                                                </div>
+                                                            ))}
+                                                        </div>
+                                                        {/* Desktop: table */}
+                                                        <div className="hidden md:block overflow-x-auto">
                                                             <table className="w-full text-xs border-collapse min-w-[500px]">
                                                                 <thead>
                                                                     <tr className="bg-blue-50 text-slate-600">
@@ -1353,9 +1375,7 @@ export default function MaintenancePage() {
                                                                             <td className="border border-blue-100 px-2 py-1 text-center font-bold text-slate-500">{item.stt}</td>
                                                                             <td className="border border-blue-100 px-2 py-1 text-slate-700 leading-snug">{item.noiDung}</td>
                                                                             <td className="border border-blue-100 px-2 py-1 text-center">
-                                                                                {item.kiemTra
-                                                                                    ? <span className="text-green-600 font-black">✓</span>
-                                                                                    : <span className="text-slate-300">—</span>}
+                                                                                {item.kiemTra ? <span className="text-green-600 font-black">✓</span> : <span className="text-slate-300">—</span>}
                                                                             </td>
                                                                             <td className="border border-blue-100 px-2 py-1 text-center">
                                                                                 {item.tinhTrang ? (
@@ -1539,7 +1559,66 @@ export default function MaintenancePage() {
                                             </div>
                                         ) : (
                                             <>
-                                                <div className="overflow-x-auto rounded-lg border border-blue-200 shadow-sm">
+                                                {/* Mobile: card layout */}
+                                                <div className="md:hidden space-y-2">
+                                                    {completeModalChecklist.map((item, idx) => {
+                                                        const needNote = item.tinhTrang === 'Không đạt' || item.tinhTrang === 'N/A';
+                                                        const missing = needNote && !item.ghiChu.trim();
+                                                        return (
+                                                            <div key={idx} className={clsx(
+                                                                "rounded-lg border p-3",
+                                                                missing ? "border-red-300 bg-red-50/30" : "border-blue-100 bg-white"
+                                                            )}>
+                                                                <div className="text-xs font-bold text-slate-600 mb-2 leading-snug">
+                                                                    <span className="inline-flex items-center justify-center w-5 h-5 rounded-full bg-blue-700 text-white text-[10px] mr-1.5">{item.stt}</span>
+                                                                    {item.noiDung}
+                                                                </div>
+                                                                <div className="flex gap-2 items-center flex-wrap">
+                                                                    <label className="flex items-center gap-1.5 text-xs font-medium text-slate-600 cursor-pointer">
+                                                                        <input
+                                                                            type="checkbox"
+                                                                            checked={item.kiemTra}
+                                                                            onChange={e => updateModalChecklistItem(idx, 'kiemTra', e.target.checked)}
+                                                                            className="w-5 h-5 text-blue-600 rounded cursor-pointer"
+                                                                        />
+                                                                        Đã kiểm tra
+                                                                    </label>
+                                                                    <select
+                                                                        value={item.tinhTrang}
+                                                                        onChange={e => updateModalChecklistItem(idx, 'tinhTrang', e.target.value)}
+                                                                        className={clsx(
+                                                                            "flex-1 text-xs border rounded px-2 py-1.5 outline-none bg-white min-w-[110px]",
+                                                                            (item.tinhTrang === 'Không đạt' || item.tinhTrang === 'N/A') ? "border-red-400 text-red-700 font-bold"
+                                                                                : item.tinhTrang === 'Đạt' ? "border-green-400 text-green-700 font-bold"
+                                                                                    : "border-slate-300"
+                                                                        )}
+                                                                    >
+                                                                        <option value="">-- Tình trạng --</option>
+                                                                        <option value="Đạt">Đạt</option>
+                                                                        <option value="Không đạt">Không đạt</option>
+                                                                        <option value="N/A">N/A</option>
+                                                                    </select>
+                                                                </div>
+                                                                {(needNote || item.ghiChu) && (
+                                                                    <input
+                                                                        type="text"
+                                                                        value={item.ghiChu}
+                                                                        onChange={e => updateModalChecklistItem(idx, 'ghiChu', e.target.value)}
+                                                                        placeholder={missing ? '⚠ Bắt buộc nhập ghi chú...' : 'Ghi chú...'}
+                                                                        className={clsx(
+                                                                            "w-full mt-2 text-xs border rounded px-2 py-1.5 outline-none",
+                                                                            missing ? "border-red-500 bg-red-50 placeholder-red-400 animate-pulse"
+                                                                                : "border-green-300 bg-green-50"
+                                                                        )}
+                                                                    />
+                                                                )}
+                                                            </div>
+                                                        );
+                                                    })}
+                                                </div>
+
+                                                {/* Desktop: table layout */}
+                                                <div className="hidden md:block overflow-x-auto rounded-lg border border-blue-200 shadow-sm">
                                                     <table className="w-full text-xs border-collapse min-w-[560px]">
                                                         <thead>
                                                             <tr className="bg-blue-700 text-white">
@@ -1559,26 +1638,13 @@ export default function MaintenancePage() {
                                                                         <td className="border border-blue-100 px-2 py-1.5 text-center font-bold text-slate-600">{item.stt}</td>
                                                                         <td className="border border-blue-100 px-2 py-1.5 text-slate-700 leading-snug">{item.noiDung}</td>
                                                                         <td className="border border-blue-100 px-2 py-1.5 text-center">
-                                                                            <input
-                                                                                type="checkbox"
-                                                                                checked={item.kiemTra}
-                                                                                onChange={e => updateModalChecklistItem(idx, 'kiemTra', e.target.checked)}
-                                                                                className="w-4 h-4 text-blue-600 rounded cursor-pointer"
-                                                                            />
+                                                                            <input type="checkbox" checked={item.kiemTra} onChange={e => updateModalChecklistItem(idx, 'kiemTra', e.target.checked)} className="w-4 h-4 text-blue-600 rounded cursor-pointer" />
                                                                         </td>
                                                                         <td className="border border-blue-100 px-1 py-1">
-                                                                            <select
-                                                                                value={item.tinhTrang}
-                                                                                onChange={e => updateModalChecklistItem(idx, 'tinhTrang', e.target.value)}
-                                                                                className={clsx(
-                                                                                    "w-full text-xs border rounded px-1 py-1 outline-none bg-white",
-                                                                                    (item.tinhTrang === 'Không đạt' || item.tinhTrang === 'N/A')
-                                                                                        ? "border-red-400 text-red-700 font-bold"
-                                                                                        : item.tinhTrang === 'Đạt'
-                                                                                            ? "border-green-400 text-green-700 font-bold"
-                                                                                            : "border-slate-200"
-                                                                                )}
-                                                                            >
+                                                                            <select value={item.tinhTrang} onChange={e => updateModalChecklistItem(idx, 'tinhTrang', e.target.value)}
+                                                                                className={clsx("w-full text-xs border rounded px-1 py-1 outline-none bg-white",
+                                                                                    (item.tinhTrang === 'Không đạt' || item.tinhTrang === 'N/A') ? "border-red-400 text-red-700 font-bold"
+                                                                                        : item.tinhTrang === 'Đạt' ? "border-green-400 text-green-700 font-bold" : "border-slate-200")}>
                                                                                 <option value="">--</option>
                                                                                 <option value="Đạt">Đạt</option>
                                                                                 <option value="Không đạt">Không đạt</option>
@@ -1586,18 +1652,11 @@ export default function MaintenancePage() {
                                                                             </select>
                                                                         </td>
                                                                         <td className="border border-blue-100 px-1 py-1">
-                                                                            <input
-                                                                                type="text"
-                                                                                value={item.ghiChu}
-                                                                                onChange={e => updateModalChecklistItem(idx, 'ghiChu', e.target.value)}
+                                                                            <input type="text" value={item.ghiChu} onChange={e => updateModalChecklistItem(idx, 'ghiChu', e.target.value)}
                                                                                 placeholder={needNote ? '⚠ Bắt buộc...' : 'Ghi chú...'}
-                                                                                className={clsx(
-                                                                                    "w-full text-xs border rounded px-1.5 py-1 outline-none",
+                                                                                className={clsx("w-full text-xs border rounded px-1.5 py-1 outline-none",
                                                                                     missing ? "border-red-500 bg-red-50 placeholder-red-400 animate-pulse"
-                                                                                        : needNote && item.ghiChu.trim() ? "border-green-400 bg-green-50"
-                                                                                            : "border-slate-200"
-                                                                                )}
-                                                                            />
+                                                                                        : needNote && item.ghiChu.trim() ? "border-green-400 bg-green-50" : "border-slate-200")} />
                                                                         </td>
                                                                     </tr>
                                                                 );
@@ -1605,6 +1664,7 @@ export default function MaintenancePage() {
                                                         </tbody>
                                                     </table>
                                                 </div>
+
                                                 <div className="mt-1.5 text-[10px] text-blue-600 font-medium">
                                                     ✅ Đã kiểm tra: {completeModalChecklist.filter(i => i.kiemTra).length}/{completeModalChecklist.length} hạng mục
                                                     &nbsp;|&nbsp; Đạt: {completeModalChecklist.filter(i => i.tinhTrang === 'Đạt').length}
