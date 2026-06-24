@@ -82,6 +82,9 @@ export default function MaintenancePage() {
     const [maintenanceLevel, setMaintenanceLevel] = useState<'1 tháng' | '6 tháng' | '12 tháng' | ''>('');
     const [vdgsChecklist, setVdgsChecklist] = useState<VdgsChecklistItem[]>([]);
 
+    // Level chọn khi xuất Word từ modal (dùng khi task cũ chưa có maintenanceLevel)
+    const [exportLevel, setExportLevel] = useState<'1 tháng' | '6 tháng' | '12 tháng' | ''>('');
+
     // Complete Modal State
     const [isCompleteModalOpen, setIsCompleteModalOpen] = useState(false);
     const [selectedTaskId, setSelectedTaskId] = useState<string | null>(null);
@@ -368,6 +371,7 @@ export default function MaintenancePage() {
         setSelectedTaskId(taskId);
         setCompleteNote('');
         setRemainingIssues('');
+        setExportLevel('');
         
         // Init with current local time
         const now = new Date();
@@ -489,9 +493,17 @@ export default function MaintenancePage() {
 
     const exportVdgsWordReport = async () => {
         const task = tasks.find(t => t.id === selectedTaskId);
-        if (!task || !task.vdgsChecklist) return;
+        if (!task) return;
 
-        const levelCode = task.maintenanceLevel === '1 tháng' ? '1T' : task.maintenanceLevel === '6 tháng' ? '6T' : '12T';
+        const level = (task.maintenanceLevel || exportLevel) as '1 tháng' | '6 tháng' | '12 tháng' | '';
+        if (!level) { alert('Vui lòng chọn cấp bảo dưỡng để xuất file Word!'); return; }
+
+        // Dùng checklist đã lưu hoặc lấy từ template nếu task cũ chưa có
+        const checklist: VdgsChecklistItem[] = task.vdgsChecklist?.length
+            ? task.vdgsChecklist
+            : (VDGS_CHECKLIST[level] || []).map(item => ({ stt: item.stt, noiDung: item.noiDung, kiemTra: false, tinhTrang: '', ghiChu: '' }));
+
+        const levelCode = level === '1 tháng' ? '1T' : level === '6 tháng' ? '6T' : '12T';
         const levelLabel = `CHI TIẾT KIỂM TRA BẢO DƯỠNG ${levelCode}`;
 
         // Format deadline date
@@ -650,7 +662,7 @@ export default function MaintenancePage() {
                                 cell('Tình trạng', { bold: true, center: true, width: 16 }),
                                 cell('Ghi chú', { bold: true, center: true, width: 16 }),
                             ]}),
-                            ...task.vdgsChecklist.map(item => new TableRow({ children: [
+                            ...checklist.map(item => new TableRow({ children: [
                                 cell(item.stt.toString(), { center: true }),
                                 cell(item.noiDung),
                                 cell(item.kiemTra ? '✓' : '', { center: true }),
@@ -1526,15 +1538,32 @@ export default function MaintenancePage() {
                             {/* Nút xuất Word — chỉ hiện với task VDGS có checklist */}
                             {(() => {
                                 const task = tasks.find(t => t.id === selectedTaskId);
-                                return task?.vdgsChecklist?.length ? (
-                                    <button
-                                        onClick={exportVdgsWordReport}
-                                        className="px-4 py-2 bg-emerald-600 text-white font-bold rounded shadow hover:bg-emerald-700 flex items-center gap-2 text-sm"
-                                        disabled={isCompleting}
-                                    >
-                                        <FileDown size={16} /> Xuất ra file Word
-                                    </button>
-                                ) : <span />;
+                                const isVdgs = task?.systemName?.toUpperCase().includes('VDGS');
+                                if (!isVdgs) return <span />;
+                                const hasLevel = !!(task?.maintenanceLevel || exportLevel);
+                                return (
+                                    <div className="flex items-center gap-2">
+                                        {!task?.maintenanceLevel && (
+                                            <select
+                                                value={exportLevel}
+                                                onChange={e => setExportLevel(e.target.value as '1 tháng' | '6 tháng' | '12 tháng' | '')}
+                                                className="text-xs border border-slate-300 rounded px-2 py-1.5 outline-none bg-white"
+                                            >
+                                                <option value="">-- Chọn cấp BD --</option>
+                                                <option value="1 tháng">1 tháng</option>
+                                                <option value="6 tháng">6 tháng</option>
+                                                <option value="12 tháng">12 tháng</option>
+                                            </select>
+                                        )}
+                                        <button
+                                            onClick={exportVdgsWordReport}
+                                            className={`px-3 py-1.5 font-bold rounded shadow flex items-center gap-1.5 text-sm text-white ${hasLevel ? 'bg-emerald-600 hover:bg-emerald-700' : 'bg-slate-300 cursor-not-allowed'}`}
+                                            disabled={isCompleting || !hasLevel}
+                                        >
+                                            <FileDown size={15} /> Xuất Word
+                                        </button>
+                                    </div>
+                                );
                             })()}
                             <div className="flex gap-3">
                                 <button
