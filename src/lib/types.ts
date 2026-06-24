@@ -70,6 +70,14 @@ export interface Incident {
   resolutionImageUrl?: string;
 }
 
+export interface VdgsChecklistItem {
+  stt: number;
+  noiDung: string;
+  kiemTra: boolean;
+  tinhTrang: string;
+  ghiChu: string;
+}
+
 export interface MaintenanceTask {
   id: string;
   title: string;
@@ -90,6 +98,8 @@ export interface MaintenanceTask {
   createdAt?: string;
   systemId?: string;
   systemName?: string;
+  maintenanceLevel?: '1 tháng' | '6 tháng' | '12 tháng';
+  vdgsChecklist?: VdgsChecklistItem[];
 }
 
 export interface SafetyCriteria {

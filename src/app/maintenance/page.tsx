@@ -5,7 +5,46 @@ import { useRouter } from 'next/navigation';
 import { ArrowLeft, Wrench, Calendar, CheckSquare, Plus, User as UserIcon, Clock, AlertTriangle, Camera, X, Image as ImageIcon, Loader2, Trash2, Edit2, PenTool, ChevronDown, ChevronUp, Search, Filter } from 'lucide-react';
 import { useUser } from '@/providers/UserProvider';
 import { IMESafeInput, IMESafeTextArea } from '@/components/IMESafeInput';
-import { MaintenanceTask, User, SystemCheck, SystemCategory } from '@/lib/types';
+import { MaintenanceTask, VdgsChecklistItem, User, SystemCheck, SystemCategory } from '@/lib/types';
+
+// Dữ liệu checklist VDGS theo cấp bảo dưỡng (từ tài liệu ADB Safegate)
+const VDGS_CHECKLIST: Record<string, { stt: number; noiDung: string }[]> = {
+    '1 tháng': [
+        { stt: 1, noiDung: 'Kiểm tra, vệ sinh các cửa sổ phía trước và phía hông của bộ quét laser và các tấm gương phản xạ, gương bảo vệ của hệ thống laser' },
+        { stt: 2, noiDung: 'Kiểm tra vệ sinh bảng điều khiển OP' },
+        { stt: 3, noiDung: 'Kiểm tra, vệ sinh phần mặt kính màn hình hiển thị OP, PD' },
+    ],
+    '6 tháng': [
+        { stt: 1, noiDung: 'Kiểm tra, vệ sinh các cửa sổ phía trước và phía hông của bộ quét laser và các tấm gương phản xạ, gương bảo vệ của hệ thống laser' },
+        { stt: 2, noiDung: 'Kiểm tra vệ sinh bảng điều khiển OP' },
+        { stt: 3, noiDung: 'Kiểm tra, vệ sinh phần mặt kính màn hình hiển thị OP, PD' },
+        { stt: 4, noiDung: 'Kiểm tra roăn cửa bộ quét laser' },
+        { stt: 5, noiDung: 'Vệ sinh ống kính laser' },
+        { stt: 6, noiDung: 'Kiểm tra chức năng tự động hiệu chuẩn của bộ quét laser' },
+        { stt: 7, noiDung: 'Kiểm tra thay thế các gương (nếu kiểm tra thấy hư hỏng)' },
+        { stt: 8, noiDung: 'Kiểm tra chức năng nút dừng khẩn cấp Emergency-Stop' },
+        { stt: 9, noiDung: 'Kiểm tra tấm phim phủ bề mặt OP' },
+        { stt: 10, noiDung: 'Kiểm tra hoạt động các phím chức năng tại OP' },
+        { stt: 11, noiDung: 'Kiểm tra hoạt động cảm biến nhiệt độ bằng OP' },
+        { stt: 12, noiDung: 'Walktest với các loại tàu bay được kẻ vạch dừng tại cầu dẫn hành khách' },
+    ],
+    '12 tháng': [
+        { stt: 1, noiDung: 'Kiểm tra, vệ sinh các cửa sổ phía trước và phía hông của bộ quét laser và các tấm gương phản xạ, gương bảo vệ của hệ thống laser' },
+        { stt: 2, noiDung: 'Kiểm tra vệ sinh bảng điều khiển OP' },
+        { stt: 3, noiDung: 'Kiểm tra, vệ sinh phần mặt kính màn hình hiển thị OP, PD' },
+        { stt: 4, noiDung: 'Kiểm tra roăn cửa bộ quét laser' },
+        { stt: 5, noiDung: 'Vệ sinh ống kính laser' },
+        { stt: 6, noiDung: 'Kiểm tra chức năng tự động hiệu chuẩn của bộ quét laser' },
+        { stt: 7, noiDung: 'Kiểm tra thay thế các gương (nếu kiểm tra thấy hư hỏng)' },
+        { stt: 8, noiDung: 'Kiểm tra chức năng nút dừng khẩn cấp Emergency-Stop' },
+        { stt: 9, noiDung: 'Kiểm tra tấm phim phủ bề mặt OP' },
+        { stt: 10, noiDung: 'Kiểm tra hoạt động các phím chức năng tại OP' },
+        { stt: 11, noiDung: 'Kiểm tra hoạt động cảm biến nhiệt độ bằng OP' },
+        { stt: 12, noiDung: 'Walktest với các loại tàu bay được kẻ vạch dừng tại cầu dẫn hành khách' },
+        { stt: 13, noiDung: 'Vệ sinh hút bụi bên trong thiết bị' },
+        { stt: 14, noiDung: 'Thay thế bộ lọc ở cửa gió vào và cửa ra gió cho hệ thống thông gió của màn hình. Vật tư theo danh sách phụ tùng ADB Safegate. (được trang bị đối với hệ thống loại T1)' },
+    ],
+};
 import clsx from 'clsx';
 import { subscribeToMaintenance, saveMaintenance, uploadImage, deleteMaintenance, subscribeToSystems, subscribeToCategories } from '@/lib/firebase';
 
@@ -37,6 +76,10 @@ export default function MaintenancePage() {
     // New: Multi-select state
     const [selectedUserCodes, setSelectedUserCodes] = useState<string[]>([]);
     const [selectedSupervisorCodes, setSelectedSupervisorCodes] = useState<string[]>([]);
+
+    // VDGS checklist state
+    const [maintenanceLevel, setMaintenanceLevel] = useState<'1 tháng' | '6 tháng' | '12 tháng' | ''>('');
+    const [vdgsChecklist, setVdgsChecklist] = useState<VdgsChecklistItem[]>([]);
 
     // Complete Modal State
     const [isCompleteModalOpen, setIsCompleteModalOpen] = useState(false);
@@ -159,6 +202,25 @@ export default function MaintenancePage() {
         );
     };
 
+    const handleMaintenanceLevelChange = (level: '1 tháng' | '6 tháng' | '12 tháng' | '') => {
+        setMaintenanceLevel(level);
+        if (level && VDGS_CHECKLIST[level]) {
+            setVdgsChecklist(VDGS_CHECKLIST[level].map(item => ({
+                stt: item.stt,
+                noiDung: item.noiDung,
+                kiemTra: false,
+                tinhTrang: '',
+                ghiChu: '',
+            })));
+        } else {
+            setVdgsChecklist([]);
+        }
+    };
+
+    const updateChecklistItem = (index: number, field: keyof VdgsChecklistItem, value: string | boolean) => {
+        setVdgsChecklist(prev => prev.map((item, i) => i === index ? { ...item, [field]: value } : item));
+    };
+
     const toggleSystemSelection = (id: string) => {
         if (isEditMode) {
             setSelectedSystemIds([id]);
@@ -228,8 +290,8 @@ export default function MaintenancePage() {
                     type: taskType,
                     description: desc,
                     deadline,
-                    assignees: selectedUserCodes, 
-                    assigneeNames: selectedNames, 
+                    assignees: selectedUserCodes,
+                    assigneeNames: selectedNames,
                     supervisors: selectedSupervisorCodes,
                     supervisorNames: selectedSupervisorNames,
                     assignedByName: currentUser?.name || 'Admin',
@@ -241,7 +303,9 @@ export default function MaintenancePage() {
                     remainingIssues: isEditMode && editingTaskId ? editRemainingIssues : '',
                     afterImageUrl: (isEditMode && editingTaskId ? uploadedAfterUrl : '') || undefined,
                     systemId: sysId,
-                    systemName: system?.name || ''
+                    systemName: system?.name || '',
+                    maintenanceLevel: maintenanceLevel || undefined,
+                    vdgsChecklist: vdgsChecklist.length > 0 ? vdgsChecklist : undefined,
                 };
 
                 return saveMaintenance(newTask);
@@ -260,6 +324,8 @@ export default function MaintenancePage() {
             setSystemSearch('');
             setBeforeImageFile(null);
             setBeforeImagePreview(null);
+            setMaintenanceLevel('');
+            setVdgsChecklist([]);
             setIsEditMode(false);
             setEditingTaskId(null);
             setViewMode('LIST');
@@ -355,7 +421,9 @@ export default function MaintenancePage() {
         setSelectedSupervisorCodes(task.supervisors || []);
         setSelectedSystemIds(task.systemId ? [task.systemId] : []);
         setBeforeImagePreview(task.beforeImageUrl || null);
-        
+        setMaintenanceLevel(task.maintenanceLevel || '');
+        setVdgsChecklist(task.vdgsChecklist ? [...task.vdgsChecklist] : []);
+
         // Populate completion fields if they exist
         setEditCompletedNote(task.completedNote || '');
         setEditRemainingIssues(task.remainingIssues || '');
@@ -378,6 +446,8 @@ export default function MaintenancePage() {
         setSystemSearch('');
         setBeforeImageFile(null);
         setBeforeImagePreview(null);
+        setMaintenanceLevel('');
+        setVdgsChecklist([]);
         setEditCompletedNote('');
         setEditRemainingIssues('');
         setEditAfterImagePreview(null);
@@ -659,6 +729,79 @@ export default function MaintenancePage() {
                                     value={desc}
                                     onChangeValue={(val: string) => setDesc(val)}
                                 />
+                            </div>
+
+                            {/* VDGS Checklist Section */}
+                            <div className="border border-blue-200 rounded-xl bg-blue-50/40 p-4">
+                                <label className="block text-sm font-bold text-blue-800 mb-2 uppercase tracking-wide">
+                                    📋 Checklist bảo dưỡng VDGS
+                                </label>
+                                <select
+                                    className="w-full border border-blue-300 rounded-lg p-2 focus:border-blue-500 outline-none bg-white text-sm mb-3"
+                                    value={maintenanceLevel}
+                                    onChange={e => handleMaintenanceLevelChange(e.target.value as '1 tháng' | '6 tháng' | '12 tháng' | '')}
+                                >
+                                    <option value="">-- Chọn cấp bảo dưỡng --</option>
+                                    <option value="1 tháng">Bảo dưỡng 1 tháng (3 hạng mục)</option>
+                                    <option value="6 tháng">Bảo dưỡng 6 tháng (12 hạng mục)</option>
+                                    <option value="12 tháng">Bảo dưỡng 12 tháng (14 hạng mục)</option>
+                                </select>
+
+                                {vdgsChecklist.length > 0 && (
+                                    <div className="overflow-x-auto rounded-lg border border-blue-200 shadow-sm">
+                                        <table className="w-full text-sm border-collapse min-w-[600px]">
+                                            <thead>
+                                                <tr className="bg-blue-700 text-white text-xs">
+                                                    <th className="border border-blue-600 px-2 py-2 text-center w-10">STT</th>
+                                                    <th className="border border-blue-600 px-3 py-2 text-left">Nội dung</th>
+                                                    <th className="border border-blue-600 px-2 py-2 text-center w-20">Kiểm tra</th>
+                                                    <th className="border border-blue-600 px-2 py-2 text-center w-28">Tình trạng</th>
+                                                    <th className="border border-blue-600 px-2 py-2 text-left w-36">Ghi chú</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody>
+                                                {vdgsChecklist.map((item, idx) => (
+                                                    <tr key={idx} className={idx % 2 === 0 ? 'bg-white' : 'bg-blue-50/30'}>
+                                                        <td className="border border-blue-100 px-2 py-1.5 text-center font-bold text-slate-600">{item.stt}</td>
+                                                        <td className="border border-blue-100 px-3 py-1.5 text-slate-700 leading-snug">{item.noiDung}</td>
+                                                        <td className="border border-blue-100 px-2 py-1.5 text-center">
+                                                            <input
+                                                                type="checkbox"
+                                                                checked={item.kiemTra}
+                                                                onChange={e => updateChecklistItem(idx, 'kiemTra', e.target.checked)}
+                                                                className="w-4 h-4 text-blue-600 rounded cursor-pointer"
+                                                            />
+                                                        </td>
+                                                        <td className="border border-blue-100 px-1 py-1">
+                                                            <select
+                                                                value={item.tinhTrang}
+                                                                onChange={e => updateChecklistItem(idx, 'tinhTrang', e.target.value)}
+                                                                className="w-full text-xs border border-slate-200 rounded px-1 py-1 focus:border-blue-400 outline-none bg-white"
+                                                            >
+                                                                <option value="">--</option>
+                                                                <option value="Đạt">Đạt</option>
+                                                                <option value="Không đạt">Không đạt</option>
+                                                                <option value="N/A">N/A</option>
+                                                            </select>
+                                                        </td>
+                                                        <td className="border border-blue-100 px-1 py-1">
+                                                            <input
+                                                                type="text"
+                                                                value={item.ghiChu}
+                                                                onChange={e => updateChecklistItem(idx, 'ghiChu', e.target.value)}
+                                                                placeholder="Ghi chú..."
+                                                                className="w-full text-xs border border-slate-200 rounded px-1.5 py-1 focus:border-blue-400 outline-none"
+                                                            />
+                                                        </td>
+                                                    </tr>
+                                                ))}
+                                            </tbody>
+                                        </table>
+                                        <div className="px-3 py-1.5 bg-blue-50 text-[10px] text-blue-600 font-medium border-t border-blue-100">
+                                            ✅ Đã kiểm tra: {vdgsChecklist.filter(i => i.kiemTra).length}/{vdgsChecklist.length} hạng mục
+                                        </div>
+                                    </div>
+                                )}
                             </div>
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                                 <div>
@@ -955,6 +1098,52 @@ export default function MaintenancePage() {
                                                         </div>
                                                     )}
                                                 </div>
+
+                                                {/* VDGS Checklist display */}
+                                                {task.vdgsChecklist && task.vdgsChecklist.length > 0 && (
+                                                    <div className="mt-3 border border-blue-200 rounded-xl overflow-hidden">
+                                                        <div className="bg-blue-700 text-white px-3 py-1.5 flex items-center justify-between">
+                                                            <span className="text-[10px] font-black uppercase tracking-widest">📋 Checklist VDGS — {task.maintenanceLevel}</span>
+                                                            <span className="text-[10px] bg-white/20 px-2 py-0.5 rounded-full">
+                                                                ✅ {task.vdgsChecklist.filter(i => i.kiemTra).length}/{task.vdgsChecklist.length} hạng mục
+                                                            </span>
+                                                        </div>
+                                                        <div className="overflow-x-auto">
+                                                            <table className="w-full text-xs border-collapse min-w-[500px]">
+                                                                <thead>
+                                                                    <tr className="bg-blue-50 text-slate-600">
+                                                                        <th className="border border-blue-100 px-2 py-1.5 text-center w-8">STT</th>
+                                                                        <th className="border border-blue-100 px-2 py-1.5 text-left">Nội dung</th>
+                                                                        <th className="border border-blue-100 px-2 py-1.5 text-center w-16">Kiểm tra</th>
+                                                                        <th className="border border-blue-100 px-2 py-1.5 text-center w-24">Tình trạng</th>
+                                                                        <th className="border border-blue-100 px-2 py-1.5 text-left w-32">Ghi chú</th>
+                                                                    </tr>
+                                                                </thead>
+                                                                <tbody>
+                                                                    {task.vdgsChecklist.map((item, idx) => (
+                                                                        <tr key={idx} className={idx % 2 === 0 ? 'bg-white' : 'bg-blue-50/20'}>
+                                                                            <td className="border border-blue-100 px-2 py-1 text-center font-bold text-slate-500">{item.stt}</td>
+                                                                            <td className="border border-blue-100 px-2 py-1 text-slate-700 leading-snug">{item.noiDung}</td>
+                                                                            <td className="border border-blue-100 px-2 py-1 text-center">
+                                                                                {item.kiemTra
+                                                                                    ? <span className="text-green-600 font-black">✓</span>
+                                                                                    : <span className="text-slate-300">—</span>}
+                                                                            </td>
+                                                                            <td className="border border-blue-100 px-2 py-1 text-center">
+                                                                                {item.tinhTrang ? (
+                                                                                    <span className={`px-1.5 py-0.5 rounded text-[10px] font-bold ${item.tinhTrang === 'Đạt' ? 'bg-green-100 text-green-700' : item.tinhTrang === 'Không đạt' ? 'bg-red-100 text-red-700' : 'bg-slate-100 text-slate-500'}`}>
+                                                                                        {item.tinhTrang}
+                                                                                    </span>
+                                                                                ) : <span className="text-slate-300">—</span>}
+                                                                            </td>
+                                                                            <td className="border border-blue-100 px-2 py-1 text-slate-600 italic">{item.ghiChu || '—'}</td>
+                                                                        </tr>
+                                                                    ))}
+                                                                </tbody>
+                                                            </table>
+                                                        </div>
+                                                    </div>
+                                                )}
 
                                                 {task.status === 'COMPLETED' && (
                                                     <div className="mt-4 pt-4 border-t border-slate-100">
