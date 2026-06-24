@@ -84,6 +84,8 @@ export default function MaintenancePage() {
 
     // Level chọn khi xuất Word từ modal (dùng khi task cũ chưa có maintenanceLevel)
     const [exportLevel, setExportLevel] = useState<'1 tháng' | '6 tháng' | '12 tháng' | ''>('');
+    // Level chọn trực tiếp trên card (taskId → level)
+    const [cardExportLevel, setCardExportLevel] = useState<Record<string, string>>({});
 
     // Complete Modal State
     const [isCompleteModalOpen, setIsCompleteModalOpen] = useState(false);
@@ -491,11 +493,12 @@ export default function MaintenancePage() {
         return sys?.name?.toUpperCase().includes('VDGS');
     });
 
-    const exportVdgsWordReport = async () => {
-        const task = tasks.find(t => t.id === selectedTaskId);
-        if (!task) return;
-
-        const level = (task.maintenanceLevel || exportLevel) as '1 tháng' | '6 tháng' | '12 tháng' | '';
+    const exportVdgsWordReport = async (
+        task: MaintenanceTask,
+        level: string,
+        completedDateStr: string,
+        remainingIssuesText: string
+    ) => {
         if (!level) { alert('Vui lòng chọn cấp bảo dưỡng để xuất file Word!'); return; }
 
         // Dùng checklist đã lưu hoặc lấy từ template nếu task cũ chưa có
@@ -509,14 +512,6 @@ export default function MaintenancePage() {
         // Format deadline date
         const deadlineParts = (task.deadline || '').split('-'); // YYYY-MM-DD
         const deadlineFormatted = deadlineParts.length === 3 ? `${deadlineParts[0]}-${deadlineParts[1]}-${deadlineParts[2]}` : task.deadline;
-
-        // Parse completedAt for display
-        let completedDateStr = '';
-        if (completedAtInput) {
-            const d = new Date(completedAtInput);
-            const pad = (n: number) => n.toString().padStart(2, '0');
-            completedDateStr = `${pad(d.getDate())}/${pad(d.getMonth() + 1)}/${d.getFullYear()}`;
-        }
 
         const singleBorder = { style: BorderStyle.SINGLE, size: 1, color: '000000' };
         const noBorder = { style: BorderStyle.NONE, size: 0, color: 'FFFFFF' };
@@ -602,7 +597,7 @@ export default function MaintenancePage() {
                             ]}),
                             new TableRow({ children: [
                                 cell('1', { center: true }),
-                                cell(remainingIssues || '...'),
+                                cell(remainingIssuesText || '...'),
                                 cell(''),
                             ]}),
                             new TableRow({ children: [cell('2', { center: true }), cell(''), cell('')] }),
@@ -1427,6 +1422,36 @@ export default function MaintenancePage() {
                                                                     </div>
                                                                 </div>
                                                             )}
+
+                                                            {/* Nút xuất Word cho task VDGS đã hoàn thành */}
+                                                            {task.systemName?.toUpperCase().includes('VDGS') && (
+                                                                <div className="mt-3 flex items-center gap-2 flex-wrap">
+                                                                    {!task.maintenanceLevel && (
+                                                                        <select
+                                                                            value={cardExportLevel[task.id] || ''}
+                                                                            onChange={e => setCardExportLevel(prev => ({ ...prev, [task.id]: e.target.value }))}
+                                                                            className="text-xs border border-slate-300 rounded px-2 py-1.5 outline-none bg-white"
+                                                                        >
+                                                                            <option value="">-- Chọn cấp BD --</option>
+                                                                            <option value="1 tháng">1 tháng</option>
+                                                                            <option value="6 tháng">6 tháng</option>
+                                                                            <option value="12 tháng">12 tháng</option>
+                                                                        </select>
+                                                                    )}
+                                                                    <button
+                                                                        onClick={() => {
+                                                                            const lv = task.maintenanceLevel || cardExportLevel[task.id] || '';
+                                                                            // task.completedAt format: "HH:mm dd/MM/yyyy" → take date part
+                                                                            const cdStr = task.completedAt ? (task.completedAt.split(' ')[1] || '') : '';
+                                                                            exportVdgsWordReport(task, lv, cdStr, task.remainingIssues || '');
+                                                                        }}
+                                                                        className={`px-3 py-1.5 font-bold rounded shadow flex items-center gap-1.5 text-sm text-white transition-all ${(task.maintenanceLevel || cardExportLevel[task.id]) ? 'bg-emerald-600 hover:bg-emerald-700' : 'bg-slate-300 cursor-not-allowed'}`}
+                                                                        disabled={!(task.maintenanceLevel || cardExportLevel[task.id])}
+                                                                    >
+                                                                        <FileDown size={15} /> Xuất ra file Word
+                                                                    </button>
+                                                                </div>
+                                                            )}
                                                         </div>
                                                     </div>
                                                 )}
@@ -1556,7 +1581,16 @@ export default function MaintenancePage() {
                                             </select>
                                         )}
                                         <button
-                                            onClick={exportVdgsWordReport}
+                                            onClick={() => {
+                                                if (!task) return;
+                                                const lv = (task.maintenanceLevel || exportLevel) as string;
+                                                const d = new Date(completedAtInput);
+                                                const pad = (n: number) => n.toString().padStart(2, '0');
+                                                const cdStr = completedAtInput
+                                                    ? `${pad(d.getDate())}/${pad(d.getMonth() + 1)}/${d.getFullYear()}`
+                                                    : '';
+                                                exportVdgsWordReport(task, lv, cdStr, remainingIssues);
+                                            }}
                                             className={`px-3 py-1.5 font-bold rounded shadow flex items-center gap-1.5 text-sm text-white ${hasLevel ? 'bg-emerald-600 hover:bg-emerald-700' : 'bg-slate-300 cursor-not-allowed'}`}
                                             disabled={isCompleting || !hasLevel}
                                         >
