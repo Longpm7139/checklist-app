@@ -86,6 +86,8 @@ export default function MaintenancePage() {
     const [exportLevel, setExportLevel] = useState<'1 tháng' | '6 tháng' | '12 tháng' | ''>('');
     // Level chọn trực tiếp trên card (taskId → level)
     const [cardExportLevel, setCardExportLevel] = useState<Record<string, string>>({});
+    // Checklist nhân viên điền khi báo cáo hoàn thành
+    const [completeModalChecklist, setCompleteModalChecklist] = useState<VdgsChecklistItem[]>([]);
 
     // Complete Modal State
     const [isCompleteModalOpen, setIsCompleteModalOpen] = useState(false);
@@ -223,8 +225,8 @@ export default function MaintenancePage() {
         }
     };
 
-    const updateChecklistItem = (index: number, field: keyof VdgsChecklistItem, value: string | boolean) => {
-        setVdgsChecklist(prev => prev.map((item, i) => i === index ? { ...item, [field]: value } : item));
+    const updateModalChecklistItem = (index: number, field: keyof VdgsChecklistItem, value: string | boolean) => {
+        setCompleteModalChecklist(prev => prev.map((item, i) => i === index ? { ...item, [field]: value } : item));
     };
 
     const toggleSystemSelection = (id: string) => {
@@ -275,15 +277,6 @@ export default function MaintenancePage() {
     const handleCreate = async () => {
         if (!title || selectedSystemIds.length === 0 || (selectedUserCodes.length === 0 && selectedSupervisorCodes.length === 0) || !deadline) {
             alert("Vui lòng nhập Tên, chọn ít nhất 1 Hệ thống, ít nhất 1 Người (Thực hiện hoặc Giám sát) và Hạn chót!");
-            return;
-        }
-
-        // Kiểm tra ghi chú bắt buộc cho các hạng mục "Không đạt" hoặc "N/A"
-        const missingNote = vdgsChecklist.find(
-            item => (item.tinhTrang === 'Không đạt' || item.tinhTrang === 'N/A') && !item.ghiChu.trim()
-        );
-        if (missingNote) {
-            alert(`Hạng mục ${missingNote.stt}: "${missingNote.noiDung.slice(0, 40)}..." có tình trạng "${missingNote.tinhTrang}" — bắt buộc phải nhập Ghi chú lý do!`);
             return;
         }
 
@@ -370,17 +363,34 @@ export default function MaintenancePage() {
     };
 
     const openCompleteModal = (taskId: string) => {
+        const task = tasks.find(t => t.id === taskId);
         setSelectedTaskId(taskId);
         setCompleteNote('');
         setRemainingIssues('');
         setExportLevel('');
-        
-        // Init with current local time
+
+        // Load checklist để nhân viên điền kiểm tra / tình trạng / ghi chú
+        const isVdgs = task?.systemName?.toUpperCase().includes('VDGS');
+        if (isVdgs) {
+            if (task?.vdgsChecklist?.length) {
+                // Đã có checklist — reset kiemTra + tinhTrang để nhân viên điền lại
+                setCompleteModalChecklist(task.vdgsChecklist.map(item => ({ ...item, kiemTra: false, tinhTrang: '', ghiChu: '' })));
+            } else if (task?.maintenanceLevel) {
+                const tmpl = VDGS_CHECKLIST[task.maintenanceLevel] || [];
+                setCompleteModalChecklist(tmpl.map(item => ({ ...item, kiemTra: false, tinhTrang: '', ghiChu: '' })));
+            } else {
+                setCompleteModalChecklist([]);
+            }
+        } else {
+            setCompleteModalChecklist([]);
+        }
+
+        // Init với giờ hiện tại
         const now = new Date();
         const pad = (n: number) => n.toString().padStart(2, '0');
         const localISO = `${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(now.getDate())}T${pad(now.getHours())}:${pad(now.getMinutes())}`;
         setCompletedAtInput(localISO);
-        
+
         setIsCompleteModalOpen(true);
     };
 
@@ -388,6 +398,17 @@ export default function MaintenancePage() {
         if (!selectedTaskId || !completeNote.trim()) {
             alert("Vui lòng nhập Ghi chú hoàn thành!");
             return;
+        }
+
+        // Validate checklist VDGS: Không đạt / N/A bắt buộc có Ghi chú
+        if (completeModalChecklist.length > 0) {
+            const missingNote = completeModalChecklist.find(
+                item => (item.tinhTrang === 'Không đạt' || item.tinhTrang === 'N/A') && !item.ghiChu.trim()
+            );
+            if (missingNote) {
+                alert(`Hạng mục ${missingNote.stt}: bắt buộc nhập Ghi chú khi tình trạng "${missingNote.tinhTrang}"!`);
+                return;
+            }
         }
 
         setIsCompleting(true);
@@ -414,7 +435,8 @@ export default function MaintenancePage() {
                     completedAt: formattedCompletedAt,
                     completedNote: completeNote,
                     remainingIssues: remainingIssues,
-                    afterImageUrl: uploadedAfterUrl
+                    afterImageUrl: uploadedAfterUrl,
+                    vdgsChecklist: completeModalChecklist.length > 0 ? completeModalChecklist : taskToUpdate.vdgsChecklist,
                 };
                 await saveMaintenance(updatedTask);
                 alert("Đã báo cáo hoàn thành bảo dưỡng!");
@@ -973,80 +995,25 @@ export default function MaintenancePage() {
                                 </select>
 
                                 {vdgsChecklist.length > 0 && (
-                                    <div className="overflow-x-auto rounded-lg border border-blue-200 shadow-sm">
-                                        <table className="w-full text-sm border-collapse min-w-[600px]">
+                                    <div className="rounded-lg border border-blue-200 shadow-sm overflow-hidden">
+                                        <table className="w-full text-sm border-collapse">
                                             <thead>
                                                 <tr className="bg-blue-700 text-white text-xs">
                                                     <th className="border border-blue-600 px-2 py-2 text-center w-10">STT</th>
-                                                    <th className="border border-blue-600 px-3 py-2 text-left">Nội dung</th>
-                                                    <th className="border border-blue-600 px-2 py-2 text-center w-20">Kiểm tra</th>
-                                                    <th className="border border-blue-600 px-2 py-2 text-center w-28">Tình trạng</th>
-                                                    <th className="border border-blue-600 px-2 py-2 text-left w-36">Ghi chú</th>
+                                                    <th className="border border-blue-600 px-3 py-2 text-left">Nội dung kiểm tra</th>
                                                 </tr>
                                             </thead>
                                             <tbody>
                                                 {vdgsChecklist.map((item, idx) => (
                                                     <tr key={idx} className={idx % 2 === 0 ? 'bg-white' : 'bg-blue-50/30'}>
-                                                        <td className="border border-blue-100 px-2 py-1.5 text-center font-bold text-slate-600">{item.stt}</td>
-                                                        <td className="border border-blue-100 px-3 py-1.5 text-slate-700 leading-snug">{item.noiDung}</td>
-                                                        <td className="border border-blue-100 px-2 py-1.5 text-center">
-                                                            <input
-                                                                type="checkbox"
-                                                                checked={item.kiemTra}
-                                                                onChange={e => updateChecklistItem(idx, 'kiemTra', e.target.checked)}
-                                                                className="w-4 h-4 text-blue-600 rounded cursor-pointer"
-                                                            />
-                                                        </td>
-                                                        <td className="border border-blue-100 px-1 py-1">
-                                                            <select
-                                                                value={item.tinhTrang}
-                                                                onChange={e => updateChecklistItem(idx, 'tinhTrang', e.target.value)}
-                                                                className={clsx(
-                                                                    "w-full text-xs border rounded px-1 py-1 outline-none bg-white",
-                                                                    (item.tinhTrang === 'Không đạt' || item.tinhTrang === 'N/A')
-                                                                        ? "border-red-400 focus:border-red-500 text-red-700 font-bold"
-                                                                        : "border-slate-200 focus:border-blue-400"
-                                                                )}
-                                                            >
-                                                                <option value="">--</option>
-                                                                <option value="Đạt">Đạt</option>
-                                                                <option value="Không đạt">Không đạt</option>
-                                                                <option value="N/A">N/A</option>
-                                                            </select>
-                                                        </td>
-                                                        <td className="border border-blue-100 px-1 py-1">
-                                                            {(() => {
-                                                                const needNote = item.tinhTrang === 'Không đạt' || item.tinhTrang === 'N/A';
-                                                                const missing = needNote && !item.ghiChu.trim();
-                                                                return (
-                                                                    <div className="relative">
-                                                                        <input
-                                                                            type="text"
-                                                                            value={item.ghiChu}
-                                                                            onChange={e => updateChecklistItem(idx, 'ghiChu', e.target.value)}
-                                                                            placeholder={needNote ? '⚠ Bắt buộc nhập lý do...' : 'Ghi chú...'}
-                                                                            className={clsx(
-                                                                                "w-full text-xs border rounded px-1.5 py-1 outline-none",
-                                                                                missing
-                                                                                    ? "border-red-500 bg-red-50 placeholder-red-400 focus:border-red-600 animate-pulse"
-                                                                                    : needNote && item.ghiChu.trim()
-                                                                                        ? "border-green-400 bg-green-50 focus:border-green-500"
-                                                                                        : "border-slate-200 focus:border-blue-400"
-                                                                            )}
-                                                                        />
-                                                                        {missing && (
-                                                                            <span className="absolute -top-3 right-0 text-[9px] font-black text-red-600 uppercase">Bắt buộc *</span>
-                                                                        )}
-                                                                    </div>
-                                                                );
-                                                            })()}
-                                                        </td>
+                                                        <td className="border border-blue-100 px-2 py-2 text-center font-bold text-slate-600">{item.stt}</td>
+                                                        <td className="border border-blue-100 px-3 py-2 text-slate-700 leading-snug">{item.noiDung}</td>
                                                     </tr>
                                                 ))}
                                             </tbody>
                                         </table>
                                         <div className="px-3 py-1.5 bg-blue-50 text-[10px] text-blue-600 font-medium border-t border-blue-100">
-                                            ✅ Đã kiểm tra: {vdgsChecklist.filter(i => i.kiemTra).length}/{vdgsChecklist.length} hạng mục
+                                            ℹ️ Nhân viên sẽ điền Kiểm tra / Tình trạng / Ghi chú khi Báo cáo Hoàn thành
                                         </div>
                                     </div>
                                 )}
@@ -1467,8 +1434,8 @@ export default function MaintenancePage() {
 
             {/* Complete Task Modal */}
             {isCompleteModalOpen && (
-                <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
-                    <div className="bg-white rounded-lg shadow-xl w-full max-w-md p-6">
+                <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4 overflow-y-auto">
+                    <div className="bg-white rounded-lg shadow-xl w-full max-w-2xl p-6 my-4">
                         <div className="mb-4 border-b pb-2">
                             <h3 className="text-lg font-black text-slate-800 uppercase tracking-tight">Báo cáo Hoàn thành</h3>
                             {(() => {
@@ -1526,6 +1493,86 @@ export default function MaintenancePage() {
                                     onChangeValue={(val: string) => setRemainingIssues(val)}
                                 />
                             </div>
+
+                            {/* Checklist VDGS — nhân viên điền khi báo cáo */}
+                            {completeModalChecklist.length > 0 && (
+                                <div className="border border-blue-200 rounded-xl bg-blue-50/30 p-3">
+                                    <div className="text-sm font-bold text-blue-800 mb-2 uppercase tracking-wide">
+                                        📋 Checklist bảo dưỡng VDGS — Nhân viên điền
+                                    </div>
+                                    <div className="overflow-x-auto rounded-lg border border-blue-200 shadow-sm">
+                                        <table className="w-full text-xs border-collapse min-w-[560px]">
+                                            <thead>
+                                                <tr className="bg-blue-700 text-white">
+                                                    <th className="border border-blue-600 px-2 py-2 text-center w-8">STT</th>
+                                                    <th className="border border-blue-600 px-2 py-2 text-left">Nội dung kiểm tra</th>
+                                                    <th className="border border-blue-600 px-2 py-2 text-center w-16">Kiểm tra</th>
+                                                    <th className="border border-blue-600 px-2 py-2 text-center w-24">Tình trạng</th>
+                                                    <th className="border border-blue-600 px-2 py-2 text-left w-32">Ghi chú</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody>
+                                                {completeModalChecklist.map((item, idx) => {
+                                                    const needNote = item.tinhTrang === 'Không đạt' || item.tinhTrang === 'N/A';
+                                                    const missing = needNote && !item.ghiChu.trim();
+                                                    return (
+                                                        <tr key={idx} className={idx % 2 === 0 ? 'bg-white' : 'bg-blue-50/20'}>
+                                                            <td className="border border-blue-100 px-2 py-1.5 text-center font-bold text-slate-600">{item.stt}</td>
+                                                            <td className="border border-blue-100 px-2 py-1.5 text-slate-700 leading-snug">{item.noiDung}</td>
+                                                            <td className="border border-blue-100 px-2 py-1.5 text-center">
+                                                                <input
+                                                                    type="checkbox"
+                                                                    checked={item.kiemTra}
+                                                                    onChange={e => updateModalChecklistItem(idx, 'kiemTra', e.target.checked)}
+                                                                    className="w-4 h-4 text-blue-600 rounded cursor-pointer"
+                                                                />
+                                                            </td>
+                                                            <td className="border border-blue-100 px-1 py-1">
+                                                                <select
+                                                                    value={item.tinhTrang}
+                                                                    onChange={e => updateModalChecklistItem(idx, 'tinhTrang', e.target.value)}
+                                                                    className={clsx(
+                                                                        "w-full text-xs border rounded px-1 py-1 outline-none bg-white",
+                                                                        (item.tinhTrang === 'Không đạt' || item.tinhTrang === 'N/A')
+                                                                            ? "border-red-400 text-red-700 font-bold"
+                                                                            : item.tinhTrang === 'Đạt'
+                                                                                ? "border-green-400 text-green-700 font-bold"
+                                                                                : "border-slate-200"
+                                                                    )}
+                                                                >
+                                                                    <option value="">--</option>
+                                                                    <option value="Đạt">Đạt</option>
+                                                                    <option value="Không đạt">Không đạt</option>
+                                                                    <option value="N/A">N/A</option>
+                                                                </select>
+                                                            </td>
+                                                            <td className="border border-blue-100 px-1 py-1">
+                                                                <input
+                                                                    type="text"
+                                                                    value={item.ghiChu}
+                                                                    onChange={e => updateModalChecklistItem(idx, 'ghiChu', e.target.value)}
+                                                                    placeholder={needNote ? '⚠ Bắt buộc...' : 'Ghi chú...'}
+                                                                    className={clsx(
+                                                                        "w-full text-xs border rounded px-1.5 py-1 outline-none",
+                                                                        missing ? "border-red-500 bg-red-50 placeholder-red-400 animate-pulse"
+                                                                            : needNote && item.ghiChu.trim() ? "border-green-400 bg-green-50"
+                                                                                : "border-slate-200"
+                                                                    )}
+                                                                />
+                                                            </td>
+                                                        </tr>
+                                                    );
+                                                })}
+                                            </tbody>
+                                        </table>
+                                    </div>
+                                    <div className="mt-1.5 text-[10px] text-blue-600 font-medium">
+                                        ✅ Đã kiểm tra: {completeModalChecklist.filter(i => i.kiemTra).length}/{completeModalChecklist.length} hạng mục
+                                        &nbsp;|&nbsp; Đạt: {completeModalChecklist.filter(i => i.tinhTrang === 'Đạt').length}
+                                        &nbsp;|&nbsp; Không đạt: {completeModalChecklist.filter(i => i.tinhTrang === 'Không đạt').length}
+                                    </div>
+                                </div>
+                            )}
 
                             <div className="pt-2">
                                 <label className="block text-sm font-bold text-slate-700 mb-2 flex items-center gap-2">
