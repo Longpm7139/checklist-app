@@ -2,7 +2,8 @@
 
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { ArrowLeft, Wrench, Calendar, CheckSquare, Plus, User as UserIcon, Clock, AlertTriangle, Camera, X, Image as ImageIcon, Loader2, Trash2, Edit2, PenTool, ChevronDown, ChevronUp, Search, Filter } from 'lucide-react';
+import { ArrowLeft, Wrench, Calendar, CheckSquare, Plus, User as UserIcon, Clock, AlertTriangle, Camera, X, Image as ImageIcon, Loader2, Trash2, Edit2, PenTool, ChevronDown, ChevronUp, Search, Filter, FileDown } from 'lucide-react';
+import { Document, Packer, Paragraph, TextRun, Table, TableRow, TableCell, BorderStyle, AlignmentType, WidthType } from 'docx';
 import { useUser } from '@/providers/UserProvider';
 import { IMESafeInput, IMESafeTextArea } from '@/components/IMESafeInput';
 import { MaintenanceTask, VdgsChecklistItem, User, SystemCheck, SystemCategory } from '@/lib/types';
@@ -485,6 +486,192 @@ export default function MaintenancePage() {
         const sys = availableSystems.find(s => s.id === id);
         return sys?.name?.toUpperCase().includes('VDGS');
     });
+
+    const exportVdgsWordReport = async () => {
+        const task = tasks.find(t => t.id === selectedTaskId);
+        if (!task || !task.vdgsChecklist) return;
+
+        const levelCode = task.maintenanceLevel === '1 tháng' ? '1T' : task.maintenanceLevel === '6 tháng' ? '6T' : '12T';
+        const levelLabel = `CHI TIẾT KIỂM TRA BẢO DƯỠNG ${levelCode}`;
+
+        // Format deadline date
+        const deadlineParts = (task.deadline || '').split('-'); // YYYY-MM-DD
+        const deadlineFormatted = deadlineParts.length === 3 ? `${deadlineParts[0]}-${deadlineParts[1]}-${deadlineParts[2]}` : task.deadline;
+
+        // Parse completedAt for display
+        let completedDateStr = '';
+        if (completedAtInput) {
+            const d = new Date(completedAtInput);
+            const pad = (n: number) => n.toString().padStart(2, '0');
+            completedDateStr = `${pad(d.getDate())}/${pad(d.getMonth() + 1)}/${d.getFullYear()}`;
+        }
+
+        const singleBorder = { style: BorderStyle.SINGLE, size: 1, color: '000000' };
+        const noBorder = { style: BorderStyle.NONE, size: 0, color: 'FFFFFF' };
+
+        const cell = (text: string, opts: { bold?: boolean; center?: boolean; width?: number; italic?: boolean; size?: number } = {}) =>
+            new TableCell({
+                width: opts.width ? { size: opts.width, type: WidthType.PERCENTAGE } : undefined,
+                children: [new Paragraph({
+                    alignment: opts.center ? AlignmentType.CENTER : AlignmentType.LEFT,
+                    children: [new TextRun({ text, bold: opts.bold, italics: opts.italic, size: opts.size ?? 20 })],
+                })],
+            });
+
+        const assigneeList = (task.assigneeNames || []).join(', ') || '...............';
+        const supervisorList = (task.supervisorNames || []).join(', ') || '...............';
+
+        const doc = new Document({
+            sections: [{
+                properties: {},
+                children: [
+                    // ── HEADER TABLE ──
+                    new Table({
+                        width: { size: 100, type: WidthType.PERCENTAGE },
+                        borders: { top: singleBorder, bottom: singleBorder, left: singleBorder, right: singleBorder, insideHorizontal: singleBorder, insideVertical: singleBorder },
+                        rows: [new TableRow({ children: [
+                            new TableCell({
+                                width: { size: 22, type: WidthType.PERCENTAGE },
+                                children: [
+                                    new Paragraph({ alignment: AlignmentType.CENTER, children: [new TextRun({ text: 'ACV', bold: true, size: 24 })] }),
+                                    new Paragraph({ alignment: AlignmentType.CENTER, children: [new TextRun({ text: 'TỔNG CÔNG TY CẢNG HÀNG KHÔNG VIỆT NAM - CTCP', size: 16 })] }),
+                                    new Paragraph({ alignment: AlignmentType.CENTER, children: [new TextRun({ text: 'AIRPORTS CORPORATION OF VIETNAM', size: 16, italics: true })] }),
+                                ],
+                            }),
+                            new TableCell({
+                                width: { size: 50, type: WidthType.PERCENTAGE },
+                                children: [
+                                    new Paragraph({ alignment: AlignmentType.CENTER, children: [new TextRun({ text: 'QUY TRÌNH BẢO DƯỠNG VÀ SỬA CHỮA TTBMB', bold: true, size: 20 })] }),
+                                    new Paragraph({ alignment: AlignmentType.CENTER, children: [new TextRun({ text: 'PROCEDURE OF GSE MAINTENANCE AND REPAIR', italics: true, size: 18 })] }),
+                                ],
+                            }),
+                            new TableCell({
+                                width: { size: 28, type: WidthType.PERCENTAGE },
+                                children: [
+                                    new Paragraph({ children: [new TextRun({ text: 'Ký hiệu: QT01/ACV-KTCN-TB', size: 16 })] }),
+                                    new Paragraph({ children: [new TextRun({ text: 'Code: QT01/ACV-KTCN-TB', size: 16 })] }),
+                                    new Paragraph({ children: [new TextRun({ text: 'Lần ban hành/sửa đổi: 02/00', size: 16 })] }),
+                                    new Paragraph({ children: [new TextRun({ text: 'Ngày hiệu lực: 01/4/2026', size: 16 })] }),
+                                ],
+                            }),
+                        ]})]
+                    }),
+
+                    // ── TITLE ──
+                    new Paragraph({ spacing: { before: 200 }, alignment: AlignmentType.CENTER, children: [new TextRun({ text: 'Biểu mẫu/Form: B06.53.QT01/KTCN-TB', size: 18 })] }),
+                    new Paragraph({ alignment: AlignmentType.CENTER, children: [new TextRun({ text: 'PHIẾU CÔNG TÁC BẢO DƯỠNG', bold: true, underline: {}, size: 28 })] }),
+                    new Paragraph({ spacing: { after: 200 }, alignment: AlignmentType.CENTER, children: [new TextRun({ text: 'MAINTENANCE CHECKLIST', bold: true, italics: true, size: 22 })] }),
+
+                    // ── SECTION 1 ──
+                    new Paragraph({ children: [new TextRun({ text: '1. TRANG THIẾT BỊ BẢO DƯỠNG/ EQUIPMENT:', bold: true, size: 22 })] }),
+                    new Paragraph({ children: [new TextRun({ text: '   1.1. Chủng loại / Type: Hệ thống dẫn đỗ tàu bay VDGS', size: 20 })] }),
+                    new Paragraph({ children: [new TextRun({ text: `   1.2. Số đăng ký / Registration No.: ${task.systemName}          Thời gian HĐ / Operating time: ${completedDateStr}`, size: 20 })] }),
+                    new Paragraph({ children: [new TextRun({ text: `   1.3. Phiếu công tác bảo dưỡng số / Checklist no: ${(task.systemId || '').replace(/\D/g, '').padStart(5, '0') || '00001'}          Ngày/ date: ${deadlineFormatted}`, size: 20 })] }),
+                    new Paragraph({ spacing: { after: 160 }, children: [new TextRun({ text: `   1.4. Cấp bảo dưỡng TTB / Maintenance level: ${levelCode}`, size: 20 })] }),
+
+                    // ── SECTION 2 ──
+                    new Paragraph({ children: [new TextRun({ text: '2. NGƯỜI THỰC HIỆN / CHECKED BY:', bold: true, size: 22 })] }),
+                    new Paragraph({ children: [new TextRun({ text: `   2.1. ${assigneeList}          Ngày nhận công việc / date: ${deadlineFormatted}`, size: 20 })] }),
+                    new Paragraph({ spacing: { after: 160 }, children: [new TextRun({ text: `   2.2. ${supervisorList}          Ngày nhận công việc / date: ${deadlineFormatted}`, size: 20 })] }),
+
+                    // ── SECTION 3 ──
+                    new Paragraph({ spacing: { after: 160 }, children: [new TextRun({ text: '3. NỘI DUNG BẢO DƯỠNG (ĐÍNH KÈM) / MAINTENANCE TASKS (ATTACHED)', bold: true, size: 22 })] }),
+
+                    // ── SECTION 4 ──
+                    new Paragraph({ children: [new TextRun({ text: '4. PHÁT SINH KHÁC / ARISING PROBLEM:', bold: true, size: 22 })] }),
+                    new Table({
+                        width: { size: 100, type: WidthType.PERCENTAGE },
+                        borders: { top: singleBorder, bottom: singleBorder, left: singleBorder, right: singleBorder, insideHorizontal: singleBorder, insideVertical: singleBorder },
+                        rows: [
+                            new TableRow({ children: [
+                                cell('No', { bold: true, center: true, width: 8 }),
+                                cell('Nội dung phát sinh / Arising content', { bold: true, center: true, width: 62 }),
+                                cell('Ghi chú / Remark', { bold: true, center: true, width: 30 }),
+                            ]}),
+                            new TableRow({ children: [
+                                cell('1', { center: true }),
+                                cell(remainingIssues || '...'),
+                                cell(''),
+                            ]}),
+                            new TableRow({ children: [cell('2', { center: true }), cell(''), cell('')] }),
+                        ]
+                    }),
+
+                    // ── SECTION 5 ──
+                    new Paragraph({ spacing: { before: 160 }, children: [new TextRun({ text: '5. NGHIỆM THU / CHECK AND TAKE OVER', bold: true, size: 22 })] }),
+                    new Paragraph({ children: [new TextRun({ text: `   5.1 Người thực hiện / checked by (ký/signature): ${assigneeList}`, size: 20 })] }),
+                    new Paragraph({ spacing: { after: 120 }, children: [new TextRun({ text: '   5.2. Xác nhận của đơn vị sử dụng / Approved by used unit', size: 20 })] }),
+                    new Table({
+                        width: { size: 100, type: WidthType.PERCENTAGE },
+                        borders: { top: singleBorder, bottom: singleBorder, left: singleBorder, right: singleBorder, insideHorizontal: noBorder, insideVertical: noBorder },
+                        rows: [new TableRow({ children: [
+                            new TableCell({ children: [new Paragraph({ children: [
+                                new TextRun({ text: 'Kết luận:   - Đạt YCKT, đưa TTB vào khai thác  [X]      - Không đạt  [  ]', bold: true, size: 20 }),
+                            ]})] }),
+                        ]})]
+                    }),
+
+                    // ── FOOTER ──
+                    new Paragraph({ spacing: { before: 200 } }),
+                    new Table({
+                        width: { size: 100, type: WidthType.PERCENTAGE },
+                        borders: { top: noBorder, bottom: noBorder, left: noBorder, right: noBorder, insideHorizontal: noBorder, insideVertical: noBorder },
+                        rows: [
+                            new TableRow({ children: [
+                                cell('PHÒNG/ĐỘI PVMB-KT/ GHS-TECH. DIVISION/TEAM', { bold: true, center: true, width: 50, size: 18 }),
+                                cell(`Ngày/ Date: ${deadlineFormatted}`, { center: true, width: 50, size: 18 }),
+                            ]}),
+                            new TableRow({ children: [
+                                cell('(ký tên/ signature)', { center: true, italic: true, size: 18 }),
+                                cell('ĐỘI/TỔ VHTTBMD/GSE OP. TEAM', { bold: true, center: true, size: 18 }),
+                            ]}),
+                            new TableRow({ children: [
+                                cell('', { width: 50 }),
+                                cell('(ký tên/ signature)', { center: true, italic: true, size: 18 }),
+                            ]}),
+                        ]
+                    }),
+
+                    // ── PAGE BREAK → PAGE 2 ──
+                    new Paragraph({ pageBreakBefore: true, children: [new TextRun({ text: '' })] }),
+
+                    // ── PAGE 2 TITLE ──
+                    new Paragraph({ spacing: { before: 200, after: 300 }, alignment: AlignmentType.CENTER, children: [new TextRun({ text: levelLabel, bold: true, size: 28 })] }),
+
+                    // ── CHECKLIST TABLE ──
+                    new Table({
+                        width: { size: 100, type: WidthType.PERCENTAGE },
+                        borders: { top: singleBorder, bottom: singleBorder, left: singleBorder, right: singleBorder, insideHorizontal: singleBorder, insideVertical: singleBorder },
+                        rows: [
+                            new TableRow({ tableHeader: true, children: [
+                                cell('Stt', { bold: true, center: true, width: 6 }),
+                                cell('Hạng mục kiểm tra', { bold: true, center: true, width: 50 }),
+                                cell('Kiểm tra', { bold: true, center: true, width: 12 }),
+                                cell('Tình trạng', { bold: true, center: true, width: 16 }),
+                                cell('Ghi chú', { bold: true, center: true, width: 16 }),
+                            ]}),
+                            ...task.vdgsChecklist.map(item => new TableRow({ children: [
+                                cell(item.stt.toString(), { center: true }),
+                                cell(item.noiDung),
+                                cell(item.kiemTra ? '✓' : '', { center: true }),
+                                cell(item.tinhTrang, { center: true }),
+                                cell(item.ghiChu),
+                            ]})),
+                        ]
+                    }),
+                ]
+            }]
+        });
+
+        const blob = await Packer.toBlob(doc);
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        const sysName = (task.systemName || 'VDGS').replace(/\s+/g, '_');
+        a.href = url;
+        a.download = `PhieuBaoDuong_${sysName}_${levelCode}_${deadlineFormatted.replace(/\//g, '-')}.docx`;
+        a.click();
+        URL.revokeObjectURL(url);
+    };
 
     // Helper: Group tasks by month
     const groupTasksByMonth = (taskList: MaintenanceTask[]) => {
@@ -1335,21 +1522,36 @@ export default function MaintenancePage() {
                             </div>
                         </div>
 
-                        <div className="flex justify-end gap-3 mt-6">
-                            <button
-                                onClick={() => setIsCompleteModalOpen(false)}
-                                className="px-4 py-2 text-slate-600 hover:bg-slate-100 rounded"
-                                disabled={isCompleting}
-                            >
-                                Hủy bỏ
-                            </button>
-                            <button
-                                onClick={handleConfirmComplete}
-                                className="px-6 py-2 bg-blue-600 text-white font-bold rounded shadow hover:bg-blue-700 flex items-center gap-2"
-                                disabled={isCompleting}
-                            >
-                                {isCompleting ? <Loader2 className="animate-spin" size={18} /> : 'Xác nhận Hoàn thành'}
-                            </button>
+                        <div className="flex justify-between items-center mt-6">
+                            {/* Nút xuất Word — chỉ hiện với task VDGS có checklist */}
+                            {(() => {
+                                const task = tasks.find(t => t.id === selectedTaskId);
+                                return task?.vdgsChecklist?.length ? (
+                                    <button
+                                        onClick={exportVdgsWordReport}
+                                        className="px-4 py-2 bg-emerald-600 text-white font-bold rounded shadow hover:bg-emerald-700 flex items-center gap-2 text-sm"
+                                        disabled={isCompleting}
+                                    >
+                                        <FileDown size={16} /> Xuất ra file Word
+                                    </button>
+                                ) : <span />;
+                            })()}
+                            <div className="flex gap-3">
+                                <button
+                                    onClick={() => setIsCompleteModalOpen(false)}
+                                    className="px-4 py-2 text-slate-600 hover:bg-slate-100 rounded"
+                                    disabled={isCompleting}
+                                >
+                                    Hủy bỏ
+                                </button>
+                                <button
+                                    onClick={handleConfirmComplete}
+                                    className="px-6 py-2 bg-blue-600 text-white font-bold rounded shadow hover:bg-blue-700 flex items-center gap-2"
+                                    disabled={isCompleting}
+                                >
+                                    {isCompleting ? <Loader2 className="animate-spin" size={18} /> : 'Xác nhận Hoàn thành'}
+                                </button>
+                            </div>
                         </div>
                     </div>
                 </div>
