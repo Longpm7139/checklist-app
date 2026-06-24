@@ -272,6 +272,15 @@ export default function MaintenancePage() {
             return;
         }
 
+        // Kiểm tra ghi chú bắt buộc cho các hạng mục "Không đạt" hoặc "N/A"
+        const missingNote = vdgsChecklist.find(
+            item => (item.tinhTrang === 'Không đạt' || item.tinhTrang === 'N/A') && !item.ghiChu.trim()
+        );
+        if (missingNote) {
+            alert(`Hạng mục ${missingNote.stt}: "${missingNote.noiDung.slice(0, 40)}..." có tình trạng "${missingNote.tinhTrang}" — bắt buộc phải nhập Ghi chú lý do!`);
+            return;
+        }
+
         setIsUploading(true);
         let uploadedBeforeUrl = beforeImagePreview;
         let uploadedAfterUrl = editAfterImagePreview;
@@ -798,7 +807,12 @@ export default function MaintenancePage() {
                                                             <select
                                                                 value={item.tinhTrang}
                                                                 onChange={e => updateChecklistItem(idx, 'tinhTrang', e.target.value)}
-                                                                className="w-full text-xs border border-slate-200 rounded px-1 py-1 focus:border-blue-400 outline-none bg-white"
+                                                                className={clsx(
+                                                                    "w-full text-xs border rounded px-1 py-1 outline-none bg-white",
+                                                                    (item.tinhTrang === 'Không đạt' || item.tinhTrang === 'N/A')
+                                                                        ? "border-red-400 focus:border-red-500 text-red-700 font-bold"
+                                                                        : "border-slate-200 focus:border-blue-400"
+                                                                )}
                                                             >
                                                                 <option value="">--</option>
                                                                 <option value="Đạt">Đạt</option>
@@ -807,13 +821,31 @@ export default function MaintenancePage() {
                                                             </select>
                                                         </td>
                                                         <td className="border border-blue-100 px-1 py-1">
-                                                            <input
-                                                                type="text"
-                                                                value={item.ghiChu}
-                                                                onChange={e => updateChecklistItem(idx, 'ghiChu', e.target.value)}
-                                                                placeholder="Ghi chú..."
-                                                                className="w-full text-xs border border-slate-200 rounded px-1.5 py-1 focus:border-blue-400 outline-none"
-                                                            />
+                                                            {(() => {
+                                                                const needNote = item.tinhTrang === 'Không đạt' || item.tinhTrang === 'N/A';
+                                                                const missing = needNote && !item.ghiChu.trim();
+                                                                return (
+                                                                    <div className="relative">
+                                                                        <input
+                                                                            type="text"
+                                                                            value={item.ghiChu}
+                                                                            onChange={e => updateChecklistItem(idx, 'ghiChu', e.target.value)}
+                                                                            placeholder={needNote ? '⚠ Bắt buộc nhập lý do...' : 'Ghi chú...'}
+                                                                            className={clsx(
+                                                                                "w-full text-xs border rounded px-1.5 py-1 outline-none",
+                                                                                missing
+                                                                                    ? "border-red-500 bg-red-50 placeholder-red-400 focus:border-red-600 animate-pulse"
+                                                                                    : needNote && item.ghiChu.trim()
+                                                                                        ? "border-green-400 bg-green-50 focus:border-green-500"
+                                                                                        : "border-slate-200 focus:border-blue-400"
+                                                                            )}
+                                                                        />
+                                                                        {missing && (
+                                                                            <span className="absolute -top-3 right-0 text-[9px] font-black text-red-600 uppercase">Bắt buộc *</span>
+                                                                        )}
+                                                                    </div>
+                                                                );
+                                                            })()}
                                                         </td>
                                                     </tr>
                                                 ))}
