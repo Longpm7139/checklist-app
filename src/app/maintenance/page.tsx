@@ -1467,8 +1467,9 @@ export default function MaintenancePage() {
 
             {/* Complete Task Modal */}
             {isCompleteModalOpen && (
-                <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4 overflow-y-auto">
-                    <div className="bg-white rounded-lg shadow-xl w-full max-w-2xl p-6 my-4">
+                <div className="fixed inset-0 bg-black/50 z-50 overflow-y-auto">
+                    <div className="flex min-h-full items-start justify-center p-4 py-8">
+                    <div className="bg-white rounded-lg shadow-xl w-full max-w-2xl p-6">
                         <div className="mb-4 border-b pb-2">
                             <h3 className="text-lg font-black text-slate-800 uppercase tracking-tight">Báo cáo Hoàn thành</h3>
                             {(() => {
@@ -1559,7 +1560,7 @@ export default function MaintenancePage() {
                                             </div>
                                         ) : (
                                             <>
-                                                <div className="space-y-2 max-h-[50vh] overflow-y-auto">
+                                                <div className="space-y-2">
                                                     {completeModalChecklist.map((item, idx) => {
                                                         const needNote = item.tinhTrang === 'Không đạt' || item.tinhTrang === 'N/A';
                                                         const missing = needNote && !item.ghiChu.trim();
@@ -1716,6 +1717,7 @@ export default function MaintenancePage() {
                                 </button>
                             </div>
                         </div>
+                    </div>
                     </div>
                 </div>
             )}
