@@ -1559,8 +1559,7 @@ export default function MaintenancePage() {
                                             </div>
                                         ) : (
                                             <>
-                                                {/* Mobile: card layout */}
-                                                <div className="md:hidden space-y-2">
+                                                <div className="space-y-2 max-h-[50vh] overflow-y-auto">
                                                     {completeModalChecklist.map((item, idx) => {
                                                         const needNote = item.tinhTrang === 'Không đạt' || item.tinhTrang === 'N/A';
                                                         const missing = needNote && !item.ghiChu.trim();
@@ -1570,7 +1569,7 @@ export default function MaintenancePage() {
                                                                 missing ? "border-red-300 bg-red-50/30" : "border-blue-100 bg-white"
                                                             )}>
                                                                 <div className="text-xs font-bold text-slate-600 mb-2 leading-snug">
-                                                                    <span className="inline-flex items-center justify-center w-5 h-5 rounded-full bg-blue-700 text-white text-[10px] mr-1.5">{item.stt}</span>
+                                                                    <span className="inline-flex items-center justify-center w-5 h-5 rounded-full bg-blue-700 text-white text-[10px] mr-1.5 shrink-0">{item.stt}</span>
                                                                     {item.noiDung}
                                                                 </div>
                                                                 <div className="flex gap-2 items-center flex-wrap">
@@ -1587,7 +1586,7 @@ export default function MaintenancePage() {
                                                                         value={item.tinhTrang}
                                                                         onChange={e => updateModalChecklistItem(idx, 'tinhTrang', e.target.value)}
                                                                         className={clsx(
-                                                                            "flex-1 text-xs border rounded px-2 py-1.5 outline-none bg-white min-w-[110px]",
+                                                                            "flex-1 text-xs border rounded px-2 py-2 outline-none bg-white min-w-[110px]",
                                                                             (item.tinhTrang === 'Không đạt' || item.tinhTrang === 'N/A') ? "border-red-400 text-red-700 font-bold"
                                                                                 : item.tinhTrang === 'Đạt' ? "border-green-400 text-green-700 font-bold"
                                                                                     : "border-slate-300"
@@ -1606,7 +1605,7 @@ export default function MaintenancePage() {
                                                                         onChange={e => updateModalChecklistItem(idx, 'ghiChu', e.target.value)}
                                                                         placeholder={missing ? '⚠ Bắt buộc nhập ghi chú...' : 'Ghi chú...'}
                                                                         className={clsx(
-                                                                            "w-full mt-2 text-xs border rounded px-2 py-1.5 outline-none",
+                                                                            "w-full mt-2 text-xs border rounded px-2 py-2 outline-none",
                                                                             missing ? "border-red-500 bg-red-50 placeholder-red-400 animate-pulse"
                                                                                 : "border-green-300 bg-green-50"
                                                                         )}
@@ -1615,54 +1614,6 @@ export default function MaintenancePage() {
                                                             </div>
                                                         );
                                                     })}
-                                                </div>
-
-                                                {/* Desktop: table layout */}
-                                                <div className="hidden md:block overflow-x-auto rounded-lg border border-blue-200 shadow-sm">
-                                                    <table className="w-full text-xs border-collapse min-w-[560px]">
-                                                        <thead>
-                                                            <tr className="bg-blue-700 text-white">
-                                                                <th className="border border-blue-600 px-2 py-2 text-center w-8">STT</th>
-                                                                <th className="border border-blue-600 px-2 py-2 text-left">Nội dung kiểm tra</th>
-                                                                <th className="border border-blue-600 px-2 py-2 text-center w-16">Kiểm tra</th>
-                                                                <th className="border border-blue-600 px-2 py-2 text-center w-24">Tình trạng</th>
-                                                                <th className="border border-blue-600 px-2 py-2 text-left w-32">Ghi chú</th>
-                                                            </tr>
-                                                        </thead>
-                                                        <tbody>
-                                                            {completeModalChecklist.map((item, idx) => {
-                                                                const needNote = item.tinhTrang === 'Không đạt' || item.tinhTrang === 'N/A';
-                                                                const missing = needNote && !item.ghiChu.trim();
-                                                                return (
-                                                                    <tr key={idx} className={idx % 2 === 0 ? 'bg-white' : 'bg-blue-50/20'}>
-                                                                        <td className="border border-blue-100 px-2 py-1.5 text-center font-bold text-slate-600">{item.stt}</td>
-                                                                        <td className="border border-blue-100 px-2 py-1.5 text-slate-700 leading-snug">{item.noiDung}</td>
-                                                                        <td className="border border-blue-100 px-2 py-1.5 text-center">
-                                                                            <input type="checkbox" checked={item.kiemTra} onChange={e => updateModalChecklistItem(idx, 'kiemTra', e.target.checked)} className="w-4 h-4 text-blue-600 rounded cursor-pointer" />
-                                                                        </td>
-                                                                        <td className="border border-blue-100 px-1 py-1">
-                                                                            <select value={item.tinhTrang} onChange={e => updateModalChecklistItem(idx, 'tinhTrang', e.target.value)}
-                                                                                className={clsx("w-full text-xs border rounded px-1 py-1 outline-none bg-white",
-                                                                                    (item.tinhTrang === 'Không đạt' || item.tinhTrang === 'N/A') ? "border-red-400 text-red-700 font-bold"
-                                                                                        : item.tinhTrang === 'Đạt' ? "border-green-400 text-green-700 font-bold" : "border-slate-200")}>
-                                                                                <option value="">--</option>
-                                                                                <option value="Đạt">Đạt</option>
-                                                                                <option value="Không đạt">Không đạt</option>
-                                                                                <option value="N/A">N/A</option>
-                                                                            </select>
-                                                                        </td>
-                                                                        <td className="border border-blue-100 px-1 py-1">
-                                                                            <input type="text" value={item.ghiChu} onChange={e => updateModalChecklistItem(idx, 'ghiChu', e.target.value)}
-                                                                                placeholder={needNote ? '⚠ Bắt buộc...' : 'Ghi chú...'}
-                                                                                className={clsx("w-full text-xs border rounded px-1.5 py-1 outline-none",
-                                                                                    missing ? "border-red-500 bg-red-50 placeholder-red-400 animate-pulse"
-                                                                                        : needNote && item.ghiChu.trim() ? "border-green-400 bg-green-50" : "border-slate-200")} />
-                                                                        </td>
-                                                                    </tr>
-                                                                );
-                                                            })}
-                                                        </tbody>
-                                                    </table>
                                                 </div>
 
                                                 <div className="mt-1.5 text-[10px] text-blue-600 font-medium">
