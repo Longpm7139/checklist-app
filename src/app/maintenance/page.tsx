@@ -1560,7 +1560,31 @@ export default function MaintenancePage() {
                                             </div>
                                         ) : (
                                             <>
-                                                <div className="space-y-2">
+                                                {/* Nút thao tác nhanh */}
+                                                <div className="flex gap-2 mb-2">
+                                                    <button
+                                                        type="button"
+                                                        onClick={() => setCompleteModalChecklist(prev => prev.map(item => ({ ...item, kiemTra: true, tinhTrang: 'Đạt' })))}
+                                                        className="flex-1 px-3 py-2 bg-green-600 text-white text-xs font-bold rounded-lg shadow hover:bg-green-700 active:scale-95 transition-all"
+                                                    >
+                                                        ✓ Tất cả Đạt
+                                                    </button>
+                                                    <button
+                                                        type="button"
+                                                        onClick={() => setCompleteModalChecklist(prev => prev.map(item => ({ ...item, kiemTra: false, tinhTrang: '', ghiChu: '' })))}
+                                                        className="px-3 py-2 bg-slate-200 text-slate-600 text-xs font-bold rounded-lg hover:bg-slate-300 active:scale-95 transition-all"
+                                                    >
+                                                        ↺ Xóa hết
+                                                    </button>
+                                                </div>
+
+                                                <div className="text-center text-[10px] text-blue-500 font-medium py-1">
+                                                    ↕ Cuộn lên/xuống để xem tất cả {completeModalChecklist.length} hạng mục
+                                                </div>
+                                                <div
+                                                    className="space-y-2 max-h-[45vh] overflow-y-scroll rounded-lg border border-blue-100 p-1"
+                                                    style={{ WebkitOverflowScrolling: 'touch', scrollbarWidth: 'thin', scrollbarColor: '#3b82f6 #e2e8f0' }}
+                                                >
                                                     {completeModalChecklist.map((item, idx) => {
                                                         const needNote = item.tinhTrang === 'Không đạt' || item.tinhTrang === 'N/A';
                                                         const missing = needNote && !item.ghiChu.trim();
