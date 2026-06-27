@@ -85,24 +85,21 @@ function ExportReportContent() {
                     properties: {},
                     children: [
                         // --- HEADER ---
-                        new Paragraph({
-                            children: [
-                                new TextRun({ text: "CỘNG HÒA XÃ HỘI CHỦ NGHĨA VIỆT NAM", bold: true, size: 24 }),
+                        new Table({
+                            width: { size: 100, type: WidthType.PERCENTAGE },
+                            borders: { top: { style: BorderStyle.NONE }, bottom: { style: BorderStyle.NONE }, left: { style: BorderStyle.NONE }, right: { style: BorderStyle.NONE }, insideVertical: { style: BorderStyle.NONE }, insideHorizontal: { style: BorderStyle.NONE } },
+                            rows: [
+                                new TableRow({ children: [
+                                    new TableCell({ width: { size: 45, type: WidthType.PERCENTAGE }, children: [
+                                        new Paragraph({ alignment: AlignmentType.CENTER, children: [new TextRun({ text: "TRUNG TÂM KHAI THÁC GA ĐÀ NẴNG", bold: true, size: 22 })] }),
+                                        new Paragraph({ alignment: AlignmentType.CENTER, children: [new TextRun({ text: "ĐỘI CƠ KHÍ ĐIỆN TỬ", bold: true, size: 22 })] }),
+                                    ]}),
+                                    new TableCell({ width: { size: 55, type: WidthType.PERCENTAGE }, children: [
+                                        new Paragraph({ alignment: AlignmentType.CENTER, children: [new TextRun({ text: "CỘNG HÒA XÃ HỘI CHỦ NGHĨA VIỆT NAM", bold: true, size: 22 })] }),
+                                        new Paragraph({ alignment: AlignmentType.CENTER, children: [new TextRun({ text: "Độc lập - Tự do - Hạnh phúc", bold: true, italics: true, size: 22 })] }),
+                                    ]}),
+                                ]}),
                             ],
-                            alignment: AlignmentType.CENTER,
-                        }),
-                        new Paragraph({
-                            children: [
-                                new TextRun({ text: "Độc lập - Tự do - Hạnh phúc", bold: true, size: 24 }),
-                            ],
-                            alignment: AlignmentType.CENTER,
-                        }),
-                        new Paragraph({
-                            children: [
-                                new TextRun({ text: "-----------------------", bold: true, size: 24 }),
-                            ],
-                            alignment: AlignmentType.CENTER,
-                            spacing: { after: 400 }
                         }),
                         new Paragraph({
                             children: [
@@ -196,15 +193,13 @@ function ExportReportContent() {
                             rows: [
                                 new TableRow({
                                     children: [
-                                        new TableCell({ children: [new Paragraph({ children: [new TextRun({ text: "Người Lập Báo Cáo", bold: true })], alignment: AlignmentType.CENTER })], width: { size: 33, type: WidthType.PERCENTAGE } }),
-                                        new TableCell({ children: [new Paragraph({ children: [new TextRun({ text: "Đội Trưởng", bold: true })], alignment: AlignmentType.CENTER })], width: { size: 33, type: WidthType.PERCENTAGE } }),
-                                        new TableCell({ children: [new Paragraph({ children: [new TextRun({ text: "Phê Duyệt", bold: true })], alignment: AlignmentType.CENTER })], width: { size: 34, type: WidthType.PERCENTAGE } }),
+                                        new TableCell({ children: [new Paragraph({ children: [new TextRun({ text: "Người Lập Báo Cáo", bold: true })], alignment: AlignmentType.CENTER })], width: { size: 50, type: WidthType.PERCENTAGE } }),
+                                        new TableCell({ children: [new Paragraph({ children: [new TextRun({ text: "Đội Trưởng", bold: true })], alignment: AlignmentType.CENTER })], width: { size: 50, type: WidthType.PERCENTAGE } }),
                                     ]
                                 }),
                                 new TableRow({
                                     children: [
                                         new TableCell({ children: [new Paragraph({ text: "\n\n\n(Ký và ghi rõ họ tên)", alignment: AlignmentType.CENTER })] }),
-                                        new TableCell({ children: [new Paragraph({ text: `\n\n\n${user?.name || ''}`, alignment: AlignmentType.CENTER })] }),
                                         new TableCell({ children: [new Paragraph({ text: "\n\n\n(Ký và ghi rõ họ tên)", alignment: AlignmentType.CENTER })] }),
                                     ]
                                 })
