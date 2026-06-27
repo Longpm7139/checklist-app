@@ -3,8 +3,8 @@
 import React, { useState, useEffect, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { ArrowLeft, Download, FileText, Calendar, CheckSquare, List, Activity, Settings, User, AlertTriangle, ShieldCheck, Wrench } from 'lucide-react';
-import { subscribeToSystems, subscribeToIncidents, subscribeToMaintenance, subscribeToDuties } from '@/lib/firebase';
-import { SystemCheck, Incident, MaintenanceTask } from '@/lib/types';
+import { subscribeToSystems, subscribeToIncidents, subscribeToMaintenance, subscribeToDuties, subscribeToCategories } from '@/lib/firebase';
+import { SystemCheck, SystemCategory, Incident, MaintenanceTask } from '@/lib/types';
 import { useUser } from '@/providers/UserProvider';
 import { Document, Packer, Paragraph, TextRun, Table, TableRow, TableCell, BorderStyle, AlignmentType, WidthType, HeadingLevel } from 'docx';
 import { saveAs } from 'file-saver';
@@ -16,6 +16,7 @@ function ExportReportContent() {
     const queryShift = searchParams.get('shift');
     const { user } = useUser();
     const [systems, setSystems] = useState<SystemCheck[]>([]);
+    const [categories, setCategories] = useState<SystemCategory[]>([]);
     const [incidents, setIncidents] = useState<Incident[]>([]);
     const [tasks, setTasks] = useState<MaintenanceTask[]>([]);
     const [duties, setDuties] = useState<any[]>([]);
@@ -31,12 +32,14 @@ function ExportReportContent() {
 
     useEffect(() => {
         const unsubSys = subscribeToSystems(data => setSystems(data as SystemCheck[]));
+        const unsubCat = subscribeToCategories(data => setCategories(data as SystemCategory[]));
         const unsubInc = subscribeToIncidents(data => setIncidents(data as Incident[]));
         const unsubTasks = subscribeToMaintenance(data => setTasks(data as MaintenanceTask[]));
         const unsubDuties = subscribeToDuties(data => setDuties(data));
 
         return () => {
             unsubSys();
+            unsubCat();
             unsubInc();
             unsubTasks();
             unsubDuties();
@@ -59,6 +62,15 @@ function ExportReportContent() {
     const nokSystems = systems.filter(s => s.status === 'NOK').length;
     const naSystems = systems.filter(s => s.status === 'NA').length;
     const nokItemsList = systems.filter(s => s.status === 'NOK');
+
+    // Nhóm thiết bị theo category (A, B, C, ...)
+    const categorySystemCounts = categories
+        .filter(c => c.isActive !== false)
+        .map(cat => {
+            const count = systems.filter(s => s.categoryId === cat.id).length;
+            return { name: cat.name, count };
+        })
+        .filter(c => c.count > 0);
 
     // Filter incidents and tasks for that date based on createdAt strings matching DD/MM/YYYY
     const todaysIncidents = incidents.filter(i => i.createdAt.includes(formattedDateString));
@@ -109,7 +121,15 @@ function ExportReportContent() {
 
                         // --- SECTION 2: TÓM TẮT ---
                         new Paragraph({ text: "2. TÓM TẮT TÌNH TRẠNG HỆ THỐNG", heading: HeadingLevel.HEADING_2, spacing: { before: 200, after: 100 } }),
-                        new Paragraph({ children: [new TextRun({ text: `Kíp trực đã tiến hành kiểm tra tổng số ${totalSystems} hệ thống thiết bị. Tình trạng chi tiết:` })], spacing: { after: 100 } }),
+                        new Paragraph({ children: [new TextRun({ text: `Kíp trực đã tiến hành kiểm tra tổng số ${totalSystems} hệ thống thiết bị.` })], spacing: { after: 80 } }),
+                        new Paragraph({ children: [new TextRun({ text: "Các hệ thống như:" })], spacing: { after: 40 } }),
+                        ...categorySystemCounts.map(cat =>
+                            new Paragraph({
+                                children: [new TextRun({ text: `    ${cat.name} (${cat.count} thiết bị)` })],
+                                spacing: { after: 20 },
+                            })
+                        ),
+                        new Paragraph({ children: [new TextRun({ text: "Tình trạng chi tiết:" })], spacing: { before: 80, after: 60 } }),
                         new Paragraph({ children: [new TextRun({ text: " • Hoạt động bình thường (OK): ", bold: true }), new TextRun({ text: okSystems.toString() })] }),
                         new Paragraph({ children: [new TextRun({ text: " • Đang có lỗi/hư hỏng (NOK): ", bold: true }), new TextRun({ text: nokSystems.toString() })] }),
                         new Paragraph({ children: [new TextRun({ text: " • Không hoạt động/Bảo trì (N/A): ", bold: true }), new TextRun({ text: naSystems.toString() })] }),
