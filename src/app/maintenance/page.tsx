@@ -60,6 +60,7 @@ export default function MaintenancePage() {
     const [statusFilter, setStatusFilter] = useState<'ALL' | 'PENDING' | 'COMPLETED'>('ALL');
     const [expandedGroups, setExpandedGroups] = useState<string[]>([]);
     const [listSearch, setListSearch] = useState('');
+    const [expandedChecklistTaskIds, setExpandedChecklistTaskIds] = useState<string[]>([]);
 
     // Form State
     const [title, setTitle] = useState('');
@@ -1327,15 +1328,28 @@ export default function MaintenancePage() {
                                                     )}
                                                 </div>
 
-                                                {/* VDGS Checklist display */}
-                                                {task.vdgsChecklist && task.vdgsChecklist.length > 0 && (
+                                                {/* VDGS Checklist display — thu gọn, bấm để mở */}
+                                                {task.vdgsChecklist && task.vdgsChecklist.length > 0 && (() => {
+                                                    const isExpanded = expandedChecklistTaskIds.includes(task.id);
+                                                    const toggleExpanded = () => setExpandedChecklistTaskIds(prev =>
+                                                        prev.includes(task.id) ? prev.filter(id => id !== task.id) : [...prev, task.id]
+                                                    );
+                                                    return (
                                                     <div className="mt-3 border border-blue-200 rounded-xl overflow-hidden">
-                                                        <div className="bg-blue-700 text-white px-3 py-1.5 flex items-center justify-between">
-                                                            <span className="text-[10px] font-black uppercase tracking-widest">📋 Checklist VDGS — {task.maintenanceLevel}</span>
+                                                        <button
+                                                            type="button"
+                                                            onClick={toggleExpanded}
+                                                            className="w-full bg-blue-700 text-white px-3 py-1.5 flex items-center justify-between hover:bg-blue-800 transition-colors"
+                                                        >
+                                                            <span className="text-[10px] font-black uppercase tracking-widest flex items-center gap-1.5">
+                                                                {isExpanded ? <ChevronUp size={13} /> : <ChevronDown size={13} />}
+                                                                📋 Checklist VDGS — {task.maintenanceLevel}
+                                                            </span>
                                                             <span className="text-[10px] bg-white/20 px-2 py-0.5 rounded-full">
                                                                 ✅ {task.vdgsChecklist.filter(i => i.kiemTra).length}/{task.vdgsChecklist.length} hạng mục
                                                             </span>
-                                                        </div>
+                                                        </button>
+                                                        {isExpanded && <>
                                                         {/* Mobile: card list */}
                                                         <div className="md:hidden divide-y divide-blue-100">
                                                             {task.vdgsChecklist.map((item, idx) => (
@@ -1390,8 +1404,10 @@ export default function MaintenancePage() {
                                                                 </tbody>
                                                             </table>
                                                         </div>
+                                                        </>}
                                                     </div>
-                                                )}
+                                                    );
+                                                })()}
 
                                                 {task.status === 'COMPLETED' && (
                                                     <div className="mt-4 pt-4 border-t border-slate-100">
